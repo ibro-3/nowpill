@@ -1,24 +1,25 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/enums.dart';
+import '../../domain/recurrence.dart' as engine;
 import '../../domain/recurrence_rule.dart';
 import '../db/app_database.dart';
 import '../db/daos/tasks_dao.dart';
 
 /// Computes the next due date for a recurring task, anchored to [anchor].
 ///
-/// Implemented by the pure recurrence engine (Phase 3). Injected here so the
-/// repository's completion flow can be tested before the engine exists.
+/// Defaults to the pure recurrence engine; injectable for testing.
 typedef NextDueDateFn = DateTime Function(DateTime anchor, RecurrenceRule rule);
 
 /// Feature-level API for tasks. Wraps `TasksDao` with multi-step operations
 /// (completion + recurrence spawn, subtask/tag coordination) and exposes
 /// Drift streams for reactive UI.
 class TaskRepository {
-  TaskRepository(this._db, {this._nextDueDate});
+  TaskRepository(this._db, {NextDueDateFn? nextDueDate})
+    : _nextDueDate = nextDueDate ?? engine.nextOccurrence;
 
   final AppDatabase _db;
-  final NextDueDateFn? _nextDueDate;
+  final NextDueDateFn _nextDueDate;
 
   TasksDao get _tasks => _db.tasksDao;
 
@@ -72,9 +73,9 @@ class TaskRepository {
   // Completion
   // ---------------------------------------------------------------------------
 
-  /// Marks a task complete. If it is recurring and a [NextDueDateFn] is
-  /// available, spawns the next occurrence (history is preserved on the
-  /// completed row). Returns the spawned task's id, or null.
+  /// Marks a task complete. If it is recurring, spawns the next occurrence
+  /// using the recurrence engine (history is preserved on the completed row).
+  /// Returns the spawned task's id, or null for one-off tasks.
   ///
   /// Runs in a transaction so completion + spawn are atomic.
   Future<int?> complete(int id, {DateTime? at}) async {
@@ -87,7 +88,7 @@ class TaskRepository {
 
       final rule = task.recurrenceRule;
       final anchor = task.dueAt;
-      if (rule == null || anchor == null || _nextDueDate == null) return null;
+      if (rule == null || anchor == null) return null;
 
       final nextDue = _nextDueDate(anchor, rule);
       return _tasks.insertTask(
