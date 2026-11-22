@@ -1,0 +1,63 @@
+# M3E Spike Decision (Phase 1)
+
+Date: 2026-11-22 · Package evaluated: `material_3_expressive` 1.2.3 (pinned exact)
+
+## Verdict: ADOPT (hybrid route, as planned)
+
+Evaluated the package source + example gallery structure in
+`~/.pub-cache/hosted/pub.dev/material_3_expressive-1.2.3/`.
+
+### Why adopt
+- Faithful M3 Expressive implementation: 44 components, spring press feedback,
+  shape morphing, state layers, focus rings, shared haptics.
+- Foundations are complete and well-architected:
+  - `M3EThemeData` / `M3ETheme` / `M3EThemeScope`: adaptive light/dark with
+    `deriveDarkTemplate`, controller-based overrides, dynamic color host.
+  - `M3ETypography`: full baseline + emphasized M3E type scales (30 styles),
+    static & variable token tables, per-role variable-font axis config.
+  - `M3EMotion` + `M3ESpring`: published M3E spring tokens (matches `motor`'s
+    `MaterialSpringMotion` values).
+  - Shape system bridges `material_new_shapes` (pill, cookie, clover, burst…).
+- Built on the official stack: `material_ui` ^1.11.1, `motor` ^1.1.0,
+  `material_new_shapes` ^1.0.0, `dynamic_color` ^2.1.0 — same deps we planned.
+- Some components honor `MediaQuery.disableAnimations` (sheets, carousel);
+  our `MotionScope` publishes it app-wide for reduce-motion.
+
+### Adopted components (Phase 1)
+`M3ETheme` (adaptive host), `M3EAppBar.top`, `M3ENavigationBar`,
+`M3ENavigationRail`, `M3EIconButton`, `M3ECard`, `M3ESegmentedButton`,
+`M3ESwitch`, `M3EShapeContainer`, `M3EIcons`, `M3ETooltip` (via icon buttons).
+
+### Reserved for later phases
+`M3EBottomSheet` (task/habit editors), `M3EButton`/`M3EButtonGroup` (filter
+chips), `M3ETextField`, `M3ECheckbox`, `M3EDatePicker`/`M3ETimePicker`,
+`M3EDialog`, `M3ESnackbar`, `M3EFab`, `M3ELoadingIndicator`.
+
+### Hand-built signatures (unchanged from plan)
+Check-pill morph, heatmap cells, spring progress ring, token wallet,
+celebrations — built on `motor` springs + `material_new_shapes` morphs via
+`AppMotion`/`MotionTokens`.
+
+### Integration notes / gotchas discovered
+1. `M3EMaterialApp` owns its navigator (no `routerConfig`) → we use
+   `MaterialApp.router` + inner adaptive `M3ETheme` instead. `M3ETheme.of`
+   reads the same `M3EThemeScope`, so components resolve identically.
+2. Do NOT bake `onSurface` into typography (`withColor`) — derived dark
+   templates keep the light color and go dark-on-dark. Leave color unset;
+   `M3EResolvedTheme`'s `DefaultTextStyle` + the `textTheme` getter handle it.
+3. `M3EThemeData` constructor has no `fontFamily` param — apply the family via
+   `typography.apply(fontFamily: ...)` (and `copyWith(fontFamily:)` if needed).
+4. Nunito exposes only `wght`: use static token tables
+   (`M3ETypography.material3()`), never `M3ETypeScaleMode.variable` or
+   `M3EVariableFontConfig` (they emit GRAD/ROND/opsz for Roboto Flex).
+5. `M3EIconButton` tooltips use `M3ETooltip` + `Semantics`, not Material
+   `Tooltip` → tests find buttons via `find.bySemanticsLabel(...)`.
+6. `pumpAndSettle` never settles with M3E springs/indicators running → tests
+   use bounded `pump(duration)` sequences.
+7. Settings route can be entered directly (deep link) → back button uses
+   `context.canPop()` with `context.go(today)` fallback.
+
+### Fallback (if the package regresses)
+All adopted components have direct `material_ui` equivalents; motion tokens
+come from `motor` (official values) and shapes from `material_new_shapes`, so
+a swap would not touch feature logic — only widget constructors.
