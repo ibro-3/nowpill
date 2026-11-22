@@ -34,20 +34,6 @@ class TodayScreen extends StatelessWidget {
   }
 }
 
-/// Placeholder for the Tasks feature (built in Phase 4).
-class TasksScreen extends StatelessWidget {
-  const TasksScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _FeaturePlaceholder(
-      icon: M3EIcons.checklist,
-      title: 'Tasks',
-      message: 'To-dos with due dates, subtasks, tags, and recurrence.',
-    );
-  }
-}
-
 /// Placeholder for the Habits feature (built in Phase 5).
 class HabitsScreen extends StatelessWidget {
   const HabitsScreen({super.key});

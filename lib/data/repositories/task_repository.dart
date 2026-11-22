@@ -137,6 +137,8 @@ class TaskRepository {
 
   Future<int> deleteSubtask(int id) => _tasks.deleteSubtask(id);
 
+  Future<bool> updateSubtask(Subtask subtask) => _tasks.updateSubtask(subtask);
+
   Future<List<Subtask>> getSubtasks(int taskId) => _tasks.getSubtasks(taskId);
 
   // ---------------------------------------------------------------------------
@@ -145,4 +147,7 @@ class TaskRepository {
 
   Future<void> setTags(int taskId, Iterable<int> tagIds) =>
       _tasks.setTaskTags(taskId, tagIds);
+
+  /// All task→tag links, reactive (for tag filtering).
+  Stream<List<TaskTag>> watchAllTaskTags() => _tasks.watchAllTaskTags();
 }

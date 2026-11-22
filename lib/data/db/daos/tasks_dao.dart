@@ -114,4 +114,7 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
 
   /// All tag links (for export and aggregate views).
   Future<List<TaskTag>> getAllTaskTags() => select(taskTags).get();
+
+  /// All tag links, reactive (for tag filtering).
+  Stream<List<TaskTag>> watchAllTaskTags() => select(taskTags).watch();
 }

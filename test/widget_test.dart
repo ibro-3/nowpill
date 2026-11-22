@@ -1,7 +1,11 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'data/test_database.dart';
 
 void main() {
   setUp(() {
@@ -21,7 +25,13 @@ void main() {
   });
 
   testWidgets('Bottom navigation switches tabs', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: NowPillApp()));
+    final db = createTestDatabase();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const NowPillApp(),
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
@@ -31,9 +41,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(
-      find.text('To-dos with due dates, subtasks, tags, and recurrence.'),
-      findsOneWidget,
-    );
+    // The real Tasks screen shows its filter button group.
+    expect(find.text('Upcoming'), findsWidgets);
+    expect(find.text('Done'), findsWidgets);
+
+    // Flush drift's stream-cache timers and close the DB inside the test zone.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await db.close();
   });
 }
