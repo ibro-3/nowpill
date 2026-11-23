@@ -69,6 +69,9 @@ class TaskRepository {
 
   Future<Task?> getById(int id) => _tasks.getTask(id);
 
+  /// All tasks, one-shot.
+  Future<List<Task>> getAll() => _tasks.getAllTasks();
+
   // ---------------------------------------------------------------------------
   // Completion
   // ---------------------------------------------------------------------------

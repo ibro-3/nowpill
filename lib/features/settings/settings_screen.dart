@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -42,6 +43,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         .read(notificationPermissionServiceProvider)
         .request();
     if (mounted) setState(() => _permission = status);
+  }
+
+  Future<void> _sendTestNotification() async {
+    final service = ref.read(notificationServiceProvider);
+    if (service.isNoOp) {
+      M3ESnackbar.show(
+        context,
+        message:
+            'Reminders need the mobile or desktop app — not supported in '
+            'the browser.',
+      );
+      return;
+    }
+    final ok = await service.showNow(
+      id: 0,
+      title: 'NowPill',
+      body: 'This is a test reminder. Your notifications are working!',
+    );
+    if (!mounted) return;
+    M3ESnackbar.show(
+      context,
+      message: ok
+          ? 'Test notification sent.'
+          : 'Could not send a test notification.',
+    );
   }
 
   Future<void> _pickDefaultReminder() async {
@@ -316,10 +342,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           _SettingsCard(
             theme: theme,
-            child: _NotificationStatusRow(
-              theme: theme,
-              status: _permission,
-              onRequest: _requestPermission,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _NotificationStatusRow(
+                  theme: theme,
+                  status: _permission,
+                  onRequest: _requestPermission,
+                ),
+                if (kIsWeb) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Reminders are not supported in the browser. Install the '
+                    'mobile or desktop app to get notified.',
+                    style: theme.typography.baseline.bodySmall.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: M3EButton.icon(
+                      onPressed: _sendTestNotification,
+                      style: M3EButtonStyle.tonal,
+                      icon: const Icon(M3EIcons.notifications_active),
+                      label: const Text('Send test notification'),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 24),

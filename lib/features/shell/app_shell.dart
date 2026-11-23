@@ -1,8 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/router/app_router.dart';
+import '../../data/repositories/providers.dart';
 
 /// Width at or above which the shell switches from a bottom navigation bar to
 /// a navigation rail (M3 medium window class).
@@ -49,7 +51,7 @@ class _Destination {
 /// Compact windows get an [M3ENavigationBar]; medium-and-larger windows get an
 /// [M3ENavigationRail]. Both drive the same branch selection, so tab state is
 /// preserved across switches and across the adaptive layout change.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
@@ -63,7 +65,10 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Activate the reactive reminder scheduler for the lifetime of the shell.
+    ref.watch(reminderCoordinatorProvider);
+
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;
     final index = navigationShell.currentIndex;

@@ -60,6 +60,12 @@ class HabitRepository {
 
   Future<Habit?> getById(int id) => _habits.getHabit(id);
 
+  /// All habits including archived, one-shot.
+  Future<List<Habit>> getAll() => _habits.getAllHabits();
+
+  /// All check-ins across habits, one-shot.
+  Future<List<HabitCheckin>> getAllCheckins() => _habits.getAllCheckins();
+
   /// Archives a habit (keeps history). Returns false if not found.
   Future<bool> archive(int id, {DateTime? at}) async {
     final habit = await _habits.getHabit(id);

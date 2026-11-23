@@ -23,6 +23,9 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
         .watch();
   }
 
+  /// All tasks, one-shot (for the reminder coordinator).
+  Future<List<Task>> getAllTasks() => select(tasks).get();
+
   /// Tasks that are not completed.
   Stream<List<Task>> watchOpenTasks() {
     return (select(tasks)

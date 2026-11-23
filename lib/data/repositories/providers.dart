@@ -4,6 +4,8 @@ import '../db/app_database.dart';
 import '../export/backup_service.dart';
 import '../export/export_service.dart';
 import '../notifications/notification_permission_service.dart';
+import '../notifications/notification_service.dart';
+import '../notifications/reminder_coordinator.dart';
 import 'habit_repository.dart';
 import 'tag_repository.dart';
 import 'task_repository.dart';
@@ -49,4 +51,25 @@ NotificationPermissionService notificationPermissionService(Ref ref) {
 @Riverpod(keepAlive: true)
 BackupService backupService(Ref ref) {
   return BackupService(ref.watch(exportServiceProvider));
+}
+
+@Riverpod(keepAlive: true)
+NotificationService notificationService(Ref ref) {
+  final service = NotificationService();
+  ref.onDispose(service.dispose);
+  return service;
+}
+
+/// The reactive reminder scheduler. Watching this provider (e.g. from the app
+/// shell) starts it; it reschedules on every habit/check-in/task change.
+@Riverpod(keepAlive: true)
+ReminderCoordinator reminderCoordinator(Ref ref) {
+  final coordinator = ReminderCoordinator(
+    habits: ref.watch(habitRepositoryProvider),
+    tasks: ref.watch(taskRepositoryProvider),
+    notifications: ref.watch(notificationServiceProvider),
+  );
+  ref.onDispose(coordinator.dispose);
+  coordinator.start();
+  return coordinator;
 }

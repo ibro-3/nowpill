@@ -42,6 +42,9 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
     return (select(habits)..where((h) => h.id.equals(id))).getSingleOrNull();
   }
 
+  /// All habits including archived, one-shot (for the reminder coordinator).
+  Future<List<Habit>> getAllHabits() => select(habits).get();
+
   Future<int> insertHabit(HabitsCompanion entry) => into(habits).insert(entry);
 
   Future<bool> updateHabit(Habit entry) => update(habits).replace(entry);
