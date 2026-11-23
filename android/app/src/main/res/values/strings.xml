@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NowPill</string>
+    <string name="widget_description">Today\'s habit and task progress at a glance.</string>
+    <string name="widget_clear_day">A clear day ahead</string>
+    <string name="widget_all_done">All done — enjoy your day!</string>
+    <string name="widget_remaining">%1$d to go</string>
+    <string name="widget_streak">🔥 %1$d · %2$s</string>
+    <string name="widget_no_streak">Build your first streak</string>
+</resources>

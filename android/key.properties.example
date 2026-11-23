@@ -1,0 +1,13 @@
+# Copy to android/key.properties and fill in your upload-keystore credentials.
+# key.properties and the keystore itself are gitignored — never commit them.
+#
+# Generate a keystore (PKCS12):
+#   keytool -genkeypair -v -keystore android/keystore/upload-keystore.p12 \
+#     -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# When key.properties is absent, release builds fall back to debug signing so
+# CI and `flutter run --release` keep working.
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=../keystore/upload-keystore.p12

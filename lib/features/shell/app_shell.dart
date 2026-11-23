@@ -103,6 +103,8 @@ class _AppShellState extends ConsumerState<AppShell>
   Widget build(BuildContext context) {
     // Activate the reactive reminder scheduler for the lifetime of the shell.
     ref.watch(reminderCoordinatorProvider);
+    // Keep the home-screen widget in sync with the data.
+    ref.watch(widgetSnapshotControllerProvider);
 
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;

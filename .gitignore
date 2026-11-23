@@ -57,6 +57,19 @@ app.*.map.json
 # gen-l10n output (flutter pub get / gen-l10n regenerates from lib/l10n/*.arb)
 lib/l10n/generated/
 
+# Release signing secrets (never commit). See android/key.properties.example.
+android/key.properties
+android/keystore/
+*.jks
+*.p12
+*.keystore
+
+# Android build artifacts
+android/build/
+android/.kotlin/
+android/.gradle/
+android/app/build/
+
 # Local environment overrides (e.g. CHROME_EXECUTABLE)
 .env
 .envrc

@@ -6,6 +6,8 @@ import '../export/export_service.dart';
 import '../notifications/notification_permission_service.dart';
 import '../notifications/notification_service.dart';
 import '../notifications/reminder_coordinator.dart';
+import '../widget/widget_bridge_service.dart';
+import '../widget/widget_snapshot_controller.dart';
 import 'habit_repository.dart';
 import 'tag_repository.dart';
 import 'task_repository.dart';
@@ -72,4 +74,23 @@ ReminderCoordinator reminderCoordinator(Ref ref) {
   ref.onDispose(coordinator.dispose);
   coordinator.start();
   return coordinator;
+}
+
+@Riverpod(keepAlive: true)
+WidgetBridgeService widgetBridgeService(Ref ref) {
+  return WidgetBridgeService();
+}
+
+/// The reactive home-screen widget updater. Watching this provider (e.g. from
+/// the app shell) starts it; it pushes a fresh snapshot on every data change.
+@Riverpod(keepAlive: true)
+WidgetSnapshotController widgetSnapshotController(Ref ref) {
+  final controller = WidgetSnapshotController(
+    habits: ref.watch(habitRepositoryProvider),
+    tasks: ref.watch(taskRepositoryProvider),
+    bridge: ref.watch(widgetBridgeServiceProvider),
+  );
+  ref.onDispose(controller.dispose);
+  controller.start();
+  return controller;
 }

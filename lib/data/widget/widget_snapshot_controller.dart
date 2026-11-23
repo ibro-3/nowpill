@@ -1,0 +1,110 @@
+import 'dart:async';
+
+import '../../domain/date_utils.dart';
+import '../../domain/schedule.dart';
+import '../../domain/streak_engine.dart';
+import '../../features/today/today_view_model.dart';
+import '../repositories/habit_repository.dart';
+import '../repositories/task_repository.dart';
+import 'widget_bridge_service.dart';
+import 'widget_snapshot.dart';
+
+/// Keeps the home-screen widget in sync with the database.
+///
+/// Mirrors the reminder coordinator's reactive pattern: watches the habit,
+/// check-in, and task streams, recomputes a [WidgetSnapshot] on any change
+/// (debounced), and pushes it through the [WidgetBridgeService]. Covers
+/// check-ins, task completion, CRUD, and replace-all import automatically.
+class WidgetSnapshotController {
+  WidgetSnapshotController({
+    required this._habits,
+    required this._tasks,
+    required this._bridge,
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
+
+  final HabitRepository _habits;
+  final TaskRepository _tasks;
+  final WidgetBridgeService _bridge;
+  final DateTime Function() _clock;
+
+  final List<StreamSubscription<dynamic>> _subs = [];
+  Timer? _debounce;
+  bool _started = false;
+
+  /// Starts watching the database. Idempotent.
+  void start() {
+    if (_started) return;
+    _started = true;
+    _subs.add(_habits.watchAll().listen((_) => _scheduleRefresh()));
+    _subs.add(_habits.watchAllCheckins().listen((_) => _scheduleRefresh()));
+    _subs.add(_tasks.watchAll().listen((_) => _scheduleRefresh()));
+    _scheduleRefresh();
+  }
+
+  void _scheduleRefresh() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), refresh);
+  }
+
+  /// Recomputes the snapshot from current data and pushes it to the widget.
+  Future<void> refresh() async {
+    final now = _clock();
+    final habits = await _habits.getAll();
+    final checkins = await _habits.getAllCheckins();
+    final tasks = await _tasks.getAll();
+
+    final active = habits.where((h) => h.archivedAt == null).toList();
+    final vm = computeTodayViewModel(
+      tasks: tasks,
+      habits: active,
+      checkins: checkins,
+      now: now,
+    );
+
+    // Current streak per active habit (pure replay), for the headline streak.
+    final checkedByHabit = <int, Set<String>>{};
+    for (final c in checkins) {
+      (checkedByHabit[c.habitId] ??= <String>{}).add(c.date);
+    }
+    final freezes = await _habits.getAllFreezes();
+    final freezesByHabit = <int, Set<String>>{};
+    for (final f in freezes) {
+      (freezesByHabit[f.habitId] ??= <String>{}).add(f.date);
+    }
+    final streaks = <String, int>{};
+    for (final habit in active) {
+      final result = replayStreak(
+        schedule: scheduleFromFields(
+          type: habit.scheduleType,
+          weekdays: habit.weekdays,
+          targetPerWeek: habit.targetPerWeek,
+        ),
+        checkins: checkedByHabit[habit.id] ?? const <String>{},
+        today: now,
+        startDate: habit.createdAt.toLocal(),
+        freezeMode: habit.freezeMode,
+        manualFreezes: freezesByHabit[habit.id] ?? const <String>{},
+      );
+      streaks[habit.name] = result.currentStreak;
+    }
+
+    final snapshot = buildWidgetSnapshot(
+      vm: vm,
+      streaksByHabitName: streaks,
+      dateKey: formatDate(now),
+      now: now,
+    );
+    await _bridge.update(snapshot);
+  }
+
+  /// Stops watching.
+  Future<void> dispose() async {
+    _debounce?.cancel();
+    for (final sub in _subs) {
+      await sub.cancel();
+    }
+    _subs.clear();
+    _started = false;
+  }
+}
