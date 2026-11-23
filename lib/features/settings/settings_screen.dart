@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/router/app_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/settings/app_settings_provider.dart';
+import '../../data/backup/auto_backup_service.dart';
 import '../../data/export/backup_service.dart';
 import '../../data/export/export_service.dart';
 import '../../data/notifications/notification_permission_service.dart';
@@ -540,6 +543,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                _AutoBackupList(theme: theme, busy: _busy),
               ],
             ),
           ),
@@ -704,6 +709,142 @@ class _ExactAlarmRow extends StatelessWidget {
             label: Text(l10n.allow),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Lists the rotating daily snapshots with an explicit restore action.
+/// Restoring reuses the replace-all confirm flow; nothing is auto-restored.
+class _AutoBackupList extends ConsumerStatefulWidget {
+  const _AutoBackupList({required this.theme, required this.busy});
+
+  final M3EThemeData theme;
+  final bool busy;
+
+  @override
+  ConsumerState<_AutoBackupList> createState() => _AutoBackupListState();
+}
+
+class _AutoBackupListState extends ConsumerState<_AutoBackupList> {
+  List<File>? _backups;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final service = await ref.read(autoBackupServiceProvider.future);
+      final files = service.listBackups();
+      if (mounted) setState(() => _backups = files);
+    } catch (_) {
+      if (mounted) setState(() => _backups = const []);
+    }
+  }
+
+  String _dateLabel(File file) {
+    final name = file.uri.pathSegments.last;
+    // nowpill-auto-YYYY-MM-DD.json → YYYY-MM-DD
+    const start = AutoBackupService.prefix.length;
+    if (name.length >= start + 10) {
+      return name.substring(start, start + 10);
+    }
+    return name;
+  }
+
+  Future<void> _restore(File file) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await M3EDialog.show<bool>(
+      context,
+      dialog: M3EDialog(
+        title: l10n.autoBackupRestoreTitle,
+        content: Text(l10n.autoBackupRestoreBody(_dateLabel(file))),
+        actions: [
+          M3EButton(
+            key: const ValueKey('auto-backup-cancel'),
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.of(context).pop(false),
+            label: Text(l10n.cancel),
+          ),
+          M3EButton(
+            key: const ValueKey('auto-backup-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            label: Text(l10n.replace),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final json = file.readAsStringSync();
+      await ref.read(backupServiceProvider).restore(json);
+      if (mounted) {
+        M3ESnackbar.show(context, message: l10n.autoBackupRestored);
+      }
+    } catch (_) {
+      if (mounted) {
+        M3ESnackbar.show(context, message: l10n.autoBackupFailed);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = widget.theme;
+    final backups = _backups;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.autoBackups, style: theme.typography.baseline.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          l10n.autoBackupsDesc,
+          style: theme.typography.baseline.bodySmall.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (backups == null)
+          const SizedBox.shrink()
+        else if (backups.isEmpty)
+          Text(
+            l10n.autoBackupsEmpty,
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          // Newest first for display.
+          for (final file in backups.reversed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    M3EIcons.history,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _dateLabel(file),
+                      style: theme.typography.baseline.bodyMedium,
+                    ),
+                  ),
+                  M3EButton(
+                    key: ValueKey('auto-backup-restore-${_dateLabel(file)}'),
+                    style: M3EButtonStyle.text,
+                    onPressed: widget.busy ? null : () => _restore(file),
+                    label: Text(l10n.autoBackupRestore),
+                  ),
+                ],
+              ),
+            ),
       ],
     );
   }

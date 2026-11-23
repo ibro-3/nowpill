@@ -282,5 +282,20 @@
   },
   "syncUnsupported": "La sincronización por carpeta está disponible en Android y escritorio. En la web, usa Exportar/Importar abajo.",
   "syncFolderSet": "Carpeta de sincronización configurada.",
-  "syncFolderFailed": "No se pudo usar esa carpeta. Prueba con otra."
+  "syncFolderFailed": "No se pudo usar esa carpeta. Prueba con otra.",
+  "autoBackups": "Copias automáticas",
+  "autoBackupsDesc": "NowPill guarda una copia diaria en este dispositivo y conserva las últimas 7. Restaurar reemplaza todos los datos actuales.",
+  "autoBackupsEmpty": "Aún no hay copias automáticas. La primera se guarda hoy.",
+  "autoBackupRestore": "Restaurar",
+  "autoBackupRestoreTitle": "¿Restaurar esta copia?",
+  "autoBackupRestoreBody": "Esta copia del {date} reemplaza TODOS los datos actuales y no se puede deshacer.",
+  "@autoBackupRestoreBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "autoBackupRestored": "Copia restaurada.",
+  "autoBackupFailed": "No se pudo restaurar esa copia."
 }

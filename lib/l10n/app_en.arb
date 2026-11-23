@@ -411,5 +411,20 @@
   },
   "syncUnsupported": "Folder sync is available on Android and desktop. On web, use Export/Import below.",
   "syncFolderSet": "Sync folder set.",
-  "syncFolderFailed": "Could not use that folder. Please try another."
+  "syncFolderFailed": "Could not use that folder. Please try another.",
+  "autoBackups": "Automatic backups",
+  "autoBackupsDesc": "NowPill saves a daily snapshot on this device and keeps the last 7. Restoring replaces all current data.",
+  "autoBackupsEmpty": "No automatic backups yet. The first one is saved today.",
+  "autoBackupRestore": "Restore",
+  "autoBackupRestoreTitle": "Restore this backup?",
+  "autoBackupRestoreBody": "This snapshot from {date} replaces ALL current data and cannot be undone.",
+  "@autoBackupRestoreBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "autoBackupRestored": "Backup restored.",
+  "autoBackupFailed": "Could not restore that backup."
 }

@@ -76,6 +76,18 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _runDailyBackup();
+  }
+
+  /// Fire-and-forget daily snapshot (Phase 20). Guarded inside the service;
+  /// a failing backup never affects the app.
+  Future<void> _runDailyBackup() async {
+    try {
+      final service = await ref.read(autoBackupServiceProvider.future);
+      await service.runDailyBackup();
+    } catch (_) {
+      // Documents dir unavailable (tests/web): skip silently.
+    }
   }
 
   @override

@@ -1,5 +1,8 @@
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../backup/auto_backup_service.dart';
 import '../db/app_database.dart';
 import '../export/backup_service.dart';
 import '../export/export_service.dart';
@@ -54,6 +57,17 @@ NotificationPermissionService notificationPermissionService(Ref ref) {
 @Riverpod(keepAlive: true)
 BackupService backupService(Ref ref) {
   return BackupService(ref.watch(exportServiceProvider));
+}
+
+/// Rotating daily local backups (Phase 20). The directory resolves lazily so
+/// tests can override the provider with a temp-dir instance.
+@Riverpod(keepAlive: true)
+Future<AutoBackupService> autoBackupService(Ref ref) async {
+  final docs = await getApplicationDocumentsDirectory();
+  return AutoBackupService(
+    export: ref.watch(exportServiceProvider),
+    directoryPath: p.join(docs.path, 'nowpill-backups'),
+  );
 }
 
 @Riverpod(keepAlive: true)
