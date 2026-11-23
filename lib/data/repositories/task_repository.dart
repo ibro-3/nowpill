@@ -153,4 +153,7 @@ class TaskRepository {
 
   /// All task→tag links, reactive (for tag filtering).
   Stream<List<TaskTag>> watchAllTaskTags() => _tasks.watchAllTaskTags();
+
+  /// All task→tag links, one-shot.
+  Future<List<TaskTag>> getAllTaskTags() => _tasks.getAllTaskTags();
 }

@@ -34,7 +34,7 @@
   "sectionDueToday": "Para hoy",
   "sectionDoneToday": "Hechas hoy",
   "ringDoneToday": "hechas hoy",
-  "quickAddHint": "Añade una tarea para hoy…",
+  "quickAddHint": "Añade una tarea… prueba “mañana a las 17h #casa”",
   "checkInHabit": "Registrar {name}",
   "undoCheckInHabit": "Deshacer registro de {name}",
   "markComplete": "Marcar como hecha",
@@ -351,5 +351,57 @@
         "type": "String"
       }
     }
-  }
+  },
+  "quickAddPreviewDue": "Para {date}",
+  "@quickAddPreviewDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddPreviewReminder": "Recordar {time}",
+  "@quickAddPreviewReminder": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddPreviewRepeats": "Repite {cadence}",
+  "@quickAddPreviewRepeats": {
+    "placeholders": {
+      "cadence": {
+        "type": "String"
+      }
+    }
+  },
+  "cadenceDaily": "a diario",
+  "cadenceWeekly": "semanal",
+  "cadenceMonthly": "mensual",
+  "cadenceEveryNDays": "cada {n} días",
+  "@cadenceEveryNDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cadenceEveryNWeeks": "cada {n} semanas",
+  "@cadenceEveryNWeeks": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cadenceEveryNMonths": "cada {n} meses",
+  "@cadenceEveryNMonths": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "priorityMedium": "Media"
 }

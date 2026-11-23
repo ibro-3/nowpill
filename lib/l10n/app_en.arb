@@ -44,7 +44,7 @@
   "sectionDueToday": "Due today",
   "sectionDoneToday": "Done today",
   "ringDoneToday": "done today",
-  "quickAddHint": "Add a task for today…",
+  "quickAddHint": "Add a task… try “tomorrow at 5pm #home”",
   "checkInHabit": "Check in {name}",
   "@checkInHabit": {
     "placeholders": {
@@ -480,5 +480,57 @@
         "type": "String"
       }
     }
-  }
+  },
+  "quickAddPreviewDue": "Due {date}",
+  "@quickAddPreviewDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddPreviewReminder": "Remind {time}",
+  "@quickAddPreviewReminder": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddPreviewRepeats": "Repeats {cadence}",
+  "@quickAddPreviewRepeats": {
+    "placeholders": {
+      "cadence": {
+        "type": "String"
+      }
+    }
+  },
+  "cadenceDaily": "daily",
+  "cadenceWeekly": "weekly",
+  "cadenceMonthly": "monthly",
+  "cadenceEveryNDays": "every {n} days",
+  "@cadenceEveryNDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cadenceEveryNWeeks": "every {n} weeks",
+  "@cadenceEveryNWeeks": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cadenceEveryNMonths": "every {n} months",
+  "@cadenceEveryNMonths": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "priorityMedium": "Medium"
 }
