@@ -883,12 +883,7 @@ class _SyncCard extends ConsumerWidget {
   final AppSettings settings;
   final Future<void> Function() onChooseFolder;
 
-  bool get _supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.linux ||
-          defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.windows);
+  bool get _supported => isSyncFolderSupported;
 
   String _statusText(AppLocalizations l10n, SyncState state) {
     if (!settings.syncEnabled || settings.syncFolderHandle == null) {

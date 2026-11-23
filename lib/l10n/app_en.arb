@@ -409,7 +409,7 @@
       }
     }
   },
-  "syncUnsupported": "Folder sync is available on Android and desktop. On web, use Export/Import below.",
+  "syncUnsupported": "Folder sync needs Android, desktop, or a Chromium browser (Chrome/Edge). Elsewhere, use Export/Import below.",
   "syncFolderSet": "Sync folder set.",
   "syncFolderFailed": "Could not use that folder. Please try another.",
   "autoBackups": "Automatic backups",

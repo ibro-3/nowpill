@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -7,43 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
-/// One device's envelope file in the sync folder.
-class SyncRemoteFile {
-  const SyncRemoteFile({required this.name, required this.content});
+import 'sync_folder_base.dart';
+import 'web_sync_platform_stub.dart'
+    if (dart.library.js_interop) 'web_sync_platform_web.dart'
+    as web_platform;
 
-  final String name;
-  final String content;
-}
-
-/// A user-chosen folder that transports per-device envelope files between
-/// devices (Syncthing / Dropbox / iCloud Drive / … do the actual copying).
-///
-/// Implementations: [IoSyncFolder] (desktop `dart:io`) and [SafSyncFolder]
-/// (Android Storage Access Framework via the `app.nowpill/sync` channel).
-abstract class SyncFolder {
-  /// A stable handle persisted in settings (path or SAF tree URI).
-  String get handle;
-
-  /// A short human-readable label for the Settings UI.
-  String get displayName;
-
-  /// Whether the folder is still reachable (permission kept, drive mounted).
-  Future<bool> isAccessible();
-
-  /// Reads every `nowpill-sync-*.json` file except this device's own.
-  Future<List<SyncRemoteFile>> readOthers(String ownFileName);
-
-  /// Writes (creates or replaces) a file by name.
-  Future<void> write(String fileName, String content);
-}
-
-/// Envelope file name for a device. Only the owning device writes its file,
-/// so the folder never sees concurrent writes to the same file.
-String syncFileNameFor(String deviceId) => 'nowpill-sync-$deviceId.json';
-
-/// Whether [name] is a NowPill sync envelope file.
-bool isSyncFileName(String name) =>
-    name.startsWith('nowpill-sync-') && name.endsWith('.json');
+export 'sync_folder_base.dart';
 
 /// Desktop folder backed by `dart:io`.
 class IoSyncFolder implements SyncFolder {
@@ -145,11 +112,22 @@ class SafSyncFolder implements SyncFolder {
   }
 }
 
+/// Whether folder sync can work on this platform. Web requires a Chromium
+/// browser exposing the File System Access directory picker.
+bool get isSyncFolderSupported {
+  if (kIsWeb) return web_platform.webFolderSyncSupported;
+  return defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows;
+}
+
 /// Picks a sync folder using the platform-appropriate mechanism. Returns null
 /// when the user cancels. Android opens the SAF tree picker (persistable
-/// permission); desktop opens the native directory picker.
+/// permission), desktop opens the native directory picker, and Chromium web
+/// opens the File System Access directory picker.
 Future<SyncFolder?> pickSyncFolder({MethodChannel? safChannel}) async {
-  if (kIsWeb) return null; // Web sync deferred to v0.4.
+  if (kIsWeb) return web_platform.pickWebSyncFolder();
   if (defaultTargetPlatform == TargetPlatform.android) {
     final channel = safChannel ?? const MethodChannel('app.nowpill/sync');
     final result = await channel.invokeMethod<Map<Object?, Object?>>(
@@ -179,22 +157,8 @@ Future<SyncFolder?> pickSyncFolder({MethodChannel? safChannel}) async {
 /// Rebuilds a [SyncFolder] from a persisted handle.
 SyncFolder? syncFolderFromHandle(String handle) {
   if (handle.isEmpty) return null;
+  final webFolder = web_platform.webSyncFolderFromHandle(handle);
+  if (webFolder != null) return webFolder;
   if (handle.startsWith('content://')) return SafSyncFolder(handle);
   return IoSyncFolder(handle);
-}
-
-/// Parses a remote envelope, returning null for invalid/partial JSON (a file
-/// still being copied by the transport). Never throws.
-Map<String, Object?>? parseSyncEnvelope(String content) {
-  try {
-    final decoded = jsonDecode(content);
-    if (decoded is Map<String, Object?> &&
-        decoded['schemaVersion'] is int &&
-        decoded['data'] is Map<String, Object?>) {
-      return decoded;
-    }
-  } catch (_) {
-    // fall through
-  }
-  return null;
 }
