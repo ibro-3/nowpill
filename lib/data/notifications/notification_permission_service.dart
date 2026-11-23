@@ -20,8 +20,10 @@ enum NotificationPermissionStatus {
 
 /// Thin abstraction over the platform notification permission APIs.
 ///
-/// Phase 8 only surfaces status + a request action in Settings; the full
-/// scheduling service (channels, exact alarms, boot receiver) lands in Phase 9.
+/// Covers POST_NOTIFICATIONS / iOS alert permission plus the Android 12+
+/// exact-alarm special access (with a settings-intent request). The scheduling
+/// service (channels, zonedSchedule, boot receiver) lives in
+/// `NotificationService`.
 class NotificationPermissionService {
   NotificationPermissionService({FlutterLocalNotificationsPlugin? plugin})
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
@@ -102,6 +104,39 @@ class NotificationPermissionService {
       return NotificationPermissionStatus.unknown;
     } catch (_) {
       return NotificationPermissionStatus.unknown;
+    }
+  }
+
+  /// Whether Android currently allows exact alarms (Android 12+ special
+  /// access). Always false on other platforms and when the plugin is
+  /// unavailable; callers gate the UI on the platform separately.
+  Future<bool> canScheduleExactAlarms() async {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await android?.canScheduleExactNotifications() == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Opens the system "Alarms & reminders" settings screen so the user can
+  /// grant exact-alarm access (Android 12+). Returns whether access is
+  /// granted after the user returns. False on other platforms / on failure.
+  Future<bool> requestExactAlarmsPermission() async {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await android?.requestExactAlarmsPermission();
+      return await canScheduleExactAlarms();
+    } catch (_) {
+      return false;
     }
   }
 }

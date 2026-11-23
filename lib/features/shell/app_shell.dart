@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -51,27 +53,58 @@ class _Destination {
 /// Compact windows get an [M3ENavigationBar]; medium-and-larger windows get an
 /// [M3ENavigationRail]. Both drive the same branch selection, so tab state is
 /// preserved across switches and across the adaptive layout change.
-class AppShell extends ConsumerWidget {
+///
+/// Also owns the reminder lifecycle: it activates the `ReminderCoordinator`
+/// for the shell's lifetime and reschedules on app resume, so occurrences
+/// that elapsed while backgrounded are rolled forward and a newly granted
+/// exact-alarm access takes effect.
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Fire-and-forget: rescheduling is guarded and must never block the UI.
+      unawaited(ref.read(reminderCoordinatorProvider).rescheduleAll());
+    }
+  }
+
   void _onDestinationSelected(int index) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
       // Tapping the active tab again pops to its root.
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Activate the reactive reminder scheduler for the lifetime of the shell.
     ref.watch(reminderCoordinatorProvider);
 
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;
-    final index = navigationShell.currentIndex;
+    final index = widget.navigationShell.currentIndex;
 
     if (useRail) {
       return Scaffold(
@@ -95,14 +128,14 @@ class AppShell extends ConsumerWidget {
               ],
               trailing: const _SettingsButton(),
             ),
-            Expanded(child: navigationShell),
+            Expanded(child: widget.navigationShell),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: M3ENavigationBar(
         selectedIndex: index,
         onDestinationSelected: _onDestinationSelected,

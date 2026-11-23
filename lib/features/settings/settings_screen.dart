@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -24,11 +25,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _busy = false;
   NotificationPermissionStatus? _permission;
+  bool? _canExact;
 
   @override
   void initState() {
     super.initState();
     _loadPermission();
+    _loadExactAlarmStatus();
   }
 
   Future<void> _loadPermission() async {
@@ -38,11 +41,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) setState(() => _permission = status);
   }
 
+  Future<void> _loadExactAlarmStatus() async {
+    final can = await ref
+        .read(notificationPermissionServiceProvider)
+        .canScheduleExactAlarms();
+    if (mounted) setState(() => _canExact = can);
+  }
+
+  /// iOS priming: explain why reminders need notification access before
+  /// triggering the one-shot system prompt (denials are hard to recover from
+  /// on iOS). Returns true when the user opted in.
+  Future<bool> _showIosPriming() async {
+    final agreed = await M3EDialog.show<bool>(
+      context,
+      dialog: M3EDialog(
+        title: 'Stay on track',
+        content: const Text(
+          'NowPill can remind you about habits and tasks at the times you '
+          'choose. Tap Continue to allow notifications — you can change this '
+          'anytime in the system Settings.',
+        ),
+        actions: [
+          M3EButton(
+            key: const ValueKey('ios-priming-cancel'),
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.of(context).pop(false),
+            label: const Text('Not now'),
+          ),
+          M3EButton(
+            key: const ValueKey('ios-priming-continue'),
+            onPressed: () => Navigator.of(context).pop(true),
+            label: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    return agreed == true;
+  }
+
   Future<void> _requestPermission() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      if (!await _showIosPriming()) return;
+      if (!mounted) return;
+    }
     final status = await ref
         .read(notificationPermissionServiceProvider)
         .request();
     if (mounted) setState(() => _permission = status);
+  }
+
+  /// Android 12+ exact-alarm special access: opens the system settings
+  /// screen, then refreshes status when the user returns.
+  Future<void> _requestExactAlarms() async {
+    final granted = await ref
+        .read(notificationPermissionServiceProvider)
+        .requestExactAlarmsPermission();
+    if (mounted) setState(() => _canExact = granted);
+    await ref.read(reminderCoordinatorProvider).rescheduleAll();
   }
 
   Future<void> _sendTestNotification() async {
@@ -350,6 +405,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   status: _permission,
                   onRequest: _requestPermission,
                 ),
+                if (!kIsWeb &&
+                    defaultTargetPlatform == TargetPlatform.android &&
+                    _canExact != null) ...[
+                  const SizedBox(height: 12),
+                  _ExactAlarmRow(
+                    theme: theme,
+                    canExact: _canExact!,
+                    onRequest: _requestExactAlarms,
+                  ),
+                ],
                 if (kIsWeb) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -526,6 +591,55 @@ class _NotificationStatusRow extends StatelessWidget {
             style: M3EButtonStyle.tonal,
             onPressed: onRequest,
             label: const Text('Enable'),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Android 12+ exact-alarm special access status. When not granted, reminders
+/// still fire but the OS may batch/delay them; the action opens the system
+/// "Alarms & reminders" settings screen.
+class _ExactAlarmRow extends StatelessWidget {
+  const _ExactAlarmRow({
+    required this.theme,
+    required this.canExact,
+    required this.onRequest,
+  });
+
+  final M3EThemeData theme;
+  final bool canExact;
+  final VoidCallback onRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        Icon(
+          M3EIcons.access_alarm,
+          size: 20,
+          color: canExact ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            canExact
+                ? 'Exact alarms allowed — reminders fire on time.'
+                : 'Exact alarms are off. Reminders may be delayed by the '
+                      'system.',
+            style: theme.typography.baseline.bodyMedium.copyWith(
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        if (!canExact) ...[
+          const SizedBox(width: 12),
+          M3EButton(
+            style: M3EButtonStyle.tonal,
+            onPressed: onRequest,
+            label: const Text('Allow'),
           ),
         ],
       ],

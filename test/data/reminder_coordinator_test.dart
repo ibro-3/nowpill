@@ -150,4 +150,32 @@ void main() {
     expect(notifications.scheduled, isEmpty);
     expect(notifications.cancelAllCalls, 0);
   });
+
+  test(
+    'started coordinator reacts to CRUD and check-ins via streams',
+    () async {
+      final habits = HabitRepository(db);
+      coordinator.start();
+
+      // Creating a habit with a reminder triggers a debounced reschedule.
+      final id = await habits.create(
+        name: 'Meditate',
+        color: 0xFF2DD4A8,
+        reminderTime: DateTime(2026, 11, 23, 9),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(notifications.scheduled, hasLength(kHabitReminderHorizon));
+      expect(notifications.scheduled.first.$2, DateTime(2026, 11, 23, 9));
+
+      // Checking in today rolls the first occurrence to tomorrow.
+      await habits.checkIn(id, formatDate(now));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(notifications.scheduled.first.$2, DateTime(2026, 11, 24, 9));
+
+      // Archiving removes every reminder for the habit.
+      await habits.archive(id);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(notifications.scheduled, isEmpty);
+    },
+  );
 }

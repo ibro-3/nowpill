@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -5,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nowpill/data/db/app_database.dart';
 import 'package:nowpill/data/export/backup_service.dart';
 import 'package:nowpill/data/export/export_service.dart';
+import 'package:nowpill/data/notifications/notification_permission_service.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/data/repositories/task_repository.dart';
@@ -31,14 +33,49 @@ class FakeBackupService extends BackupService {
   Future<String?> pickBackupFile() async => pickedJson;
 }
 
+/// A permission service with scripted state, skipping platform channels.
+class FakePermissionService extends NotificationPermissionService {
+  FakePermissionService() : super();
+
+  NotificationPermissionStatus scriptedStatus =
+      NotificationPermissionStatus.denied;
+  NotificationPermissionStatus requestResult =
+      NotificationPermissionStatus.granted;
+  bool canExact = false;
+  bool exactAfterRequest = true;
+  int requestCalls = 0;
+  int exactRequestCalls = 0;
+
+  @override
+  Future<NotificationPermissionStatus> status() async => scriptedStatus;
+
+  @override
+  Future<NotificationPermissionStatus> request() async {
+    requestCalls++;
+    return requestResult;
+  }
+
+  @override
+  Future<bool> canScheduleExactAlarms() async => canExact;
+
+  @override
+  Future<bool> requestExactAlarmsPermission() async {
+    exactRequestCalls++;
+    canExact = exactAfterRequest;
+    return canExact;
+  }
+}
+
 void main() {
   late AppDatabase db;
   late FakeBackupService backup;
+  late FakePermissionService permission;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     db = createTestDatabase();
     backup = FakeBackupService(ExportService(db));
+    permission = FakePermissionService();
   });
 
   Widget wrap(Widget child) {
@@ -46,6 +83,7 @@ void main() {
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         backupServiceProvider.overrideWithValue(backup),
+        notificationPermissionServiceProvider.overrideWithValue(permission),
       ],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
@@ -85,7 +123,10 @@ void main() {
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Export'), findsOneWidget);
     expect(find.text('Import'), findsOneWidget);
+    // The About card sits below the fold with the exact-alarm row present.
+    await tester.scrollUntilVisible(find.text('NowPill'), 200);
     expect(find.text('NowPill'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Set default'), -200);
     expect(find.text('Set default'), findsOneWidget);
     await cleanup(tester);
   });
@@ -166,6 +207,82 @@ void main() {
     expect(find.textContaining('Invalid backup'), findsOneWidget);
     expect(find.text('Replace all data?'), findsNothing);
     expect(await db.select(db.tasks).get(), hasLength(1));
+    await cleanup(tester);
+  });
+
+  testWidgets('denied permission offers Enable, which requests access', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    expect(find.text('Enable'), findsOneWidget);
+    await tester.tap(find.text('Enable'));
+    await settle(tester);
+    expect(permission.requestCalls, 1);
+    expect(find.text('Notifications are enabled.'), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('iOS priming dialog gates the system permission request', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    await pumpScreen(tester);
+    await tester.tap(find.text('Enable'));
+    await settle(tester);
+
+    // Priming explains the ask before the one-shot system prompt.
+    expect(find.text('Stay on track'), findsOneWidget);
+    expect(permission.requestCalls, 0);
+
+    // "Not now" cancels without ever calling the platform request.
+    await tester.tap(find.byKey(const ValueKey('ios-priming-cancel')));
+    await settle(tester);
+    expect(permission.requestCalls, 0);
+
+    // Continue primes then requests.
+    await tester.tap(find.text('Enable'));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('ios-priming-continue')));
+    await settle(tester);
+    expect(permission.requestCalls, 1);
+    await cleanup(tester);
+  });
+
+  testWidgets('Android exact-alarm row requests settings access', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    await pumpScreen(tester);
+    expect(find.textContaining('Exact alarms are off'), findsOneWidget);
+
+    await tester.tap(find.text('Allow'));
+    await settle(tester);
+
+    expect(permission.exactRequestCalls, 1);
+    expect(
+      find.text('Exact alarms allowed — reminders fire on time.'),
+      findsOneWidget,
+    );
+    await cleanup(tester);
+  });
+
+  testWidgets('exact-alarm row hidden when access is already granted', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    permission.canExact = true;
+
+    await pumpScreen(tester);
+    expect(
+      find.text('Exact alarms allowed — reminders fire on time.'),
+      findsOneWidget,
+    );
+    expect(find.text('Allow'), findsNothing);
     await cleanup(tester);
   });
 }
