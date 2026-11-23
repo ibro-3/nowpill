@@ -6,7 +6,12 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.1.0** (see `CHANGELOG.md`).
+Current release: **v0.2.0** (see `CHANGELOG.md`).
+
+<p align="center">
+  <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
+  <img src="doc/screenshots/stats-dark.png" width="45%" alt="Stats (dark)" />
+</p>
 
 ## Features
 
@@ -18,11 +23,17 @@ Current release: **v0.1.0** (see `CHANGELOG.md`).
 - **Habits** — daily / weekdays / weekly-target schedules, curated icons & brand
   colors, monthly heatmap with tap-backfill (≤30 days), streak odometer, freeze
   tokens (earned automatically, auto-consumed to bridge a missed day, refunded on
-  backfill), archive & delete.
+  backfill), **manual freeze mode** (opt-in per habit: choose when to spend a
+  token), archive & delete.
 - **Stats** — 30-day trend, weekly summary, streak leaderboard, tag donut.
 - **Reminders** — exact alarms on Android (graceful inexact fallback), iOS, and
-  Linux (in-app); web shows a hint. Survive reboot via a boot receiver.
-- **Backup** — versioned JSON export/import with a confirm-replace-all flow.
+  Linux (in-app); **web reminders fire in-tab** with a permission + test-fire
+  flow. Survive reboot via a boot receiver.
+- **Home-screen widget** — today's progress + top streak on the launcher
+  (Android AppWidget; iOS WidgetKit sources included, build needs macOS).
+- **Backup** — versioned JSON export/import (schema v2, imports v1) with a
+  confirm-replace-all flow.
+- **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
   color, and a reduce-motion mode (honors the OS accessibility setting).
@@ -44,6 +55,7 @@ Android · iOS · Web · Linux desktop
 ```bash
 flutter pub get
 dart run build_runner build   # generated code is gitignored
+flutter gen-l10n              # l10n classes are gitignored (pub get also runs it)
 
 flutter run -d linux          # Linux desktop
 flutter run -d chrome         # Web (Chromium-based browser)
@@ -78,6 +90,11 @@ flutter build linux --release
 # iOS: flutter build ipa  (requires macOS + signing)
 ```
 
+**Android release signing:** copy `android/key.properties.example` to
+`android/key.properties` and point it at your upload keystore (both are
+gitignored). Without it, release builds fall back to debug signing so CI and
+`flutter run --release` keep working.
+
 ## Architecture
 
 ```
@@ -86,7 +103,8 @@ lib/
               MotionScope), router (go_router StatefulShellRoute), settings
   domain/     pure Dart engines: streak replay, recurrence, schedules,
               reminder planner, stats — all unit-tested, no Flutter imports
-  data/       Drift/SQLite db + DAOs, repositories, export/backup, notifications
+  data/       Drift/SQLite db + DAOs, repositories, export/backup, notifications,
+              widget (today-summary snapshot bridge for home-screen widgets)
   features/   today / tasks / habits / stats / settings / shell
 ```
 
@@ -96,7 +114,9 @@ past day automatically refunds any freeze it would have consumed.
 
 ## Notes
 
-- App ID `com.example.nowpill` is a **placeholder** — change before any store release.
+- App ID is `app.nowpill` (Android, iOS, Linux).
 - Data is stored locally with JSON export/import; cloud sync is planned for a later release.
-- See `doc/m3e_spike_decision.md` (design-system adoption) and `doc/motion_audit.md`
-  (motion polish pass).
+- The iOS home-screen widget ships as WidgetKit sources + integration steps in
+  `ios/NowPillWidget/` — adding the extension target requires Xcode on macOS.
+- See `doc/m3e_spike_decision.md` (design-system adoption), `doc/motion_audit.md`
+  (motion polish pass), and `doc/screenshots/` (visual pass).

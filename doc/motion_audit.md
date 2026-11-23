@@ -113,3 +113,20 @@ Architecture keeps per-frame work bounded: the confetti is a single
 `CustomPaint` driven by one spring (26 pieces, no per-piece widgets); the
 heatmap uses one entrance controller with per-cell phase offsets. Release-mode
 numbers on physical hardware come from `flutter drive --profile` (follow-up).
+
+## v0.2.0 re-audit (Phases 12–16)
+
+Re-ran the spring-token sweep after manual freeze, i18n, widgets, and store
+prep: **still clean** — no ad-hoc `AnimationController`/`CurvedAnimation`/
+`Tween`/`Curves.*` in `lib/`. The new surfaces introduce no custom animation:
+
+- **Manual-freeze choice dialog** (Phase 12) — standard `M3EDialog`, which
+  honors `MediaQuery.disableAnimations` republished by `MotionScope`.
+- **Language picker** (Phase 14) — standard `M3ESegmentedButton`; locale
+  switches rebuild labels without animation.
+- **Home-screen widget** (Phase 15) — native RemoteViews / WidgetKit, outside
+  the Flutter motion system; the snapshot controller only pushes data.
+
+The `computeTodayViewModel` extraction (Phase 15) is pure and adds no per-frame
+work. All existing animated widgets still read `MotionScope.of(context)` and
+retarget on scheme change; the interrupt/retarget tests continue to pass.

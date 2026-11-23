@@ -52,3 +52,10 @@ Everyone
 
 ## Privacy
 No data collected. All data stored locally on-device.
+
+## Screenshots
+Desktop captures from the Phase 17 visual pass live in `doc/screenshots/`
+(today-light, today-dark, stats-dark, habits-dark, settings-dark). For store
+submission, capture phone-sized screenshots on the Android emulator (1080×2400)
+and an iOS device/simulator; the desktop shots serve as feature-graphic source
+material.

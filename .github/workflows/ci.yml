@@ -164,4 +164,6 @@ jobs:
         run: flutter config --enable-linux-desktop
 
       - name: Run integration tests headless
-        run: xvfb-run -a flutter test integration_test/app_test.dart -d linux
+        run: |
+          xvfb-run -a flutter test integration_test/app_test.dart -d linux
+          xvfb-run -a flutter test integration_test/backup_roundtrip_test.dart -d linux

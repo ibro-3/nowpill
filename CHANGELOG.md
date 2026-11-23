@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.2.0 — 2026-11-23
+
+Six feature drops on top of v0.1.0, plus store-release preparation.
+
+### Features
+- **Manual freeze mode** — per-habit Auto/Manual toggle in the habit editor.
+  In manual mode you decide when to spend a token: tapping a missed heatmap day
+  opens a Backfill / Freeze ❄ choice (when a token is available), and tapping a
+  frozen day removes the freeze (refund). Existing habits stay in auto mode.
+  Schema v2 (`Habits.freezeMode` + `HabitFreezes`) with a v1→v2 migration;
+  export envelope v2 carries freezes and still imports v1 backups.
+- **Web reminders** — in-tab reminder timers with a browser permission flow and
+  a test-fire button in Settings (the web plugin only fires immediate
+  notifications via its own service worker, so scheduled occurrences use
+  in-page timers while the tab is open).
+- **Translations** — full English + Spanish catalogs (~180 keys) covering every
+  screen, dialog, and semantics label; a Language picker in Settings
+  (System / English / Español) with live switching.
+- **Home-screen widgets** — a today-summary widget showing done/total progress,
+  a progress bar, and your top habit streak; tap opens the app. Android uses a
+  RemoteViews AppWidget fed by a reactive snapshot controller (every check-in,
+  completion, CRUD, and import refreshes it); iOS ships WidgetKit Swift sources
+  + App Group integration steps (compiling requires macOS).
+- **Store-release prep** — application ID `app.nowpill` across Android, iOS, and
+  Linux; a two-tone pill launcher icon (legacy + adaptive Android, full iOS
+  icon set); release signing via a local upload keystore with a debug-signing
+  fallback so CI keeps building; store listing copy in `store/listing.md`.
+
+### Quality
+- New e2e journey: backup export → mutate → import through the real Settings UI
+  with real file bytes (the platform dialog is the only substituted layer),
+  plus an invalid-backup rejection path.
+- Motion re-audit: the new surfaces (freeze choice dialog, language picker,
+  widgets) add no ad-hoc animation — see `doc/motion_audit.md`.
+- Dark-mode + light-mode visual pass with screenshots in `doc/screenshots/`.
+- 235 unit/widget tests + 5 Linux e2e journeys, analyze/format clean.
+
 ## v0.1.0 — 2026-11-23
 
 First feature-complete release. Local-first habit tracker + to-do list with a
