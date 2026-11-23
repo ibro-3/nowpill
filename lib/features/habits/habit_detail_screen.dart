@@ -4,12 +4,16 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/enums.dart';
 import '../../domain/streak_engine.dart';
 import 'habit_editor_sheet.dart';
 import 'habit_icons.dart';
 import 'habit_providers.dart';
 import 'widgets/habit_heatmap.dart';
 import 'widgets/token_wallet.dart';
+
+/// The user's choice when tapping a missed day in manual freeze mode.
+enum _DayChoice { cancel, freeze, backfill }
 
 /// Habit detail: monthly heatmap with backfill, streak stats, token wallet,
 /// and archive / delete actions.
@@ -40,15 +44,85 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
   Future<void> _toggleDay(DateTime day) async {
     final repo = ref.read(habitRepositoryProvider);
+    final habit = ref.read(habitProvider(widget.habitId)).value;
+    if (habit == null) return;
     final key = formatDate(day);
     final checkins =
         ref.read(habitCheckinsProvider(widget.habitId)).value ?? const [];
-    final exists = checkins.any((c) => c.date == key);
-    if (exists) {
+    final freezes =
+        ref.read(habitFreezesProvider(widget.habitId)).value ?? const [];
+    final schedule = ref.read(habitScheduleProvider(widget.habitId));
+    // Weekly-target freezes are stored under the week's Monday.
+    final freezeKey = schedule.isDayBased ? key : formatDate(startOfWeek(day));
+
+    // A real check-in always wins: tapping a checked day removes it.
+    if (checkins.any((c) => c.date == key)) {
       await repo.removeCheckIn(widget.habitId, key);
-    } else {
-      await repo.checkIn(widget.habitId, key);
+      return;
     }
+
+    final isManual = habit.freezeMode == FreezeMode.manual;
+    final frozen = freezes.any((f) => f.date == freezeKey);
+
+    if (isManual && frozen) {
+      // Tapping a frozen day removes the freeze (refund).
+      await repo.removeFreeze(widget.habitId, freezeKey);
+      return;
+    }
+
+    if (isManual) {
+      // Offer a choice: backfill a real check-in, or spend a token to freeze.
+      final streak = ref.read(habitStreakProvider(widget.habitId));
+      final choice = await _showFreezeChoice(canFreeze: streak.tokens > 0);
+      switch (choice) {
+        case _DayChoice.backfill:
+          await repo.checkIn(widget.habitId, key);
+        case _DayChoice.freeze:
+          await repo.placeFreeze(widget.habitId, freezeKey);
+        case _DayChoice.cancel:
+          break;
+      }
+      return;
+    }
+
+    // Auto mode: tap toggles a backfill check-in.
+    await repo.checkIn(widget.habitId, key);
+  }
+
+  Future<_DayChoice> _showFreezeChoice({required bool canFreeze}) async {
+    final result = await M3EDialog.show<_DayChoice>(
+      context,
+      dialog: M3EDialog(
+        title: 'This day was missed',
+        content: Text(
+          canFreeze
+              ? 'Backfill a check-in, or spend a freeze token to protect your '
+                    'streak.'
+              : 'Backfill a check-in. No freeze tokens available to spend.',
+        ),
+        actions: [
+          M3EButton(
+            key: const ValueKey('day-cancel'),
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.of(context).pop(_DayChoice.cancel),
+            label: const Text('Cancel'),
+          ),
+          if (canFreeze)
+            M3EButton(
+              key: const ValueKey('day-freeze'),
+              style: M3EButtonStyle.tonal,
+              onPressed: () => Navigator.of(context).pop(_DayChoice.freeze),
+              label: const Text('Freeze'),
+            ),
+          M3EButton(
+            key: const ValueKey('day-backfill'),
+            onPressed: () => Navigator.of(context).pop(_DayChoice.backfill),
+            label: const Text('Backfill'),
+          ),
+        ],
+      ),
+    );
+    return result ?? _DayChoice.cancel;
   }
 
   Future<void> _archive() async {
@@ -182,12 +256,19 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      streak.tokens >= maxTokens
-                          ? 'Wallet full — tokens automatically protect a missed '
-                                '$unitLabel.'
-                          : 'Earn a token every $unit-$unitLabel streak '
-                                '($toNext to go). Tokens automatically protect a '
-                                'missed $unitLabel.',
+                      habit.freezeMode == FreezeMode.manual
+                          ? (streak.tokens >= maxTokens
+                                ? 'Wallet full — tap a missed day to spend a '
+                                      'token and protect your streak.'
+                                : 'Earn a token every $unit-$unitLabel streak '
+                                      '($toNext to go). Tap a missed day to spend '
+                                      'a token.')
+                          : (streak.tokens >= maxTokens
+                                ? 'Wallet full — tokens automatically protect a '
+                                      'missed $unitLabel.'
+                                : 'Earn a token every $unit-$unitLabel streak '
+                                      '($toNext to go). Tokens automatically '
+                                      'protect a missed $unitLabel.'),
                       style: theme.typography.baseline.bodySmall.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -232,7 +313,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Tap a day within the last 30 days to backfill a check-in.',
+                habit.freezeMode == FreezeMode.manual
+                    ? 'Tap a day within the last 30 days to backfill or freeze it.'
+                    : 'Tap a day within the last 30 days to backfill a check-in.',
                 style: theme.typography.baseline.labelSmall.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

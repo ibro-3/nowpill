@@ -13,10 +13,19 @@ part 'app_database.g.dart';
 
 /// The NowPill local database. Offline-first; all feature data lives here.
 ///
-/// Schema version 1. Foreign keys are enabled in [migration] so cascade
-/// deletes (subtasks, task_tags, checkins) work.
+/// Schema version 2 (v0.2.0 adds manual freeze mode + the HabitFreezes table).
+/// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
+/// task_tags, checkins, freezes) work.
 @DriftDatabase(
-  tables: [Tasks, Subtasks, Tags, TaskTags, Habits, HabitCheckins],
+  tables: [
+    Tasks,
+    Subtasks,
+    Tags,
+    TaskTags,
+    Habits,
+    HabitCheckins,
+    HabitFreezes,
+  ],
   daos: [TasksDao, HabitsDao, TagsDao],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,12 +36,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.withExecutor(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v0.2.0: manual freeze mode. Existing habits default to auto (0), so
+        // their derived streaks are unchanged.
+        await m.addColumn(habits, habits.freezeMode);
+        await m.createTable(habitFreezes);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

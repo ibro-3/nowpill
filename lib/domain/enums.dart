@@ -21,3 +21,17 @@ enum HabitScheduleType {
 
 /// The unit of a recurrence rule.
 enum RecurrenceUnit { day, week, month }
+
+/// How a habit spends freeze tokens to bridge missed days.
+///
+/// Stored as an integer index in the database (stable ordering — do not
+/// reorder these values without a migration).
+enum FreezeMode {
+  /// Tokens auto-consume to bridge a missed scheduled day (default). The
+  /// streak engine derives freezes purely from check-in history.
+  auto,
+
+  /// Tokens are spent only when the user explicitly places a freeze on a
+  /// missed day. Missed days without an explicit freeze reset the streak.
+  manual,
+}

@@ -5,8 +5,8 @@ import '../tables.dart';
 
 part 'habits_dao.g.dart';
 
-/// Data access for habits and their daily check-ins.
-@DriftAccessor(tables: [Habits, HabitCheckins])
+/// Data access for habits, their daily check-ins, and manual freezes.
+@DriftAccessor(tables: [Habits, HabitCheckins, HabitFreezes])
 class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
   HabitsDao(super.db);
 
@@ -128,5 +128,51 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
 
   Future<int> deleteCheckIn(int id) {
     return (delete(habitCheckins)..where((c) => c.id.equals(id))).go();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Manual freezes (schema v2)
+  // ---------------------------------------------------------------------------
+
+  /// Explicit freezes for a habit, oldest first.
+  Stream<List<HabitFreeze>> watchFreezes(int habitId) {
+    return (select(habitFreezes)
+          ..where((f) => f.habitId.equals(habitId))
+          ..orderBy([(f) => OrderingTerm(expression: f.date)]))
+        .watch();
+  }
+
+  Future<List<HabitFreeze>> getFreezes(int habitId) {
+    return (select(habitFreezes)
+          ..where((f) => f.habitId.equals(habitId))
+          ..orderBy([(f) => OrderingTerm(expression: f.date)]))
+        .get();
+  }
+
+  /// All freezes (for export).
+  Future<List<HabitFreeze>> getAllFreezes() => select(habitFreezes).get();
+
+  /// Places an explicit freeze. Returns the new row id, or -1 if one already
+  /// exists for that habit+date (idempotent, mirrors [checkIn]).
+  Future<int> placeFreeze(HabitFreezesCompanion entry) async {
+    final existing =
+        await (select(habitFreezes)..where(
+              (f) =>
+                  f.habitId.equals(entry.habitId.value) &
+                  f.date.equals(entry.date.value),
+            ))
+            .getSingleOrNull();
+    if (existing != null) return -1;
+    return into(habitFreezes).insert(
+      entry,
+      onConflict: DoNothing(target: [habitFreezes.habitId, habitFreezes.date]),
+    );
+  }
+
+  /// Removes an explicit freeze (refund). Returns rows removed.
+  Future<int> removeFreeze(int habitId, String date) {
+    return (delete(
+      habitFreezes,
+    )..where((f) => f.habitId.equals(habitId) & f.date.equals(date))).go();
   }
 }

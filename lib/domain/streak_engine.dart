@@ -1,4 +1,5 @@
 import 'date_utils.dart';
+import 'enums.dart';
 import 'habit_schedule.dart';
 
 /// The derived streak state for a habit, replayed purely from its check-in
@@ -76,11 +77,24 @@ const int weeksPerToken = 4;
 /// For weekly-target habits, streaks count completed weeks (a week is complete
 /// when it has ≥ `targetPerWeek` check-ins). The current week counts as soon as
 /// its target is met. Missed weeks consume a freeze if available.
+///
+/// [freezeMode] selects how freezes are spent:
+/// * [FreezeMode.auto] (default) — a missed scheduled day auto-consumes a token
+///   if one is available; freezes are derived purely from history.
+/// * [FreezeMode.manual] — a missed day is bridged only when [manualFreezes]
+///   contains an explicit freeze for it (the day for day-based habits, the
+///   week's Monday for weekly-target) AND a token is available at that point in
+///   the replay. Tokens are still earned by the same cadence.
+///
+/// In both modes a real check-in always wins over a freeze, so backfilling a
+/// frozen day refunds the token (the freeze is simply not needed/consumed).
 StreakResult replayStreak({
   required HabitSchedule schedule,
   required Set<String> checkins,
   required DateTime today,
   required DateTime startDate,
+  FreezeMode freezeMode = FreezeMode.auto,
+  Set<String> manualFreezes = const {},
 }) {
   // startDate is a calendar day ("the first day the habit existed"), not an
   // instant. Normalize to date-only local so a creation time later in the day
@@ -92,6 +106,8 @@ StreakResult replayStreak({
       checkins: checkins,
       today: today,
       startDate: startDay,
+      freezeMode: freezeMode,
+      manualFreezes: manualFreezes,
     );
   }
   return _replayWeeklyTarget(
@@ -99,6 +115,8 @@ StreakResult replayStreak({
     checkins: checkins,
     today: today,
     startDate: startDay,
+    freezeMode: freezeMode,
+    manualFreezes: manualFreezes,
   );
 }
 
@@ -107,6 +125,8 @@ StreakResult _replayDayBased({
   required Set<String> checkins,
   required DateTime today,
   required DateTime startDate,
+  required FreezeMode freezeMode,
+  required Set<String> manualFreezes,
 }) {
   var current = 0;
   var best = 0;
@@ -133,8 +153,11 @@ StreakResult _replayDayBased({
         earns.add(key);
       }
     } else if (due && !isToday) {
-      // A missed scheduled day that has fully elapsed.
-      if (tokens > 0) {
+      // A missed scheduled day that has fully elapsed. In auto mode any
+      // available token bridges it; in manual mode only an explicit freeze does.
+      final bridged =
+          freezeMode == FreezeMode.auto || manualFreezes.contains(key);
+      if (bridged && tokens > 0) {
         tokens--;
         frozen.add(key);
         current++;
@@ -163,6 +186,8 @@ StreakResult _replayWeeklyTarget({
   required Set<String> checkins,
   required DateTime today,
   required DateTime startDate,
+  required FreezeMode freezeMode,
+  required Set<String> manualFreezes,
 }) {
   final target = schedule.targetPerWeek ?? 1;
   var current = 0;
@@ -203,10 +228,14 @@ StreakResult _replayWeeklyTarget({
         earns.add(formatDate(week));
       }
     } else if (!isCurrentWeek) {
-      // A fully-elapsed week that missed its target.
-      if (tokens > 0) {
+      // A fully-elapsed week that missed its target. Auto mode bridges with any
+      // available token; manual mode requires an explicit freeze on the Monday.
+      final weekKey = formatDate(week);
+      final bridged =
+          freezeMode == FreezeMode.auto || manualFreezes.contains(weekKey);
+      if (bridged && tokens > 0) {
         tokens--;
-        frozen.add(formatDate(week));
+        frozen.add(weekKey);
         current++;
         if (current > best) best = current;
       } else {

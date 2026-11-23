@@ -37,6 +37,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   late Set<int> _weekdays;
   late int _targetPerWeek;
   DateTime? _reminderTime;
+  late FreezeMode _freezeMode;
   bool _saving = false;
 
   bool get _isEdit => widget.habit != null;
@@ -53,6 +54,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     _weekdays = (h?.weekdays ?? const []).toSet();
     _targetPerWeek = h?.targetPerWeek ?? 3;
     _reminderTime = h?.reminderTime;
+    _freezeMode = h?.freezeMode ?? FreezeMode.auto;
   }
 
   @override
@@ -110,6 +112,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
           weekdays: Value(weekdays),
           targetPerWeek: Value(target),
           reminderTime: Value(reminderUtc),
+          freezeMode: _freezeMode,
         ),
       );
     } else {
@@ -122,6 +125,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         weekdays: weekdays,
         targetPerWeek: target,
         reminderTime: reminderUtc,
+        freezeMode: _freezeMode,
       );
     }
 
@@ -240,6 +244,26 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
                 ),
               ],
             ],
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel('Freeze tokens', theme),
+          const SizedBox(height: 8),
+          M3ESegmentedButton<FreezeMode>(
+            selected: {_freezeMode},
+            onSelectionChanged: (s) => setState(() => _freezeMode = s.first),
+            segments: const [
+              M3ESegment(value: FreezeMode.auto, label: 'Auto'),
+              M3ESegment(value: FreezeMode.manual, label: 'Manual'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _freezeMode == FreezeMode.auto
+                ? 'Tokens automatically protect a missed day.'
+                : 'You choose when to spend a token on a missed day.',
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 28),
           Align(

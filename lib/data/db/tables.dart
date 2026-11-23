@@ -99,6 +99,11 @@ class Habits extends Table {
   IntColumn get reminderTime =>
       integer().nullable().map(const UtcMillisConverter())();
 
+  /// How freeze tokens are spent: auto-consume (default) or explicit manual
+  /// placement. Added in schema v2.
+  IntColumn get freezeMode =>
+      intEnum<FreezeMode>().withDefault(const Constant(0))();
+
   IntColumn get createdAt => integer().map(const UtcMillisConverter())();
 
   /// Archived habits are hidden from active lists but keep their history.
@@ -120,6 +125,27 @@ class HabitCheckins extends Table {
   TextColumn get date => text().withLength(min: 10, max: 10)();
 
   TextColumn get note => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {habitId, date},
+  ];
+}
+
+/// Explicit user-placed freezes for habits in [FreezeMode.manual]. Each row
+/// spends one token to bridge a missed day (day-based: the day; weekly-target:
+/// the week's Monday). Added in schema v2. Auto-mode habits ignore this table.
+class HabitFreezes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get habitId =>
+      integer().references(Habits, #id, onDelete: KeyAction.cascade)();
+
+  /// Local calendar day (`yyyy-MM-dd`) — the missed day, or the week's Monday
+  /// for weekly-target habits.
+  TextColumn get date => text().withLength(min: 10, max: 10)();
+
+  IntColumn get createdAt => integer().map(const UtcMillisConverter())();
 
   @override
   List<Set<Column>> get uniqueKeys => [

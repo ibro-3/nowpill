@@ -32,6 +32,14 @@ final habitCheckinsProvider = StreamProvider.family<List<HabitCheckin>, int>((
   return ref.watch(habitRepositoryProvider).watchCheckins(habitId);
 });
 
+/// Explicit manual freezes for a habit, reactive (schema v2).
+final habitFreezesProvider = StreamProvider.family<List<HabitFreeze>, int>((
+  ref,
+  habitId,
+) {
+  return ref.watch(habitRepositoryProvider).watchFreezes(habitId);
+});
+
 /// All check-ins across habits (for cross-habit stats), reactive.
 final allCheckinsProvider = StreamProvider<List<HabitCheckin>>((ref) {
   return ref.watch(habitRepositoryProvider).watchAllCheckins();
@@ -44,6 +52,8 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
 
   final checkins =
       ref.watch(habitCheckinsProvider(habitId)).value ?? const <HabitCheckin>[];
+  final freezes =
+      ref.watch(habitFreezesProvider(habitId)).value ?? const <HabitFreeze>[];
   final schedule = scheduleFromFields(
     type: habit.scheduleType,
     weekdays: habit.weekdays,
@@ -55,6 +65,8 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
     checkins: checkins.map((c) => c.date).toSet(),
     today: DateTime.now(),
     startDate: habit.createdAt.toLocal(),
+    freezeMode: habit.freezeMode,
+    manualFreezes: freezes.map((f) => f.date).toSet(),
   );
 });
 

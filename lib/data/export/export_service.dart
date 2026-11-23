@@ -1,10 +1,17 @@
 import 'dart:convert';
 
+import '../../domain/enums.dart';
 import '../db/app_database.dart';
 
 /// Current export envelope schema version. Bump when the payload shape changes
 /// and add a migration path in `ExportService.importFromString`.
-const int kExportSchemaVersion = 1;
+///
+/// v2 (v0.2.0) adds the `freezes` list and the per-habit `freezeMode` field.
+/// v1 payloads still import: habits default to auto mode with no freezes.
+const int kExportSchemaVersion = 2;
+
+/// Oldest envelope version this build can import.
+const int kMinImportSchemaVersion = 1;
 
 /// Thrown when an import payload is malformed or unsupported.
 class ImportFormatException implements Exception {
@@ -25,18 +32,22 @@ class ExportEnvelope {
     required this.taskTags,
     required this.habits,
     required this.checkins,
+    this.freezes = const [],
   });
 
   /// Parses and validates an envelope. Throws [ImportFormatException] on
-  /// malformed or unsupported payloads.
+  /// malformed or unsupported payloads. Accepts schema versions
+  /// [kMinImportSchemaVersion]…[kExportSchemaVersion]; older payloads are
+  /// upgraded (v1 habits become auto-mode with no freezes).
   factory ExportEnvelope.fromJson(Map<String, Object?> json) {
     final version = json['schemaVersion'];
     if (version is! int) {
       throw ImportFormatException('Missing or invalid schemaVersion.');
     }
-    if (version != kExportSchemaVersion) {
+    if (version < kMinImportSchemaVersion || version > kExportSchemaVersion) {
       throw ImportFormatException(
-        'Unsupported schemaVersion $version (expected $kExportSchemaVersion).',
+        'Unsupported schemaVersion $version '
+        '(expected $kMinImportSchemaVersion–$kExportSchemaVersion).',
       );
     }
     final exportedAt = json['exportedAt'];
@@ -57,8 +68,20 @@ class ExportEnvelope {
     }
 
     try {
+      // v1 payloads predate freezeMode/freezes. Upgrade habit rows to auto mode
+      // and treat the freezes list as empty.
+      final habitRows = rows('habits').map((h) {
+        if (version < 2 && !h.containsKey('freezeMode')) {
+          return {...h, 'freezeMode': FreezeMode.auto.index};
+        }
+        return h;
+      }).toList();
+      final freezeRows = version >= 2 && data['freezes'] is List
+          ? (data['freezes'] as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+
       return ExportEnvelope(
-        schemaVersion: version,
+        schemaVersion: kExportSchemaVersion,
         exportedAt: DateTime.fromMillisecondsSinceEpoch(
           exportedAt,
           isUtc: true,
@@ -67,8 +90,9 @@ class ExportEnvelope {
         subtasks: rows('subtasks').map(Subtask.fromJson).toList(),
         tags: rows('tags').map(Tag.fromJson).toList(),
         taskTags: rows('taskTags').map(TaskTag.fromJson).toList(),
-        habits: rows('habits').map(Habit.fromJson).toList(),
+        habits: habitRows.map(Habit.fromJson).toList(),
         checkins: rows('checkins').map(HabitCheckin.fromJson).toList(),
+        freezes: freezeRows.map(HabitFreeze.fromJson).toList(),
       );
     } on ImportFormatException {
       rethrow;
@@ -85,6 +109,7 @@ class ExportEnvelope {
   final List<TaskTag> taskTags;
   final List<Habit> habits;
   final List<HabitCheckin> checkins;
+  final List<HabitFreeze> freezes;
 
   Map<String, Object?> toJson() => {
     'schemaVersion': schemaVersion,
@@ -96,6 +121,7 @@ class ExportEnvelope {
       'taskTags': taskTags.map((t) => t.toJson()).toList(),
       'habits': habits.map((h) => h.toJson()).toList(),
       'checkins': checkins.map((c) => c.toJson()).toList(),
+      'freezes': freezes.map((f) => f.toJson()).toList(),
     },
   };
 }
@@ -123,6 +149,7 @@ class ExportService {
       taskTags: await _db.select(_db.taskTags).get(),
       habits: await _db.select(_db.habits).get(),
       checkins: await _db.select(_db.habitCheckins).get(),
+      freezes: await _db.select(_db.habitFreezes).get(),
     );
   }
 
@@ -155,6 +182,7 @@ class ExportService {
   Future<void> _replaceAll(ExportEnvelope e) async {
     await _db.transaction(() async {
       // Delete children before parents (FK-safe even with cascades enabled).
+      await _db.delete(_db.habitFreezes).go();
       await _db.delete(_db.habitCheckins).go();
       await _db.delete(_db.taskTags).go();
       await _db.delete(_db.subtasks).go();
@@ -171,6 +199,7 @@ class ExportService {
         b.insertAll(_db.subtasks, e.subtasks);
         b.insertAll(_db.taskTags, e.taskTags);
         b.insertAll(_db.habitCheckins, e.checkins);
+        b.insertAll(_db.habitFreezes, e.freezes);
       });
     });
   }

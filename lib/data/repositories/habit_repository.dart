@@ -38,6 +38,7 @@ class HabitRepository {
     List<int>? weekdays,
     int? targetPerWeek,
     DateTime? reminderTime,
+    FreezeMode freezeMode = FreezeMode.auto,
     int sortOrder = 0,
   }) {
     return _habits.insertHabit(
@@ -50,6 +51,7 @@ class HabitRepository {
         weekdays: Value(weekdays),
         targetPerWeek: Value(targetPerWeek),
         reminderTime: Value(reminderTime),
+        freezeMode: Value(freezeMode),
         createdAt: DateTime.now().toUtc(),
         sortOrder: Value(sortOrder),
       ),
@@ -113,4 +115,39 @@ class HabitRepository {
     String from,
     String to,
   ) => _habits.getCheckinsInRange(habitId, from, to);
+
+  // ---------------------------------------------------------------------------
+  // Manual freezes (schema v2)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<HabitFreeze>> watchFreezes(int habitId) =>
+      _habits.watchFreezes(habitId);
+
+  Future<List<HabitFreeze>> getFreezes(int habitId) =>
+      _habits.getFreezes(habitId);
+
+  Future<List<HabitFreeze>> getAllFreezes() => _habits.getAllFreezes();
+
+  /// Sets a habit's freeze mode (auto/manual). Returns false if not found.
+  Future<bool> setFreezeMode(int id, FreezeMode mode) async {
+    final habit = await _habits.getHabit(id);
+    if (habit == null) return false;
+    return _habits.updateHabit(habit.copyWith(freezeMode: mode));
+  }
+
+  /// Places an explicit freeze for a missed day. Idempotent: returns the row id,
+  /// or -1 if one already exists.
+  Future<int> placeFreeze(int habitId, String date) {
+    return _habits.placeFreeze(
+      HabitFreezesCompanion.insert(
+        habitId: habitId,
+        date: date,
+        createdAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
+  /// Removes an explicit freeze (refund). Returns rows removed.
+  Future<int> removeFreeze(int habitId, String date) =>
+      _habits.removeFreeze(habitId, date);
 }
