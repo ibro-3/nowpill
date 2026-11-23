@@ -1,5 +1,7 @@
 # NowPill
 
+[![CI](https://github.com/ibro-3/nowpill/actions/workflows/ci.yml/badge.svg)](https://github.com/ibro-3/nowpill/actions/workflows/ci.yml)
+
 A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
