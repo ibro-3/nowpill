@@ -36,12 +36,17 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
     final settings = settingsAsync.value ?? const AppSettings();
 
     // Minimal splash while preferences load, so the first real frame already
-    // has the correct theme/motion instead of flashing defaults.
+    // has the correct theme/motion instead of flashing defaults. The splash
+    // follows the platform brightness until the persisted mode is known.
     if (settingsAsync.isLoading && !settingsAsync.hasValue) {
+      final platformDark =
+          MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       return MaterialApp(
         title: 'NowPill',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light().toThemeData(),
+        darkTheme: AppTheme.light().deriveDarkTemplate().toThemeData(),
+        themeMode: platformDark ? ThemeMode.dark : ThemeMode.light,
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
@@ -61,6 +66,7 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
       themeMode: themeMode,
       builder: (context, child) {
         return _ExpressiveThemeHost(
+          themeMode: settings.themeMode,
           dynamicColor: settings.dynamicColor,
           child: MotionScope(child: child ?? const SizedBox.shrink()),
         );
@@ -72,9 +78,19 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
 /// Hosts the adaptive M3E theme inside the router's [MediaQuery] so it resolves
 /// the correct brightness (and dynamic color), then projects it onto the
 /// subtree for both M3E and Material widgets.
+///
+/// The user's [themeMode] drives the adaptive rules: `system` follows the
+/// platform brightness; `light`/`dark` lock it. Without this, the M3E scope
+/// would always follow the OS and override the MaterialApp's themeMode for
+/// every M3E component (the theme picker would appear to do nothing).
 class _ExpressiveThemeHost extends StatefulWidget {
-  const _ExpressiveThemeHost({required this.dynamicColor, required this.child});
+  const _ExpressiveThemeHost({
+    required this.themeMode,
+    required this.dynamicColor,
+    required this.child,
+  });
 
+  final AppThemeMode themeMode;
   final bool dynamicColor;
   final Widget child;
 
@@ -84,6 +100,33 @@ class _ExpressiveThemeHost extends StatefulWidget {
 
 class _ExpressiveThemeHostState extends State<_ExpressiveThemeHost> {
   final M3EThemeController _controller = M3EThemeController();
+
+  @override
+  void initState() {
+    super.initState();
+    _applyMode(widget.themeMode);
+  }
+
+  @override
+  void didUpdateWidget(_ExpressiveThemeHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.themeMode != widget.themeMode) {
+      _applyMode(widget.themeMode);
+    }
+  }
+
+  /// Maps the user's mode onto the controller: locked modes set an absolute
+  /// brightness override; system clears it so platform tracking applies.
+  void _applyMode(AppThemeMode mode) {
+    switch (mode) {
+      case AppThemeMode.system:
+        _controller.followSystem();
+      case AppThemeMode.light:
+        _controller.setBrightness(Brightness.light);
+      case AppThemeMode.dark:
+        _controller.setBrightness(Brightness.dark);
+    }
+  }
 
   @override
   void dispose() {
@@ -96,7 +139,9 @@ class _ExpressiveThemeHostState extends State<_ExpressiveThemeHost> {
     return M3ETheme(
       data: AppTheme.light(),
       controller: _controller,
-      autoTheming: true,
+      // System mode tracks MediaQuery.platformBrightnessOf; locked modes use
+      // the controller's absolute override (which takes precedence).
+      autoTheming: widget.themeMode == AppThemeMode.system,
       dynamicColoring: widget.dynamicColor,
       initialTheme: Brightness.light,
       child: widget.child,
