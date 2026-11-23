@@ -41,6 +41,19 @@ void main() {
       expect(r.currentStreak, 1);
     });
 
+    test('startDate time-of-day does not exclude same-day check-ins', () {
+      // Regression: createdAt is an instant (e.g. 11:00). A check-in parsed as
+      // local midnight must still count on the creation day.
+      final r = replayStreak(
+        schedule: const HabitSchedule.daily(),
+        checkins: {'2026-11-22'},
+        today: DateTime(2026, 11, 22, 15),
+        startDate: DateTime(2026, 11, 22, 11),
+      );
+      expect(r.currentStreak, 1);
+      expect(r.completedDays, 1);
+    });
+
     test('today without check-in is not a miss', () {
       // Checked Mon–Sat, today (Sun) not yet checked: streak stays 6.
       final r = replay({

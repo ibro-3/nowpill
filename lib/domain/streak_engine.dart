@@ -82,19 +82,23 @@ StreakResult replayStreak({
   required DateTime today,
   required DateTime startDate,
 }) {
+  // startDate is a calendar day ("the first day the habit existed"), not an
+  // instant. Normalize to date-only local so a creation time later in the day
+  // does not exclude same-day check-ins (parsed as local midnight).
+  final startDay = DateTime(startDate.year, startDate.month, startDate.day);
   if (schedule.isDayBased) {
     return _replayDayBased(
       schedule: schedule,
       checkins: checkins,
       today: today,
-      startDate: startDate,
+      startDate: startDay,
     );
   }
   return _replayWeeklyTarget(
     schedule: schedule,
     checkins: checkins,
     today: today,
-    startDate: startDate,
+    startDate: startDay,
   );
 }
 
