@@ -12,7 +12,8 @@ Material 3 Expressive design and smooth, spring-driven motion.
 
 BUILD STREAKS THAT STICK
 • Daily, weekday, or weekly-target habits with curated icons and colors.
-• A rolling streak odometer and a monthly heatmap you can tap to backfill.
+• A rolling streak odometer, a monthly heatmap, and a full-year activity grid
+  you can tap to backfill (last 30 days).
 • Freeze tokens earn automatically and bridge a missed day — or spend them
   yourself in manual mode. Backfilling a frozen day refunds the token.
 • Measurable habits: set a numeric daily goal (8 glasses, 30 minutes…) and log
@@ -20,18 +21,22 @@ BUILD STREAKS THAT STICK
 
 CRUSH YOUR TO-DOS
 • Tasks with subtasks, tags, priorities, and due dates.
+• Global search across tasks, habits, and tags — find anything in a tap.
 • Recurring tasks spawn the next occurrence the moment you complete one.
 • Swipe to complete, filter by Today / Upcoming / All / Done.
 
 A TODAY SCREEN THAT CELEBRATES
-• Overdue → habits → tasks, a spring progress ring, and one-line quick-add.
+• Overdue → habits → tasks, a spring progress ring, and natural-language
+  quick-add: “tomorrow at 5pm #home !high” becomes a dated, tagged, high-priority
+  task with a live preview before you even hit enter.
 • Finish everything and enjoy a confetti celebration.
 
 STAY ON TRACK
 • Reminders with exact alarms on Android (graceful fallback), iOS, and Linux.
+• Home-screen widgets: today's progress and your top streak, plus a “Today's
+  habits” list with one-tap check pills — no need to open the app.
 • Done / Snooze actions right on the reminder — check off a habit or complete a
   task without opening the app.
-• Home-screen widget showing today's progress and your top streak.
 
 SEE YOUR PROGRESS
 • 30-day trend, weekly summary, streak leaderboard, and tag breakdown.
@@ -41,7 +46,8 @@ PRIVATE BY DESIGN
 • Versioned JSON export/import so your data is always yours.
 • Automatic daily backups (last 7 kept) with one-tap restore.
 • Optional folder sync: keep devices in step through a folder you choose
-  (Syncthing, Dropbox, iCloud Drive…). No server — the files stay yours.
+  (Syncthing, Dropbox, iCloud Drive…; also works in Chromium browsers). No
+  server — the files stay yours.
 
 MAKE IT YOURS
 • Material You dynamic color, light/dark/system themes.
@@ -64,6 +70,8 @@ Full policy + Play data-safety answers: `store/privacy-policy.md`.
 
 ## Screenshots
 Phone captures (1080×2400) from the Android emulator live in `store/screenshots/`
-for the Play listing. Desktop captures from the Phase 17 visual pass live in
-`doc/screenshots/` (today-light, today-dark, stats-dark, habits-dark,
-settings-dark) and serve as feature-graphic source material.
+for the Play listing: the core screens plus v0.4 feature highlights (quick-add
+preview, search, year heatmap, and the launcher widgets). Desktop captures from
+the Phase 17 visual pass live in `doc/screenshots/` (today-light, today-dark,
+stats-dark, habits-dark, settings-dark) and serve as feature-graphic source
+material.

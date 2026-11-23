@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.4.0 — 2026-11-23
+
+Daily-driver delight: ask in plain language, find anything, see the whole year,
+check off from the launcher, and sync through a folder on the web too.
+Still local-first — no account, no server, no tracking.
+
+### Features
+- **Natural-language quick-add** — type “tomorrow at 5pm pay bills #finance
+  !high” and watch live preview chips for date, time, recurrence, tags, and
+  priority before submitting. Pure EN/ES parser, no AI or network; plain input
+  keeps the pre-v0.4 behavior (due today 23:59).
+- **Global search** — one reactive screen across task titles/notes/subtasks,
+  habit names/notes, and tags. Case- and accent-insensitive; tap a result to
+  jump straight to it. Available from every tab.
+- **Year heatmap** — a 53×7 GitHub-style grid alongside the month grid on habit
+  detail, with the same shared day-state rules, month labels, and ≤30-day tap
+  backfill. One fade-in instead of hundreds of individual springs.
+- **Interactive home-screen widgets** — the summary widget now offers a Check
+  pill for the next undone habit, and a new “Today's habits” list widget shows
+  every due habit with a per-habit check pill. Taps write through the same
+  repository (sync-safe): a live engine while the app is open, a short-lived
+  headless engine when it is closed. iOS AppIntents sources ship (build needs
+  macOS).
+- **Web folder sync** — Chromium browsers can pick a folder via the File System
+  Access API; the handle is kept in IndexedDB so sync resumes after a reload,
+  with permission re-request on manual sync. Same per-device envelope files and
+  merge as Android/desktop — two tabs with different device ids converge.
+
+### Quality
+- 415 unit/widget tests plus Linux e2e; emulator-verified widget check-ins on
+  both code paths and browser-verified two-tab folder sync (Chromium 158).
+
 ## v0.3.0 — 2026-11-23
 
 Sync & daily-driver core: your data follows you across devices, backs itself

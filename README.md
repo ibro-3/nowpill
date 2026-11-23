@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.3.0** (see `CHANGELOG.md`).
+Current release: **v0.4.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -16,12 +16,17 @@ Current release: **v0.3.0** (see `CHANGELOG.md`).
 ## Features
 
 - **Today dashboard** — greeting + spring progress ring; overdue → habits due →
-  tasks due → done-today; one-line quick-add; an all-done celebration (ring
-  overshoot, shape burst, confetti).
+  tasks due → done-today; one-line **natural-language quick-add** with live
+  preview chips (dates, times, recurrence, `#tags`, `!priority`, EN/ES) and a
+  plain-text fallback; an all-done celebration (ring overshoot, shape burst,
+  confetti).
+- **Search** — one reactive screen over tasks (titles, notes, subtasks), habits,
+  and tags; case- and accent-insensitive, tap-through to results.
 - **Tasks** — subtasks, tags, priorities, due dates, recurring tasks
   (complete → spawn next occurrence), swipe-to-complete, filterable list.
 - **Habits** — daily / weekdays / weekly-target schedules, curated icons & brand
-  colors, monthly heatmap with tap-backfill (≤30 days), streak odometer, freeze
+  colors, **monthly and yearly heatmaps** (53×7 year grid alongside the month
+  grid) with tap-backfill (≤30 days), streak odometer, freeze
   tokens (earned automatically, auto-consumed to bridge a missed day, refunded on
   backfill), **manual freeze mode** (opt-in per habit: choose when to spend a
   token), **measurable habits** (numeric daily goal; only 100% counts toward the
@@ -31,13 +36,16 @@ Current release: **v0.3.0** (see `CHANGELOG.md`).
   Linux (in-app); **web reminders fire in-tab** with a permission + test-fire
   flow. Survive reboot via a boot receiver. **Done / Snooze actions** on the
   notification itself (Android background handler; iOS category sources ship).
-- **Home-screen widget** — today's progress + top streak on the launcher
-  (Android AppWidget; iOS WidgetKit sources included, build needs macOS).
+- **Home-screen widgets** — today's progress + top streak on the launcher, a
+  one-tap Check pill for the next undone habit, and a “Today's habits” list with
+  per-habit check pills (Android AppWidget; check-ins work with the app closed;
+  iOS WidgetKit/AppIntents sources included, build needs macOS).
 - **Backup & sync** — versioned JSON export/import (schema v4, imports v1–v3)
   with a confirm-replace-all flow; **automatic daily backups** (last 7 kept,
   explicit restore); **optional folder sync** through a user-chosen folder
   (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW
-  merge with tombstones — no server, no account).
+  merge with tombstones — no server, no account; on Chromium web through the
+  File System Access API with the folder handle kept in IndexedDB).
 - **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
