@@ -8,13 +8,15 @@ import '../../data/repositories/providers.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../domain/enums.dart';
 import '../../domain/recurrence_rule.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'task_providers.dart';
 
 /// Opens the task editor sheet. Pass [task] to edit, or null to create.
 Future<void> showTaskEditor(BuildContext context, {Task? task}) {
+  final l10n = AppLocalizations.of(context);
   return M3EBottomSheet.showAdaptive<void>(
     context,
-    title: task == null ? 'New task' : 'Edit task',
+    title: task == null ? l10n.newTask : l10n.editTask,
     initialValue: M3EBottomSheetValue.expanded,
     expandToFullScreen: true,
     builder: (context) => _TaskEditorForm(task: task),
@@ -226,6 +228,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final tags = ref.watch(allTagsProvider).value ?? const <Tag>[];
 
     return Padding(
@@ -235,19 +238,19 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
         children: [
           M3ETextField(
             controller: _title,
-            label: 'Title',
+            label: l10n.taskTitle,
             autofocus: !_isEdit,
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
           M3ETextField(
             controller: _notes,
-            label: 'Notes',
+            label: l10n.notes,
             maxLines: 3,
             minLines: 1,
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Due date', theme),
+          _SectionLabel(l10n.dueDate, theme),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -257,7 +260,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                   style: M3EButtonStyle.tonal,
                   icon: const Icon(M3EIcons.calendar_today),
                   label: Text(
-                    _dueAt == null ? 'Set date' : _formatDate(_dueAt!),
+                    _dueAt == null ? l10n.setDate : _formatDate(_dueAt!),
                   ),
                 ),
               ),
@@ -267,7 +270,9 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                   onPressed: _dueAt == null ? null : _pickDueTime,
                   style: M3EButtonStyle.tonal,
                   icon: const Icon(M3EIcons.schedule),
-                  label: Text(_dueAt == null ? 'Time' : _formatTime(_dueAt!)),
+                  label: Text(
+                    _dueAt == null ? l10n.time : _formatTime(_dueAt!),
+                  ),
                 ),
               ),
               if (_dueAt != null) ...[
@@ -275,34 +280,34 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                 M3EIconButton(
                   variant: M3EIconButtonVariant.standard,
                   icon: const Icon(M3EIcons.close),
-                  tooltip: 'Clear due date',
+                  tooltip: l10n.clearDueDate,
                   onPressed: () => setState(() => _dueAt = null),
                 ),
               ],
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Priority', theme),
+          _SectionLabel(l10n.priority, theme),
           const SizedBox(height: 8),
           M3ESegmentedButton<TaskPriority>(
             selected: {_priority},
             onSelectionChanged: (s) => setState(() => _priority = s.first),
-            segments: const [
-              M3ESegment(value: TaskPriority.none, label: 'None'),
-              M3ESegment(value: TaskPriority.low, label: 'Low'),
-              M3ESegment(value: TaskPriority.medium, label: 'Med'),
-              M3ESegment(value: TaskPriority.high, label: 'High'),
+            segments: [
+              M3ESegment(value: TaskPriority.none, label: l10n.priorityNone),
+              M3ESegment(value: TaskPriority.low, label: l10n.priorityLow),
+              M3ESegment(value: TaskPriority.medium, label: l10n.priorityMed),
+              M3ESegment(value: TaskPriority.high, label: l10n.priorityHigh),
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Repeat', theme),
+          _SectionLabel(l10n.repeat, theme),
           const SizedBox(height: 8),
           _RecurrencePicker(
             rule: _recurrence,
             onChanged: (r) => setState(() => _recurrence = r),
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Reminder', theme),
+          _SectionLabel(l10n.reminder, theme),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -313,7 +318,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                   icon: const Icon(M3EIcons.notifications),
                   label: Text(
                     _reminderAt == null
-                        ? 'Set reminder'
+                        ? l10n.setReminder
                         : _formatTime(_reminderAt!),
                   ),
                 ),
@@ -323,14 +328,14 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                 M3EIconButton(
                   variant: M3EIconButtonVariant.standard,
                   icon: const Icon(M3EIcons.close),
-                  tooltip: 'Clear reminder',
+                  tooltip: l10n.clearReminder,
                   onPressed: () => setState(() => _reminderAt = null),
                 ),
               ],
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Tags', theme),
+          _SectionLabel(l10n.tags, theme),
           const SizedBox(height: 8),
           _TagSelector(
             tags: tags,
@@ -341,7 +346,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
             onCreate: _createTag,
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Subtasks', theme),
+          _SectionLabel(l10n.subtasks, theme),
           const SizedBox(height: 8),
           _SubtaskEditor(
             subtasks: _subtasks,
@@ -354,13 +359,13 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
                 M3EIconButton(
                   variant: M3EIconButtonVariant.standard,
                   icon: Icon(M3EIcons.delete, color: theme.colorScheme.error),
-                  tooltip: 'Delete task',
+                  tooltip: l10n.deleteTask,
                   onPressed: _delete,
                 ),
               const Spacer(),
               M3EButton(
                 onPressed: _saving ? null : _save,
-                label: Text(_isEdit ? 'Save' : 'Add task'),
+                label: Text(_isEdit ? l10n.save : l10n.addTask),
               ),
             ],
           ),
@@ -423,33 +428,34 @@ class _RecurrencePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final selected = rule?.unit;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         M3EChip(
-          label: 'Never',
+          label: l10n.repeatNever,
           type: M3EChipType.filter,
           selected: rule == null,
           onPressed: () => onChanged(null),
         ),
         M3EChip(
-          label: 'Daily',
+          label: l10n.repeatDaily,
           type: M3EChipType.filter,
           selected: selected == RecurrenceUnit.day && rule?.interval == 1,
           onPressed: () =>
               onChanged(const RecurrenceRule(unit: RecurrenceUnit.day)),
         ),
         M3EChip(
-          label: 'Weekly',
+          label: l10n.repeatWeekly,
           type: M3EChipType.filter,
           selected: selected == RecurrenceUnit.week && rule?.interval == 1,
           onPressed: () =>
               onChanged(const RecurrenceRule(unit: RecurrenceUnit.week)),
         ),
         M3EChip(
-          label: 'Monthly',
+          label: l10n.repeatMonthly,
           type: M3EChipType.filter,
           selected: selected == RecurrenceUnit.month && rule?.interval == 1,
           onPressed: () =>
@@ -487,7 +493,7 @@ class _TagSelector extends StatelessWidget {
             onPressed: () => onToggle(tag.id),
           ),
         M3EChip(
-          label: 'New tag',
+          label: AppLocalizations.of(context).newTag,
           type: M3EChipType.assist,
           leading: const Icon(M3EIcons.add, size: 18),
           onPressed: onCreate,
@@ -560,7 +566,7 @@ class _SubtaskEditorState extends State<_SubtaskEditor> {
                 M3EIconButton(
                   variant: M3EIconButtonVariant.standard,
                   icon: const Icon(M3EIcons.close, size: 18),
-                  tooltip: 'Remove subtask',
+                  tooltip: AppLocalizations.of(context).removeSubtask,
                   onPressed: () {
                     final next = [...widget.subtasks]..removeAt(i);
                     widget.onChanged(next);
@@ -574,7 +580,7 @@ class _SubtaskEditorState extends State<_SubtaskEditor> {
             Expanded(
               child: M3ETextField(
                 controller: _controller,
-                label: 'Add subtask',
+                label: AppLocalizations.of(context).addSubtask,
                 onSubmitted: (_) => _add(),
               ),
             ),
@@ -582,7 +588,7 @@ class _SubtaskEditorState extends State<_SubtaskEditor> {
             M3EIconButton(
               variant: M3EIconButtonVariant.tonal,
               icon: const Icon(M3EIcons.add),
-              tooltip: 'Add subtask',
+              tooltip: AppLocalizations.of(context).addSubtask,
               onPressed: _add,
             ),
           ],
@@ -610,11 +616,12 @@ class _NewTagDialogState extends State<_NewTagDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return M3EDialog(
-      title: 'New tag',
+      title: l10n.newTag,
       content: M3ETextField(
         controller: _controller,
-        label: 'Tag name',
+        label: l10n.tagName,
         autofocus: true,
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
@@ -622,11 +629,11 @@ class _NewTagDialogState extends State<_NewTagDialog> {
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.of(context).pop(),
-          label: const Text('Cancel'),
+          label: Text(l10n.cancel),
         ),
         M3EButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          label: const Text('Create'),
+          label: Text(l10n.create),
         ),
       ],
     );

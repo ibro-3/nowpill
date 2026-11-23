@@ -4,6 +4,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// The signature NowPill check-off control.
 ///
@@ -83,7 +84,9 @@ class _CheckPillState extends State<CheckPill>
       checked: widget.checked,
       label:
           widget.semanticLabel ??
-          (widget.checked ? 'Completed' : 'Mark complete'),
+          (widget.checked
+              ? AppLocalizations.of(context).completedLabel
+              : AppLocalizations.of(context).markComplete),
       child: GestureDetector(
         onTap: () => widget.onChanged(!widget.checked),
         behavior: HitTestBehavior.opaque,

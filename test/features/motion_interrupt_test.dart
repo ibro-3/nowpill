@@ -10,6 +10,7 @@ import 'package:nowpill/features/tasks/widgets/check_pill.dart';
 import 'package:nowpill/features/today/today_screen.dart';
 
 import '../data/test_database.dart';
+import '../helpers/test_localizations.dart';
 
 /// Motion polish (Phase 10): interrupt/retarget sanity. Springs must survive
 /// rapid taps mid-animation and motion-scheme switches mid-flight without
@@ -26,6 +27,8 @@ void main() {
       overrides: [appDatabaseProvider.overrideWithValue(db)],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: osReduced),
           child: M3ETheme(

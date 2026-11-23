@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   material_ui: ^1.11.1
   cupertino_icons: ^1.0.8
 
@@ -94,6 +96,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Generate localization classes from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
 
   assets:
     - assets/fonts/

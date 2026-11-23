@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../domain/stats_engine.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Tag donut: share of tasks per tag, with a legend. Center shows the total
 /// tagged-task count.
@@ -17,7 +18,7 @@ class TagDonut extends StatelessWidget {
     final scheme = theme.colorScheme;
     if (slices.isEmpty) {
       return Text(
-        'Tag tasks to see their breakdown here.',
+        AppLocalizations.of(context).statsTagEmpty,
         style: theme.typography.baseline.bodyMedium.copyWith(
           color: scheme.onSurfaceVariant,
         ),
@@ -61,7 +62,7 @@ class TagDonut extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'tagged',
+                    AppLocalizations.of(context).statsTagged,
                     style: theme.typography.baseline.labelSmall.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

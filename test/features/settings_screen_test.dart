@@ -15,6 +15,7 @@ import 'package:nowpill/features/settings/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/test_database.dart';
+import '../helpers/test_localizations.dart';
 
 /// A [BackupService] that skips native file dialogs: export reports success,
 /// and the picked file is an in-memory string the test controls.
@@ -114,13 +115,15 @@ void main() {
       ],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: M3ETheme(data: M3EThemeData.light(), child: child),
       ),
     );
   }
 
   Future<void> pumpScreen(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(420, 1600);
+    tester.view.physicalSize = const Size(420, 2100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(wrap(const SettingsScreen()));
@@ -146,11 +149,13 @@ void main() {
     expect(find.text('Motion'), findsOneWidget);
     expect(find.text('Reminders & week'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
+    // Data/About sit below the fold once the Language section is present.
+    await tester.scrollUntilVisible(find.text('Data'), 200);
     expect(find.text('Data'), findsOneWidget);
-    expect(find.text('About'), findsOneWidget);
     expect(find.text('Export'), findsOneWidget);
     expect(find.text('Import'), findsOneWidget);
-    // The About card sits below the fold with the exact-alarm row present.
+    await tester.scrollUntilVisible(find.text('About'), 200);
+    expect(find.text('About'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('NowPill'), 200);
     expect(find.text('NowPill'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Set default'), -200);

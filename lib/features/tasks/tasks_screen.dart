@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
 import 'task_editor_sheet.dart';
 import 'task_filter.dart';
@@ -17,19 +18,20 @@ class TasksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final filter = ref.watch(taskFilterProvider);
     final tasks = ref.watch(filteredTasksProvider);
     final tags = ref.watch(allTagsProvider).value ?? const [];
     final tagFilter = ref.watch(taskTagFilterProvider);
 
     return Scaffold(
-      appBar: const M3EAppBar.top(
-        titleText: 'Tasks',
-        actions: [SettingsAction()],
+      appBar: M3EAppBar.top(
+        titleText: l10n.navTasks,
+        actions: const [SettingsAction()],
       ),
       floatingActionButton: M3EFab(
         icon: const Icon(M3EIcons.add),
-        tooltip: 'New task',
+        tooltip: l10n.newTask,
         onPressed: () => showTaskEditor(context),
       ),
       body: Column(
@@ -48,11 +50,11 @@ class TasksScreen extends ConsumerWidget {
                   }
                 },
                 style: M3EButtonStyle.tonal,
-                actions: const [
-                  M3EButtonGroupAction(label: Text('Today')),
-                  M3EButtonGroupAction(label: Text('Upcoming')),
-                  M3EButtonGroupAction(label: Text('All')),
-                  M3EButtonGroupAction(label: Text('Done')),
+                actions: [
+                  M3EButtonGroupAction(label: Text(l10n.navToday)),
+                  M3EButtonGroupAction(label: Text(l10n.upcoming)),
+                  M3EButtonGroupAction(label: Text(l10n.all)),
+                  M3EButtonGroupAction(label: Text(l10n.done)),
                 ],
               ),
             ),
@@ -122,14 +124,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final (icon, message) = switch (filter) {
-      TaskFilter.today => (
-        M3EIcons.today,
-        'Nothing due today. Enjoy the calm!',
-      ),
-      TaskFilter.upcoming => (M3EIcons.calendar_today, 'No upcoming tasks.'),
-      TaskFilter.all => (M3EIcons.checklist, 'No tasks yet. Tap + to add one.'),
-      TaskFilter.done => (M3EIcons.check_circle, 'Nothing completed yet.'),
+      TaskFilter.today => (M3EIcons.today, l10n.tasksEmptyToday),
+      TaskFilter.upcoming => (M3EIcons.calendar_today, l10n.tasksEmptyUpcoming),
+      TaskFilter.all => (M3EIcons.checklist, l10n.tasksEmptyAll),
+      TaskFilter.done => (M3EIcons.check_circle, l10n.tasksEmptyDone),
     };
     return Center(
       child: Padding(

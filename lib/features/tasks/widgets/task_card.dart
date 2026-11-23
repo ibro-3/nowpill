@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../data/db/app_database.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/schedule.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../task_providers.dart';
 import 'check_pill.dart';
 
@@ -50,7 +51,9 @@ class TaskCard extends ConsumerWidget {
           CheckPill(
             checked: completed,
             onChanged: (_) => onToggleComplete(),
-            semanticLabel: completed ? 'Mark incomplete' : 'Mark complete',
+            semanticLabel: completed
+                ? AppLocalizations.of(context).markIncomplete
+                : AppLocalizations.of(context).markComplete,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -166,7 +169,9 @@ class _DueLabel extends StatelessWidget {
         ),
         const SizedBox(width: 3),
         Text(
-          overdue && !completed ? 'Overdue · $label' : label,
+          overdue && !completed
+              ? AppLocalizations.of(context).overdueLabel(label)
+              : label,
           style: theme.typography.baseline.labelSmall.copyWith(color: color),
         ),
       ],

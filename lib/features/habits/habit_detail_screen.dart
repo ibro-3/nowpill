@@ -6,6 +6,7 @@ import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
 import '../../domain/streak_engine.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'habit_editor_sheet.dart';
 import 'habit_icons.dart';
 import 'habit_providers.dart';
@@ -90,34 +91,32 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<_DayChoice> _showFreezeChoice({required bool canFreeze}) async {
+    final l10n = AppLocalizations.of(context);
     final result = await M3EDialog.show<_DayChoice>(
       context,
       dialog: M3EDialog(
-        title: 'This day was missed',
+        title: l10n.dayMissedTitle,
         content: Text(
-          canFreeze
-              ? 'Backfill a check-in, or spend a freeze token to protect your '
-                    'streak.'
-              : 'Backfill a check-in. No freeze tokens available to spend.',
+          canFreeze ? l10n.dayMissedCanFreeze : l10n.dayMissedNoToken,
         ),
         actions: [
           M3EButton(
             key: const ValueKey('day-cancel'),
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.of(context).pop(_DayChoice.cancel),
-            label: const Text('Cancel'),
+            label: Text(l10n.cancel),
           ),
           if (canFreeze)
             M3EButton(
               key: const ValueKey('day-freeze'),
               style: M3EButtonStyle.tonal,
               onPressed: () => Navigator.of(context).pop(_DayChoice.freeze),
-              label: const Text('Freeze'),
+              label: Text(l10n.freeze),
             ),
           M3EButton(
             key: const ValueKey('day-backfill'),
             onPressed: () => Navigator.of(context).pop(_DayChoice.backfill),
-            label: const Text('Backfill'),
+            label: Text(l10n.backfill),
           ),
         ],
       ),
@@ -131,23 +130,21 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await M3EDialog.show<bool>(
       context,
       dialog: M3EDialog(
-        title: 'Delete habit?',
-        content: const Text(
-          'This permanently removes the habit and all its check-in history. '
-          'This cannot be undone.',
-        ),
+        title: l10n.deleteHabitTitle,
+        content: Text(l10n.deleteHabitBody),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.of(context).pop(false),
-            label: const Text('Cancel'),
+            label: Text(l10n.cancel),
           ),
           M3EButton(
             onPressed: () => Navigator.of(context).pop(true),
-            label: const Text('Delete'),
+            label: Text(l10n.delete),
           ),
         ],
       ),
@@ -161,6 +158,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final habit = ref.watch(habitProvider(widget.habitId)).value;
     if (habit == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -172,7 +170,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final schedule = ref.watch(habitScheduleProvider(widget.habitId));
     final color = Color(habit.color);
     final unit = schedule.isDayBased ? daysPerToken : weeksPerToken;
-    final unitLabel = schedule.isDayBased ? 'day' : 'week';
+    final unitLabel = schedule.isDayBased ? l10n.unitDay : l10n.unitWeek;
     final toNext = unit - (streak.currentStreak % unit);
 
     return Scaffold(
@@ -181,14 +179,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         leading: M3EIconButton(
           variant: M3EIconButtonVariant.standard,
           icon: const Icon(M3EIcons.arrow_back),
-          tooltip: 'Back',
+          tooltip: l10n.back,
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           M3EIconButton(
             variant: M3EIconButtonVariant.standard,
             icon: const Icon(M3EIcons.edit),
-            tooltip: 'Edit habit',
+            tooltip: l10n.editHabit,
             onPressed: () => showHabitEditor(context, habit: habit),
           ),
         ],
@@ -219,7 +217,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       children: [
                         _StatRow(
                           icon: M3EIcons.local_fire_department,
-                          label: 'Current streak',
+                          label: l10n.currentStreak,
                           value: '${streak.currentStreak}',
                           color: theme.colorScheme.tertiary,
                           theme: theme,
@@ -227,7 +225,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                         const SizedBox(height: 4),
                         _StatRow(
                           icon: M3EIcons.emoji_events,
-                          label: 'Best streak',
+                          label: l10n.bestStreak,
                           value: '${streak.bestStreak}',
                           color: theme.colorScheme.primary,
                           theme: theme,
@@ -247,7 +245,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     Row(
                       children: [
                         Text(
-                          'Freeze tokens',
+                          l10n.freezeTokens,
                           style: theme.typography.emphasized.titleSmall,
                         ),
                         const Spacer(),
@@ -258,17 +256,15 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     Text(
                       habit.freezeMode == FreezeMode.manual
                           ? (streak.tokens >= maxTokens
-                                ? 'Wallet full — tap a missed day to spend a '
-                                      'token and protect your streak.'
-                                : 'Earn a token every $unit-$unitLabel streak '
-                                      '($toNext to go). Tap a missed day to spend '
-                                      'a token.')
+                                ? l10n.walletFullManual
+                                : l10n.walletEarnManual(
+                                    unit,
+                                    unitLabel,
+                                    toNext,
+                                  ))
                           : (streak.tokens >= maxTokens
-                                ? 'Wallet full — tokens automatically protect a '
-                                      'missed $unitLabel.'
-                                : 'Earn a token every $unit-$unitLabel streak '
-                                      '($toNext to go). Tokens automatically '
-                                      'protect a missed $unitLabel.'),
+                                ? l10n.walletFullAuto(unitLabel)
+                                : l10n.walletEarnAuto(unit, unitLabel, toNext)),
                       style: theme.typography.baseline.bodySmall.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -282,13 +278,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   M3EIconButton(
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(M3EIcons.chevron_left),
-                    tooltip: 'Previous month',
+                    tooltip: l10n.previousMonth,
                     onPressed: () => _shiftMonth(-1),
                   ),
                   Expanded(
                     child: Center(
                       child: Text(
-                        _monthLabel(_month),
+                        _monthLabel(l10n, _month),
                         style: theme.typography.emphasized.titleMedium,
                       ),
                     ),
@@ -296,7 +292,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   M3EIconButton(
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(M3EIcons.chevron_right),
-                    tooltip: 'Next month',
+                    tooltip: l10n.nextMonth,
                     onPressed: () => _shiftMonth(1),
                   ),
                 ],
@@ -314,8 +310,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 habit.freezeMode == FreezeMode.manual
-                    ? 'Tap a day within the last 30 days to backfill or freeze it.'
-                    : 'Tap a day within the last 30 days to backfill a check-in.',
+                    ? l10n.heatmapHintManual
+                    : l10n.heatmapHintAuto,
                 style: theme.typography.baseline.labelSmall.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -328,7 +324,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       onPressed: _archive,
                       style: M3EButtonStyle.tonal,
                       icon: const Icon(M3EIcons.archive),
-                      label: const Text('Archive'),
+                      label: Text(l10n.archive),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -338,7 +334,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       M3EIcons.delete_forever,
                       color: theme.colorScheme.error,
                     ),
-                    tooltip: 'Delete habit',
+                    tooltip: l10n.deleteHabit,
                     onPressed: _confirmDelete,
                   ),
                 ],
@@ -350,20 +346,20 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     );
   }
 
-  String _monthLabel(DateTime m) {
-    const names = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+  String _monthLabel(AppLocalizations l10n, DateTime m) {
+    final names = [
+      l10n.monthJanuary,
+      l10n.monthFebruary,
+      l10n.monthMarch,
+      l10n.monthApril,
+      l10n.monthMayFull,
+      l10n.monthJune,
+      l10n.monthJuly,
+      l10n.monthAugust,
+      l10n.monthSeptember,
+      l10n.monthOctober,
+      l10n.monthNovember,
+      l10n.monthDecember,
     ];
     return '${names[m.month - 1]} ${m.year}';
   }

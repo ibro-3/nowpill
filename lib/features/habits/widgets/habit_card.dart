@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../../domain/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../tasks/widgets/check_pill.dart';
 import '../habit_icons.dart';
 import '../habit_providers.dart';
@@ -57,7 +58,7 @@ class HabitCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _scheduleLabel(habit),
+                  _scheduleLabel(AppLocalizations.of(context), habit),
                   style: theme.typography.baseline.labelSmall.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -112,27 +113,35 @@ class HabitCard extends ConsumerWidget {
             activeColor: color,
             onChanged: (_) => onCheckIn(),
             semanticLabel: checkedToday
-                ? 'Undo check-in for ${habit.name}'
-                : 'Check in ${habit.name}',
+                ? AppLocalizations.of(context).undoCheckInHabit(habit.name)
+                : AppLocalizations.of(context).checkInHabit(habit.name),
           ),
         ],
       ),
     );
   }
 
-  String _scheduleLabel(Habit h) {
+  String _scheduleLabel(AppLocalizations l10n, Habit h) {
     switch (h.scheduleType) {
       case HabitScheduleType.daily:
-        return 'Every day';
+        return l10n.everyDay;
       case HabitScheduleType.weekdays:
-        const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final names = [
+          l10n.weekdayMon,
+          l10n.weekdayTue,
+          l10n.weekdayWed,
+          l10n.weekdayThu,
+          l10n.weekdayFri,
+          l10n.weekdaySat,
+          l10n.weekdaySun,
+        ];
         final days = (h.weekdays ?? [])
             .where((d) => d >= 1 && d <= 7)
             .map((d) => names[d - 1])
             .join(', ');
-        return days.isEmpty ? 'Weekdays' : days;
+        return days.isEmpty ? l10n.scheduleWeekdays : days;
       case HabitScheduleType.weeklyTarget:
-        return '${h.targetPerWeek ?? 1}× per week';
+        return l10n.perWeek(h.targetPerWeek ?? 1);
     }
   }
 }

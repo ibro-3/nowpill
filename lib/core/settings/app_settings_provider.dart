@@ -10,6 +10,7 @@ const _kMotionMode = 'settings.motionMode';
 const _kDynamicColor = 'settings.dynamicColor';
 const _kDefaultReminderMinutes = 'settings.defaultReminderMinutes';
 const _kWeekStartsOnMonday = 'settings.weekStartsOnMonday';
+const _kLocaleCode = 'settings.localeCode';
 
 /// Loads and persists [AppSettings].
 ///
@@ -30,6 +31,7 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
       dynamicColor: prefs.getBool(_kDynamicColor) ?? true,
       defaultReminderMinutes: prefs.getInt(_kDefaultReminderMinutes),
       weekStartsOnMonday: prefs.getBool(_kWeekStartsOnMonday) ?? true,
+      localeCode: prefs.getString(_kLocaleCode),
     );
   }
 
@@ -60,6 +62,14 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
   void setWeekStartsOnMonday(bool monday) => _update(
     (s) => s.copyWith(weekStartsOnMonday: monday),
     (p, s) => p.setBool(_kWeekStartsOnMonday, s.weekStartsOnMonday),
+  );
+
+  /// Sets the UI language override; null clears it (follow system).
+  void setLocaleCode(String? code) => _update(
+    (s) => code == null ? s.clearLocale() : s.copyWith(localeCode: code),
+    (p, s) => s.localeCode == null
+        ? p.remove(_kLocaleCode)
+        : p.setString(_kLocaleCode, s.localeCode!),
   );
 
   void _update(

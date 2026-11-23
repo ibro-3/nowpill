@@ -6,13 +6,15 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/enums.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'habit_icons.dart';
 
 /// Opens the habit editor sheet. Pass [habit] to edit, or null to create.
 Future<void> showHabitEditor(BuildContext context, {Habit? habit}) {
+  final l10n = AppLocalizations.of(context);
   return M3EBottomSheet.showAdaptive<void>(
     context,
-    title: habit == null ? 'New habit' : 'Edit habit',
+    title: habit == null ? l10n.newHabit : l10n.editHabit,
     initialValue: M3EBottomSheetValue.expanded,
     expandToFullScreen: true,
     builder: (context) => _HabitEditorForm(habit: habit),
@@ -135,6 +137,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -143,19 +146,19 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         children: [
           M3ETextField(
             controller: _name,
-            label: 'Habit name',
+            label: l10n.habitName,
             autofocus: !_isEdit,
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
           M3ETextField(
             controller: _notes,
-            label: 'Notes',
+            label: l10n.notes,
             maxLines: 2,
             minLines: 1,
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Icon', theme),
+          _SectionLabel(l10n.icon, theme),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -164,7 +167,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
               for (final h in kHabitIcons)
                 _IconChoice(
                   icon: h.icon,
-                  label: h.label,
+                  label: habitIconLabel(l10n, h.key),
                   selected: _iconKey == h.key,
                   color: Color(_color),
                   onTap: () => setState(() => _iconKey = h.key),
@@ -172,7 +175,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Color', theme),
+          _SectionLabel(l10n.color, theme),
           const SizedBox(height: 8),
           Wrap(
             spacing: 10,
@@ -187,17 +190,23 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Schedule', theme),
+          _SectionLabel(l10n.schedule, theme),
           const SizedBox(height: 8),
           M3ESegmentedButton<HabitScheduleType>(
             selected: {_scheduleType},
             onSelectionChanged: (s) => setState(() => _scheduleType = s.first),
-            segments: const [
-              M3ESegment(value: HabitScheduleType.daily, label: 'Daily'),
-              M3ESegment(value: HabitScheduleType.weekdays, label: 'Weekdays'),
+            segments: [
+              M3ESegment(
+                value: HabitScheduleType.daily,
+                label: l10n.scheduleDaily,
+              ),
+              M3ESegment(
+                value: HabitScheduleType.weekdays,
+                label: l10n.scheduleWeekdays,
+              ),
               M3ESegment(
                 value: HabitScheduleType.weeklyTarget,
-                label: 'Weekly',
+                label: l10n.scheduleWeekly,
               ),
             ],
           ),
@@ -218,7 +227,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             ),
           ],
           const SizedBox(height: 20),
-          _SectionLabel('Reminder', theme),
+          _SectionLabel(l10n.reminder, theme),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -229,7 +238,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
                   icon: const Icon(M3EIcons.notifications),
                   label: Text(
                     _reminderTime == null
-                        ? 'Set reminder'
+                        ? l10n.setReminder
                         : _formatTime(_reminderTime!),
                   ),
                 ),
@@ -239,28 +248,28 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
                 M3EIconButton(
                   variant: M3EIconButtonVariant.standard,
                   icon: const Icon(M3EIcons.close),
-                  tooltip: 'Clear reminder',
+                  tooltip: l10n.clearReminder,
                   onPressed: () => setState(() => _reminderTime = null),
                 ),
               ],
             ],
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Freeze tokens', theme),
+          _SectionLabel(l10n.freezeTokens, theme),
           const SizedBox(height: 8),
           M3ESegmentedButton<FreezeMode>(
             selected: {_freezeMode},
             onSelectionChanged: (s) => setState(() => _freezeMode = s.first),
-            segments: const [
-              M3ESegment(value: FreezeMode.auto, label: 'Auto'),
-              M3ESegment(value: FreezeMode.manual, label: 'Manual'),
+            segments: [
+              M3ESegment(value: FreezeMode.auto, label: l10n.freezeAuto),
+              M3ESegment(value: FreezeMode.manual, label: l10n.freezeManual),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _freezeMode == FreezeMode.auto
-                ? 'Tokens automatically protect a missed day.'
-                : 'You choose when to spend a token on a missed day.',
+                ? l10n.freezeAutoDesc
+                : l10n.freezeManualDesc,
             style: theme.typography.baseline.bodySmall.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -270,7 +279,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             alignment: Alignment.centerRight,
             child: M3EButton(
               onPressed: _saving ? null : _save,
-              label: Text(_isEdit ? 'Save' : 'Add habit'),
+              label: Text(_isEdit ? l10n.save : l10n.addHabit),
             ),
           ),
         ],
@@ -408,27 +417,28 @@ class _TargetPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        Text('Goal:', style: theme.typography.baseline.bodyMedium),
+        Text(l10n.goal, style: theme.typography.baseline.bodyMedium),
         const SizedBox(width: 12),
         M3EIconButton(
           variant: M3EIconButtonVariant.tonal,
           icon: const Icon(M3EIcons.remove),
-          tooltip: 'Decrease',
+          tooltip: l10n.decrease,
           onPressed: value > 1 ? () => onChanged(value - 1) : null,
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            '$value× / week',
+            l10n.goalPerWeek(value),
             style: theme.typography.emphasized.titleMedium,
           ),
         ),
         M3EIconButton(
           variant: M3EIconButtonVariant.tonal,
           icon: const Icon(M3EIcons.add),
-          tooltip: 'Increase',
+          tooltip: l10n.increase,
           onPressed: value < 7 ? () => onChanged(value + 1) : null,
         ),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../domain/stats_engine.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../habits/habit_icons.dart';
 import '../../habits/widgets/streak_odometer.dart';
 
@@ -17,7 +18,7 @@ class StreakLeaderboard extends StatelessWidget {
     final theme = M3ETheme.of(context);
     if (entries.isEmpty) {
       return Text(
-        'No active habits yet.',
+        AppLocalizations.of(context).habitsEmptyActive,
         style: theme.typography.baseline.bodyMedium.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -46,7 +47,8 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = theme.colorScheme;
     final color = Color(entry.color);
-    final unit = entry.isWeekly ? 'wk' : 'd';
+    final l10n = AppLocalizations.of(context);
+    final unit = entry.isWeekly ? l10n.unitWeekShort : l10n.unitDayShort;
 
     return Row(
       children: [
@@ -80,7 +82,7 @@ class _Row extends StatelessWidget {
                 ),
               ),
               Text(
-                'best ${entry.bestStreak}$unit',
+                l10n.leaderboardBest(entry.bestStreak, unit),
                 style: theme.typography.baseline.labelSmall.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),

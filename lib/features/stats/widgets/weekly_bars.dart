@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../domain/stats_engine.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Weekly completion summary: stacked bars (habits + tasks) for the last 8
 /// ISO weeks, with a this-week vs last-week delta hint above.
@@ -143,17 +144,18 @@ class _DeltaHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final delta = thisWeek - lastWeek;
     final (label, color) = switch (delta) {
-      > 0 => ('+$delta vs last week', scheme.primary),
-      < 0 => ('$delta vs last week', scheme.onSurfaceVariant),
-      _ => ('same as last week', scheme.onSurfaceVariant),
+      > 0 => (l10n.statsDeltaVs('+$delta'), scheme.primary),
+      < 0 => (l10n.statsDeltaVs('$delta'), scheme.onSurfaceVariant),
+      _ => (l10n.statsSameAsLastWeek, scheme.onSurfaceVariant),
     };
     return Row(
       children: [
         Flexible(
           child: Text(
-            '$thisWeek this week',
+            l10n.statsThisWeek(thisWeek),
             style: theme.typography.emphasized.titleSmall.copyWith(
               color: scheme.onSurface,
             ),

@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
 /// A curated habit icon, keyed by a stable string stored in the database.
 class HabitIcon {
   const HabitIcon(this.key, this.icon, this.label);
@@ -37,6 +39,29 @@ IconData habitIconForKey(String key) {
     if (h.key == key) return h.icon;
   }
   return M3EIcons.auto_awesome;
+}
+
+/// Localized label for a stored icon key (falls back to the English label).
+String habitIconLabel(AppLocalizations l10n, String key) {
+  return switch (key) {
+    'spark' => l10n.iconSpark,
+    'run' => l10n.iconRun,
+    'walk' => l10n.iconWalk,
+    'fitness' => l10n.iconFitness,
+    'meditate' => l10n.iconMeditate,
+    'read' => l10n.iconRead,
+    'water' => l10n.iconWater,
+    'sleep' => l10n.iconSleep,
+    'eat' => l10n.iconEat,
+    'music' => l10n.iconMusic,
+    'code' => l10n.iconCode,
+    'art' => l10n.iconArt,
+    'plant' => l10n.iconPlant,
+    'sun' => l10n.iconSun,
+    'heart' => l10n.iconHeart,
+    'mind' => l10n.iconMind,
+    _ => key,
+  };
 }
 
 /// Brand color choices for habits (ARGB).

@@ -1,0 +1,9 @@
+# Localization config (flutter gen-l10n). English is the template; Spanish is
+# the first additional locale. Generated into lib/l10n/generated (synthetic
+# package disabled so the classes are ordinary project sources).
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+nullable-getter: false

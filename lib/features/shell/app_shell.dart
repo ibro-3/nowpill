@@ -7,30 +7,32 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/router/app_router.dart';
 import '../../data/repositories/providers.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Width at or above which the shell switches from a bottom navigation bar to
 /// a navigation rail (M3 medium window class).
 const double _kRailBreakpoint = 600;
 
-/// The four primary destinations, shared by the bar and the rail.
-const List<_Destination> _destinations = [
+/// The four primary destinations, shared by the bar and the rail. Labels are
+/// resolved from the active locale at build time.
+List<_Destination> _destinations(AppLocalizations l10n) => [
   _Destination(
-    label: 'Today',
+    label: l10n.navToday,
     icon: M3EIcons.today_outlined,
     selectedIcon: M3EIcons.today,
   ),
   _Destination(
-    label: 'Tasks',
+    label: l10n.navTasks,
     icon: M3EIcons.checklist_outlined,
     selectedIcon: M3EIcons.checklist,
   ),
   _Destination(
-    label: 'Habits',
+    label: l10n.navHabits,
     icon: M3EIcons.repeat_outlined,
     selectedIcon: M3EIcons.repeat,
   ),
   _Destination(
-    label: 'Stats',
+    label: l10n.navStats,
     icon: M3EIcons.insights_outlined,
     selectedIcon: M3EIcons.insights,
   ),
@@ -105,6 +107,7 @@ class _AppShellState extends ConsumerState<AppShell>
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;
     final index = widget.navigationShell.currentIndex;
+    final destinations = _destinations(AppLocalizations.of(context));
 
     if (useRail) {
       return Scaffold(
@@ -117,7 +120,7 @@ class _AppShellState extends ConsumerState<AppShell>
               sections: [
                 M3ENavigationRailSection(
                   destinations: [
-                    for (final d in _destinations)
+                    for (final d in destinations)
                       M3ENavigationRailDestination(
                         icon: Icon(d.icon),
                         selectedIcon: Icon(d.selectedIcon),
@@ -140,7 +143,7 @@ class _AppShellState extends ConsumerState<AppShell>
         selectedIndex: index,
         onDestinationSelected: _onDestinationSelected,
         destinations: [
-          for (final d in _destinations)
+          for (final d in destinations)
             M3ENavigationBarDestination(
               icon: Icon(d.icon),
               selectedIcon: Icon(d.selectedIcon),
@@ -161,7 +164,7 @@ class _SettingsButton extends StatelessWidget {
     return M3EIconButton(
       variant: M3EIconButtonVariant.standard,
       icon: const Icon(M3EIcons.settings_outlined),
-      tooltip: 'Settings',
+      tooltip: AppLocalizations.of(context).settings,
       onPressed: () => context.push(AppRoutes.settings),
     );
   }

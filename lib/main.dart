@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/settings/app_settings.dart';
 import 'core/settings/app_settings_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'l10n/generated/app_localizations.dart';
 
 void main() {
   runApp(const ProviderScope(child: NowPillApp()));
@@ -64,6 +65,12 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
       theme: AppTheme.light().toThemeData(),
       darkTheme: AppTheme.light().deriveDarkTemplate().toThemeData(),
       themeMode: themeMode,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: settings.localeCode == null ? null : Locale(settings.localeCode!),
       builder: (context, child) {
         return _ExpressiveThemeHost(
           themeMode: settings.themeMode,

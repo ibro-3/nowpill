@@ -15,6 +15,9 @@ analyzer:
     - "**/*.drift.dart"
     - "**/*.gr.dart"
     - "**/*.config.dart"
+    # gen-l10n output (flutter gen-l10n regenerates; references the compatibility
+    # flutter_localizations delegates, which are deprecated in Flutter 3.50).
+    - "lib/l10n/generated/**"
   language:
     strict-casts: true
     strict-inference: true

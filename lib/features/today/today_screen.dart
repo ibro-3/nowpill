@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../habits/habit_icons.dart';
 import '../habits/habit_providers.dart';
 import '../habits/widgets/streak_odometer.dart';
@@ -59,6 +60,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final vm = ref.watch(todayViewModelProvider);
 
     // Fire the celebration once per transition into the all-done state.
@@ -70,9 +72,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
     final now = DateTime.now();
     return Scaffold(
-      appBar: const M3EAppBar.top(
-        titleText: 'Today',
-        actions: [SettingsAction()],
+      appBar: M3EAppBar.top(
+        titleText: l10n.navToday,
+        actions: const [SettingsAction()],
       ),
       body: Stack(
         children: [
@@ -85,13 +87,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     _Header(vm: vm, theme: theme, now: now),
                     const SizedBox(height: 20),
                     if (vm.total == 0)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 32),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32),
                         child: FloatingPills(
                           icon: M3EIcons.wb_twilight,
-                          message:
-                              'Nothing due today. Add a task below, or enjoy '
-                              'the calm!',
+                          message: l10n.todayEmpty,
                         ),
                       )
                     else ...[
@@ -101,7 +101,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       ],
                       if (vm.overdueTasks.isNotEmpty) ...[
                         _SectionHeader(
-                          title: 'Overdue',
+                          title: l10n.sectionOverdue,
                           count: vm.overdueTasks.length,
                           color: theme.colorScheme.error,
                           theme: theme,
@@ -120,7 +120,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       ],
                       if (vm.habits.isNotEmpty) ...[
                         _SectionHeader(
-                          title: 'Habits',
+                          title: l10n.sectionHabits,
                           count: vm.habits.length,
                           color: theme.colorScheme.primary,
                           theme: theme,
@@ -138,7 +138,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       ],
                       if (vm.dueTodayTasks.isNotEmpty) ...[
                         _SectionHeader(
-                          title: 'Due today',
+                          title: l10n.sectionDueToday,
                           count: vm.dueTodayTasks.length,
                           color: theme.colorScheme.primary,
                           theme: theme,
@@ -157,7 +157,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       ],
                       if (vm.completedTodayTasks.isNotEmpty) ...[
                         _SectionHeader(
-                          title: 'Done today',
+                          title: l10n.sectionDoneToday,
                           count: vm.completedTodayTasks.length,
                           color: theme.colorScheme.onSurfaceVariant,
                           theme: theme,
@@ -207,6 +207,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
@@ -214,23 +215,23 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _greeting(now),
+                _greeting(l10n, now),
                 style: theme.typography.baseline.titleMedium.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                _dateLabel(now),
+                _dateLabel(l10n, now),
                 style: theme.typography.emphasized.headlineMedium,
               ),
               const SizedBox(height: 6),
               Text(
                 vm.total == 0
-                    ? 'A clear day ahead'
+                    ? l10n.todayClearDay
                     : vm.allDone
-                    ? 'Everything done — enjoy your day!'
-                    : '${vm.remaining} to go · ${vm.done} done',
+                    ? l10n.todayAllDoneSubtitle
+                    : l10n.todayProgress(vm.remaining, vm.done),
                 style: theme.typography.baseline.bodyMedium.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -249,38 +250,38 @@ class _Header extends StatelessWidget {
     );
   }
 
-  String _greeting(DateTime now) {
+  String _greeting(AppLocalizations l10n, DateTime now) {
     final h = now.hour;
-    if (h < 5) return 'Up late';
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    if (h < 22) return 'Good evening';
-    return 'Winding down';
+    if (h < 5) return l10n.greetingUpLate;
+    if (h < 12) return l10n.greetingMorning;
+    if (h < 17) return l10n.greetingAfternoon;
+    if (h < 22) return l10n.greetingEvening;
+    return l10n.greetingWindingDown;
   }
 
-  String _dateLabel(DateTime now) {
-    const weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
+  String _dateLabel(AppLocalizations l10n, DateTime now) {
+    final weekdays = [
+      l10n.weekdayMonday,
+      l10n.weekdayTuesday,
+      l10n.weekdayWednesday,
+      l10n.weekdayThursday,
+      l10n.weekdayFriday,
+      l10n.weekdaySaturday,
+      l10n.weekdaySunday,
     ];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final months = [
+      l10n.monthJan,
+      l10n.monthFeb,
+      l10n.monthMar,
+      l10n.monthApr,
+      l10n.monthMay,
+      l10n.monthJun,
+      l10n.monthJul,
+      l10n.monthAug,
+      l10n.monthSep,
+      l10n.monthOct,
+      l10n.monthNov,
+      l10n.monthDec,
     ];
     return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
@@ -317,7 +318,7 @@ class _AllDoneBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Flexible(
             child: Text(
-              'All done for today!',
+              AppLocalizations.of(context).allDoneBanner,
               style: theme.typography.emphasized.titleMedium.copyWith(
                 color: theme.colorScheme.onTertiaryContainer,
               ),
@@ -428,8 +429,8 @@ class _TodayHabitTile extends StatelessWidget {
             activeColor: color,
             onChanged: (_) => onToggle(),
             semanticLabel: item.checkedToday
-                ? 'Undo check-in for ${habit.name}'
-                : 'Check in ${habit.name}',
+                ? AppLocalizations.of(context).undoCheckInHabit(habit.name)
+                : AppLocalizations.of(context).checkInHabit(habit.name),
           ),
         ],
       ),

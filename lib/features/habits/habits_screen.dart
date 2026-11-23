@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
 import 'habit_detail_screen.dart';
 import 'habit_editor_sheet.dart';
@@ -17,16 +18,17 @@ class HabitsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final habits = ref.watch(activeHabitsProvider).value ?? const [];
 
     return Scaffold(
-      appBar: const M3EAppBar.top(
-        titleText: 'Habits',
-        actions: [SettingsAction()],
+      appBar: M3EAppBar.top(
+        titleText: l10n.navHabits,
+        actions: const [SettingsAction()],
       ),
       floatingActionButton: M3EFab(
         icon: const Icon(M3EIcons.add),
-        tooltip: 'New habit',
+        tooltip: l10n.newHabit,
         onPressed: () => showHabitEditor(context),
       ),
       body: habits.isEmpty
@@ -90,7 +92,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No habits yet. Tap + to build your first streak.',
+              AppLocalizations.of(context).habitsEmpty,
               textAlign: TextAlign.center,
               style: theme.typography.baseline.bodyLarge.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,

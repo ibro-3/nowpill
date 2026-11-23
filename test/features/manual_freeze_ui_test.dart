@@ -12,6 +12,7 @@ import 'package:nowpill/features/habits/habit_providers.dart';
 import 'package:nowpill/features/habits/widgets/token_wallet.dart';
 
 import '../data/test_database.dart';
+import '../helpers/test_localizations.dart';
 
 /// Manual freeze mode UI: tapping a missed day offers Backfill / Freeze, and
 /// tapping a frozen day refunds the token.
@@ -27,6 +28,8 @@ void main() {
       overrides: [appDatabaseProvider.overrideWithValue(db)],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: M3ETheme(data: M3EThemeData.light(), child: child),
       ),
     );

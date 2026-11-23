@@ -33,6 +33,7 @@ class AppSettings {
     this.dynamicColor = true,
     this.defaultReminderMinutes,
     this.weekStartsOnMonday = true,
+    this.localeCode,
   });
 
   final AppThemeMode themeMode;
@@ -50,12 +51,16 @@ class AppSettings {
   /// will drive calendar-style views.
   final bool weekStartsOnMonday;
 
+  /// Explicit UI language override (e.g. 'en', 'es'). Null = follow system.
+  final String? localeCode;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     AppMotionMode? motionMode,
     bool? dynamicColor,
     int? defaultReminderMinutes,
     bool? weekStartsOnMonday,
+    String? localeCode,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -64,6 +69,7 @@ class AppSettings {
       defaultReminderMinutes:
           defaultReminderMinutes ?? this.defaultReminderMinutes,
       weekStartsOnMonday: weekStartsOnMonday ?? this.weekStartsOnMonday,
+      localeCode: localeCode ?? this.localeCode,
     );
   }
 
@@ -76,6 +82,19 @@ class AppSettings {
       dynamicColor: dynamicColor,
       defaultReminderMinutes: null,
       weekStartsOnMonday: weekStartsOnMonday,
+      localeCode: localeCode,
+    );
+  }
+
+  /// Returns a copy with the locale override cleared (follow system).
+  AppSettings clearLocale() {
+    return AppSettings(
+      themeMode: themeMode,
+      motionMode: motionMode,
+      dynamicColor: dynamicColor,
+      defaultReminderMinutes: defaultReminderMinutes,
+      weekStartsOnMonday: weekStartsOnMonday,
+      localeCode: null,
     );
   }
 
@@ -86,7 +105,8 @@ class AppSettings {
         other.motionMode == motionMode &&
         other.dynamicColor == dynamicColor &&
         other.defaultReminderMinutes == defaultReminderMinutes &&
-        other.weekStartsOnMonday == weekStartsOnMonday;
+        other.weekStartsOnMonday == weekStartsOnMonday &&
+        other.localeCode == localeCode;
   }
 
   @override
@@ -96,5 +116,6 @@ class AppSettings {
     dynamicColor,
     defaultReminderMinutes,
     weekStartsOnMonday,
+    localeCode,
   );
 }

@@ -17,6 +17,7 @@ import 'package:nowpill/features/stats/widgets/weekly_bars.dart';
 import 'package:nowpill/features/today/widgets/floating_pills.dart';
 
 import '../data/test_database.dart';
+import '../helpers/test_localizations.dart';
 
 void main() {
   late AppDatabase db;
@@ -30,6 +31,8 @@ void main() {
       overrides: [appDatabaseProvider.overrideWithValue(db)],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: M3ETheme(data: M3EThemeData.light(), child: child),
       ),
     );

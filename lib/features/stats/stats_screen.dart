@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 
 import '../../core/motion/app_motion.dart';
 import '../../core/motion/motion_scheme_provider.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
 import '../today/widgets/floating_pills.dart';
 import 'stats_providers.dart';
@@ -21,24 +22,23 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final vm = ref.watch(statsViewModelProvider);
 
     return Scaffold(
-      appBar: const M3EAppBar.top(
-        titleText: 'Stats',
-        actions: [SettingsAction()],
+      appBar: M3EAppBar.top(
+        titleText: l10n.navStats,
+        actions: const [SettingsAction()],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
           if (!vm.hasData)
-            const Padding(
-              padding: EdgeInsets.only(top: 32),
+            Padding(
+              padding: const EdgeInsets.only(top: 32),
               child: FloatingPills(
                 icon: M3EIcons.insights,
-                message:
-                    'No activity yet. Check off a habit or task and your '
-                    'stats will grow here.',
+                message: l10n.statsEmpty,
               ),
             )
           else ...[
@@ -54,7 +54,7 @@ class StatsScreen extends ConsumerWidget {
               index: 0,
               child: _StatsCard(
                 theme: theme,
-                title: 'Last 30 days',
+                title: l10n.statsLast30Days,
                 child: TrendChart(trend: vm.trend),
               ),
             ),
@@ -64,7 +64,7 @@ class StatsScreen extends ConsumerWidget {
               index: 1,
               child: _StatsCard(
                 theme: theme,
-                title: 'Weekly summary',
+                title: l10n.statsWeeklySummary,
                 child: WeeklyBars(
                   weeks: vm.weeks,
                   thisWeekTotal: vm.thisWeekTotal,
@@ -78,7 +78,7 @@ class StatsScreen extends ConsumerWidget {
               index: 2,
               child: _StatsCard(
                 theme: theme,
-                title: 'Streak leaderboard',
+                title: l10n.statsStreakLeaderboard,
                 child: StreakLeaderboard(entries: vm.leaderboard),
               ),
             ),
@@ -88,7 +88,7 @@ class StatsScreen extends ConsumerWidget {
               index: 3,
               child: _StatsCard(
                 theme: theme,
-                title: 'Tasks by tag',
+                title: l10n.statsTasksByTag,
                 child: TagDonut(slices: vm.tagSlices),
               ),
             ),
@@ -115,13 +115,14 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
           child: _SummaryTile(
             theme: theme,
             value: '$checkins',
-            label: 'check-ins',
+            label: l10n.statsCheckIns,
             icon: M3EIcons.check_circle,
             color: theme.colorScheme.primary,
           ),
@@ -131,7 +132,7 @@ class _SummaryRow extends StatelessWidget {
           child: _SummaryTile(
             theme: theme,
             value: '$tasksDone',
-            label: 'tasks done',
+            label: l10n.statsTasksDone,
             icon: M3EIcons.task_alt,
             color: theme.colorScheme.tertiary,
           ),
@@ -141,7 +142,7 @@ class _SummaryRow extends StatelessWidget {
           child: _SummaryTile(
             theme: theme,
             value: '$bestStreak',
-            label: 'best streak',
+            label: l10n.statsBestStreak,
             icon: M3EIcons.local_fire_department,
             color: theme.colorScheme.secondary,
           ),

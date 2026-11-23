@@ -54,6 +54,9 @@ app.*.map.json
 *.gr.dart
 *.config.dart
 
+# gen-l10n output (flutter pub get / gen-l10n regenerates from lib/l10n/*.arb)
+lib/l10n/generated/
+
 # Local environment overrides (e.g. CHROME_EXECUTABLE)
 .env
 .envrc
