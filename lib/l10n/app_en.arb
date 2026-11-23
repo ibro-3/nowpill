@@ -546,5 +546,8 @@
   },
   "searchTasks": "Tasks",
   "searchHabits": "Habits",
-  "searchTags": "Tags"
+  "searchTags": "Tags",
+  "heatmapMonth": "Month",
+  "heatmapYear": "Year",
+  "yearHeatmapTitle": "Last 12 months"
 }

@@ -6,31 +6,10 @@ import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
 import '../../../domain/date_utils.dart';
 import '../../../domain/habit_schedule.dart';
+import '../../../domain/heatmap.dart';
 import '../../../domain/streak_engine.dart';
 
-/// The visual state of a single heatmap day.
-enum HeatmapDayState {
-  /// Checked in (measurable habits: goal fully met).
-  done,
-
-  /// Measurable habit: some progress logged, but below the daily goal.
-  partial,
-
-  /// A freeze token bridged this missed day.
-  frozen,
-
-  /// A scheduled day that was missed (no token).
-  missed,
-
-  /// Not a scheduled day.
-  unscheduled,
-
-  /// Today, not yet checked (in progress).
-  todayPending,
-
-  /// Outside the habit's lifetime or in the future.
-  inactive,
-}
+export '../../../domain/heatmap.dart' show HeatmapDayState;
 
 /// A monthly check-in heatmap. Columns are weeks (Monday-start), rows are
 /// weekdays. Cells pop in with a stagger and morph on backfill taps.
@@ -119,35 +98,16 @@ class _HabitHeatmapState extends State<HabitHeatmap>
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
   HeatmapDayState _stateFor(DateTime day) {
-    final today = _dateOnly(DateTime.now());
-    final key = formatDate(day);
-    if (day.isAfter(today)) return HeatmapDayState.inactive;
-    if (day.isBefore(_dateOnly(widget.startDate))) {
-      return HeatmapDayState.inactive;
-    }
-    if (widget.checkins.contains(key)) {
-      // Measurable habits: full goal = done, partial progress = partial shade.
-      final target = widget.targetAmount;
-      if (target != null) {
-        final amount = widget.amounts[key];
-        if (amount != null && amount < target) return HeatmapDayState.partial;
-      }
-      return HeatmapDayState.done;
-    }
-    // Weekly-target freezes are stored under the week's Monday; render ❄ on
-    // every unchecked day of a frozen week.
-    final frozenKey = widget.schedule.isDayBased
-        ? key
-        : formatDate(startOfWeek(day));
-    if (widget.streak.frozenDates.contains(frozenKey)) {
-      return HeatmapDayState.frozen;
-    }
-    if (daysBetween(day, today) == 0) return HeatmapDayState.todayPending;
-    // Weekly-target habits never miss individual days — only whole weeks
-    // count, so unchecked days stay neutral.
-    if (!widget.schedule.isDayBased) return HeatmapDayState.unscheduled;
-    if (widget.schedule.isDueOn(day)) return HeatmapDayState.missed;
-    return HeatmapDayState.unscheduled;
+    return heatmapDayState(
+      day: day,
+      today: DateTime.now(),
+      startDate: widget.startDate,
+      schedule: widget.schedule,
+      checkins: widget.checkins,
+      frozenDates: widget.streak.frozenDates,
+      targetAmount: widget.targetAmount,
+      amounts: widget.amounts,
+    );
   }
 
   @override

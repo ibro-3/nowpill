@@ -417,5 +417,8 @@
   },
   "searchTasks": "Tareas",
   "searchHabits": "Hábitos",
-  "searchTags": "Etiquetas"
+  "searchTags": "Etiquetas",
+  "heatmapMonth": "Mes",
+  "heatmapYear": "Año",
+  "yearHeatmapTitle": "Últimos 12 meses"
 }

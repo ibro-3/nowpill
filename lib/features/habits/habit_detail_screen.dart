@@ -12,9 +12,13 @@ import 'habit_icons.dart';
 import 'habit_providers.dart';
 import 'widgets/habit_heatmap.dart';
 import 'widgets/token_wallet.dart';
+import 'widgets/year_heatmap.dart';
 
 /// The user's choice when tapping a missed day in manual freeze mode.
 enum _DayChoice { cancel, freeze, backfill }
+
+/// Which heatmap range the detail screen shows.
+enum _HeatmapRange { month, year }
 
 /// Habit detail: monthly heatmap with backfill, streak stats, token wallet,
 /// and archive / delete actions.
@@ -29,6 +33,7 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
 
 class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   late DateTime _month;
+  _HeatmapRange _range = _HeatmapRange.month;
 
   @override
   void initState() {
@@ -274,45 +279,83 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  M3EIconButton(
-                    variant: M3EIconButtonVariant.standard,
-                    icon: const Icon(M3EIcons.chevron_left),
-                    tooltip: l10n.previousMonth,
-                    onPressed: () => _shiftMonth(-1),
+              M3ESegmentedButton<_HeatmapRange>(
+                selected: {_range},
+                onSelectionChanged: (s) => setState(() => _range = s.first),
+                segments: [
+                  M3ESegment(
+                    value: _HeatmapRange.month,
+                    label: l10n.heatmapMonth,
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        _monthLabel(l10n, _month),
-                        style: theme.typography.emphasized.titleMedium,
-                      ),
-                    ),
-                  ),
-                  M3EIconButton(
-                    variant: M3EIconButtonVariant.standard,
-                    icon: const Icon(M3EIcons.chevron_right),
-                    tooltip: l10n.nextMonth,
-                    onPressed: () => _shiftMonth(1),
+                  M3ESegment(
+                    value: _HeatmapRange.year,
+                    label: l10n.heatmapYear,
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              HabitHeatmap(
-                month: _month,
-                checkins: checkins.map((c) => c.date).toSet(),
-                streak: streak,
-                schedule: schedule,
-                startDate: habit.createdAt.toLocal(),
-                color: color,
-                onToggleDay: _toggleDay,
-                targetAmount: habit.targetAmount,
-                amounts: {
-                  for (final c in checkins)
-                    if (c.amount != null) c.date: c.amount!,
-                },
-              ),
+              if (_range == _HeatmapRange.month) ...[
+                Row(
+                  children: [
+                    M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      icon: const Icon(M3EIcons.chevron_left),
+                      tooltip: l10n.previousMonth,
+                      onPressed: () => _shiftMonth(-1),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          _monthLabel(l10n, _month),
+                          style: theme.typography.emphasized.titleMedium,
+                        ),
+                      ),
+                    ),
+                    M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      icon: const Icon(M3EIcons.chevron_right),
+                      tooltip: l10n.nextMonth,
+                      onPressed: () => _shiftMonth(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                HabitHeatmap(
+                  month: _month,
+                  checkins: checkins.map((c) => c.date).toSet(),
+                  streak: streak,
+                  schedule: schedule,
+                  startDate: habit.createdAt.toLocal(),
+                  color: color,
+                  onToggleDay: _toggleDay,
+                  targetAmount: habit.targetAmount,
+                  amounts: {
+                    for (final c in checkins)
+                      if (c.amount != null) c.date: c.amount!,
+                  },
+                ),
+              ] else ...[
+                Center(
+                  child: Text(
+                    l10n.yearHeatmapTitle,
+                    style: theme.typography.emphasized.titleMedium,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                YearHeatmap(
+                  checkins: checkins.map((c) => c.date).toSet(),
+                  streak: streak,
+                  schedule: schedule,
+                  startDate: habit.createdAt.toLocal(),
+                  color: color,
+                  onToggleDay: _toggleDay,
+                  targetAmount: habit.targetAmount,
+                  amounts: {
+                    for (final c in checkins)
+                      if (c.amount != null) c.date: c.amount!,
+                  },
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 habit.freezeMode == FreezeMode.manual
