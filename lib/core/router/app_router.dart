@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/habits/habits_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/shell/feature_placeholders.dart';

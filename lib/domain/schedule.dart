@@ -1,7 +1,24 @@
 import 'date_utils.dart';
+import 'enums.dart';
 import 'habit_schedule.dart';
 
 export 'habit_schedule.dart' show HabitSchedule;
+
+/// Builds a pure [HabitSchedule] from stored habit fields.
+HabitSchedule scheduleFromFields({
+  required HabitScheduleType type,
+  List<int>? weekdays,
+  int? targetPerWeek,
+}) {
+  switch (type) {
+    case HabitScheduleType.daily:
+      return const HabitSchedule.daily();
+    case HabitScheduleType.weekdays:
+      return HabitSchedule.weekdays(weekdays ?? const []);
+    case HabitScheduleType.weeklyTarget:
+      return HabitSchedule.weeklyTarget(targetPerWeek ?? 1);
+  }
+}
 
 /// Whether a habit is due on [day] (delegates to its schedule).
 bool habitDueOn(HabitSchedule schedule, DateTime day) => schedule.isDueOn(day);

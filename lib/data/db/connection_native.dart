@@ -12,7 +12,15 @@ import 'package:path_provider/path_provider.dart';
 /// isolate. sqlite3 3.x bundles its native library via build hooks, so no
 /// manual library loading is required.
 Future<QueryExecutor> openConnection() async {
-  final dir = await getApplicationDocumentsDirectory();
-  final file = File(p.join(dir.path, 'nowpill.sqlite'));
-  return NativeDatabase.createInBackground(file);
+  // Optional override for demos/tests: NOWPILL_DB_PATH points at an alternate
+  // database file (never used in production builds).
+  final override = Platform.environment['NOWPILL_DB_PATH'];
+  final String path;
+  if (override != null && override.isNotEmpty) {
+    path = override;
+  } else {
+    final dir = await getApplicationDocumentsDirectory();
+    path = p.join(dir.path, 'nowpill.sqlite');
+  }
+  return NativeDatabase.createInBackground(File(path));
 }

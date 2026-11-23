@@ -34,20 +34,6 @@ class TodayScreen extends StatelessWidget {
   }
 }
 
-/// Placeholder for the Habits feature (built in Phase 5).
-class HabitsScreen extends StatelessWidget {
-  const HabitsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _FeaturePlaceholder(
-      icon: M3EIcons.repeat,
-      title: 'Habits',
-      message: 'Streaks, freeze tokens, and check-in heatmaps.',
-    );
-  }
-}
-
 /// Placeholder for the Stats feature (built in Phase 7).
 class StatsScreen extends StatelessWidget {
   const StatsScreen({super.key});
