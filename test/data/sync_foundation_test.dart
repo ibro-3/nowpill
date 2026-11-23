@@ -395,5 +395,92 @@ void main() {
       expect((await habitsA.getById(idA))!.name, 'Read books');
       expect((await habitsA.getById(idA))!.id, idA); // local id preserved
     });
+
+    test('pre-v4 remote envelope does not cause a rewrite loop', () async {
+      // Regression: an older device's envelope omits the v4 nullable columns
+      // (targetAmount / amount). Applying it must converge in one pass — a
+      // second merge+apply must not write anything (which would re-trigger
+      // the data streams and loop forever).
+      final db = AppDatabase.withExecutor(
+        NativeDatabase.memory(),
+        deviceId: 'devA',
+      );
+      addTearDown(db.close);
+      final svc = ExportService(db);
+      final habits = HabitRepository(db);
+      final id = await habits.create(name: 'Water', color: 1);
+      await habits.checkIn(id, '2026-11-20');
+
+      // Build a remote envelope and strip the v4 keys (simulate a pre-v4 file).
+      final remoteDb = AppDatabase.withExecutor(
+        NativeDatabase.memory(),
+        deviceId: 'devB',
+      );
+      final remoteHabits = HabitRepository(remoteDb);
+      final rid = await remoteHabits.create(name: 'Water', color: 1);
+      await remoteHabits.checkIn(rid, '2026-11-20');
+      // Copy devA's uuids so the rows are the "same" logical rows.
+      final localEnv = await svc.collect();
+      await remoteHabits.update(
+        (await remoteHabits.getById(rid))!.copyWith(
+          uuid: localEnv.habits.single.uuid,
+          updatedAt: localEnv.habits.single.updatedAt,
+        ),
+      );
+      final remoteJson = jsonDecode(
+        await ExportService(remoteDb).exportToString(),
+      ) as Map<String, Object?>;
+      final data = remoteJson['data'] as Map<String, Object?>;
+      for (final h in (data['habits'] as List).cast<Map<String, Object?>>()) {
+        h.remove('targetAmount');
+      }
+      for (final c in (data['checkins'] as List).cast<Map<String, Object?>>()) {
+        c.remove('amount');
+      }
+      await remoteDb.close();
+
+      // Watch the habits + checkins streams and count emissions.
+      var habitEmissions = 0;
+      var checkinEmissions = 0;
+      final hSub = db.select(db.habits).watch().listen((_) => habitEmissions++);
+      final cSub = db
+          .select(db.habitCheckins)
+          .watch()
+          .listen((_) => checkinEmissions++);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final hBefore = habitEmissions;
+      final cBefore = checkinEmissions;
+
+      // First merge+apply adopts the remote copy (same content, older shape).
+      final local1 = (await svc.collect()).toJson();
+      await svc.applyMerged(
+        mergeEnvelopes(
+          envelopes: [local1, remoteJson],
+          deviceId: 'devA',
+          now: DateTime.utc(2026, 11, 23),
+        ).envelope,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Second merge+apply must be a complete no-op (no stream emissions).
+      final hMid = habitEmissions;
+      final cMid = checkinEmissions;
+      final local2 = (await svc.collect()).toJson();
+      await svc.applyMerged(
+        mergeEnvelopes(
+          envelopes: [local2, remoteJson],
+          deviceId: 'devA',
+          now: DateTime.utc(2026, 11, 23),
+        ).envelope,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(habitEmissions, hMid, reason: 'second apply rewrote habits');
+      expect(checkinEmissions, cMid, reason: 'second apply rewrote checkins');
+      expect(hBefore, lessThanOrEqualTo(hMid));
+      expect(cBefore, lessThanOrEqualTo(cMid));
+
+      await hSub.cancel();
+      await cSub.cancel();
+    });
   });
 }

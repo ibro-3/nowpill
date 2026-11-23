@@ -133,6 +133,45 @@ void main() {
     expect((await habitsB.getAll()).single.name, 'B name');
   });
 
+  test('equal-timestamp divergent copies converge (no flip-flop)', () async {
+    // Regression: two devices hold the same uuid with different content at
+    // the SAME updatedAt. A deviceId tiebreak would make each prefer its own
+    // copy and swap forever; the content tiebreak must reach a fixed point.
+    final a = device('devA');
+    final b = device('devB');
+    final habitsA = HabitRepository(a.db);
+    final habitsB = HabitRepository(b.db);
+
+    final idA = await habitsA.create(name: 'Read', color: 1);
+    await a.sync.syncNow();
+    await b.sync.syncNow();
+    final idB = (await habitsB.getAll()).single.id;
+
+    // Force both copies to the same updatedAt but different names (simulates
+    // clock skew / an out-of-band edit).
+    final stamp = DateTime.utc(2026, 11, 23, 12);
+    await habitsA.update(
+      (await habitsA.getById(idA))!.copyWith(name: 'A name', updatedAt: stamp),
+    );
+    await habitsB.update(
+      (await habitsB.getById(idB))!.copyWith(name: 'B name', updatedAt: stamp),
+    );
+
+    // Alternate cycles; both devices must settle on the SAME name and stay.
+    for (var i = 0; i < 3; i++) {
+      await a.sync.syncNow();
+      await b.sync.syncNow();
+    }
+    final nameA = (await habitsA.getAll()).single.name;
+    final nameB = (await habitsB.getAll()).single.name;
+    expect(nameA, nameB);
+    // One more round must not change it (fixed point).
+    await a.sync.syncNow();
+    await b.sync.syncNow();
+    expect((await habitsA.getAll()).single.name, nameA);
+    expect((await habitsB.getAll()).single.name, nameB);
+  });
+
   test('unchanged data does not rewrite the file', () async {
     final a = device('devA');
     await HabitRepository(a.db).create(name: 'Read', color: 1);

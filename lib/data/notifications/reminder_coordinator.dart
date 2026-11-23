@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show TableUpdate, UpdateKind;
+
 import '../../domain/reminder_planner.dart';
 import '../../domain/schedule.dart';
+import '../db/app_database.dart';
 import '../repositories/habit_repository.dart';
 import '../repositories/task_repository.dart';
 import 'notification_service.dart';
@@ -78,6 +81,7 @@ class ReminderCoordinator {
         now: now,
         checkedDays: checkedByHabit[habit.id] ?? const <String>{},
         count: kHabitReminderHorizon,
+        habitId: habit.id,
       );
       await _notifications.scheduleAll(
         occurrences,
@@ -91,6 +95,7 @@ class ReminderCoordinator {
         reminderAt: task.reminderAt,
         now: now,
         completed: task.completedAt != null,
+        taskId: task.id,
       );
       await _notifications.scheduleAll(
         occurrences,
@@ -109,5 +114,26 @@ class ReminderCoordinator {
     _started = false;
     await _notifications.cancelAll();
     _notifications.dispose();
+  }
+}
+
+/// Forces drift's stream queries to re-run so the UI picks up writes made by
+/// another isolate (e.g. the notification Done action in the background
+/// handler, Phase 22). Drift's update notifications are per-connection, so a
+/// background write is invisible to the main isolate's streams until nudged.
+/// Call on app resume.
+void refreshDatabaseStreams(AppDatabase db) {
+  try {
+    db.notifyUpdates({
+      TableUpdate.onTable(db.tasks, kind: UpdateKind.update),
+      TableUpdate.onTable(db.subtasks, kind: UpdateKind.update),
+      TableUpdate.onTable(db.tags, kind: UpdateKind.update),
+      TableUpdate.onTable(db.taskTags, kind: UpdateKind.update),
+      TableUpdate.onTable(db.habits, kind: UpdateKind.update),
+      TableUpdate.onTable(db.habitCheckins, kind: UpdateKind.update),
+      TableUpdate.onTable(db.habitFreezes, kind: UpdateKind.update),
+    });
+  } catch (_) {
+    // Guarded: a refresh failure must not break resume.
   }
 }

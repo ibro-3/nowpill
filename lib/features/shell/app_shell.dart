@@ -6,6 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/router/app_router.dart';
+import '../../data/notifications/reminder_coordinator.dart';
 import '../../data/repositories/providers.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -103,6 +104,8 @@ class _AppShellState extends ConsumerState<AppShell>
       unawaited(ref.read(reminderCoordinatorProvider).rescheduleAll());
       // Pick up remote changes that landed while backgrounded.
       ref.read(syncCoordinatorProvider).scheduleSync();
+      // Pick up notification-action writes made in the background isolate.
+      refreshDatabaseStreams(ref.read(appDatabaseProvider));
     }
   }
 

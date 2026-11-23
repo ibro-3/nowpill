@@ -6,6 +6,7 @@ import '../backup/auto_backup_service.dart';
 import '../db/app_database.dart';
 import '../export/backup_service.dart';
 import '../export/export_service.dart';
+import '../notifications/notification_action_handler.dart';
 import '../notifications/notification_permission_service.dart';
 import '../notifications/notification_service.dart';
 import '../notifications/reminder_coordinator.dart';
@@ -73,6 +74,36 @@ Future<AutoBackupService> autoBackupService(Ref ref) async {
 @Riverpod(keepAlive: true)
 NotificationService notificationService(Ref ref) {
   final service = NotificationService();
+  final db = ref.watch(appDatabaseProvider);
+  // Foreground action taps (app open) apply through the shared database —
+  // the background handler only runs while the app is closed.
+  service.onActionResponse = (response) async {
+    final parsed = parseReminderPayload(response.payload);
+    if (parsed == null) return;
+    final action = response.actionId;
+    if (action == kActionDone) {
+      await applyDoneAction(db, parsed);
+      // Surface the write to the reactive UI immediately.
+      refreshDatabaseStreams(db);
+      return;
+    }
+    final minutes = action == kActionSnooze10
+        ? 10
+        : action == kActionSnooze60
+        ? 60
+        : null;
+    if (minutes == null) return;
+    try {
+      await service.snooze(
+        id: 2000000 + (response.id ?? 0),
+        when: DateTime.now().add(Duration(minutes: minutes)),
+        label: parsed.label,
+        payload: response.payload ?? '',
+      );
+    } catch (_) {
+      // Guarded: snooze failure must not break the app.
+    }
+  };
   ref.onDispose(service.dispose);
   return service;
 }

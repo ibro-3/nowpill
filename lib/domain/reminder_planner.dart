@@ -1,18 +1,43 @@
 import 'date_utils.dart';
 import 'habit_schedule.dart';
 
+/// What kind of item a reminder is for (drives notification actions).
+enum ReminderKind { habit, task }
+
 /// A single planned reminder occurrence, produced purely from a habit/task's
 /// schedule and reminder time. The notification layer turns these into
 /// platform schedules; keeping the computation pure makes it testable without
 /// any plugin or clock.
 class ReminderOccurrence {
-  const ReminderOccurrence({required this.when, required this.label});
+  const ReminderOccurrence({
+    required this.when,
+    required this.label,
+    this.kind = ReminderKind.habit,
+    this.itemId = 0,
+    this.dayKey,
+  });
 
   /// The local date-time the reminder should fire.
   final DateTime when;
 
   /// Human-readable subject (habit name or task title) for the notification.
   final String label;
+
+  /// Whether this reminders a habit or a task (selects the Done action).
+  final ReminderKind kind;
+
+  /// The habit/task id the Done action applies to.
+  final int itemId;
+
+  /// For habits: the local day (`yyyy-MM-dd`) the reminder is for, so a Done
+  /// action checks in that exact day even if tapped after midnight.
+  final String? dayKey;
+
+  /// Notification payload: `habit:<id>:<dayKey>:<label>` or `task:<id>:<label>`.
+  /// The label lets the background snooze re-show the notification text.
+  String get payload => kind == ReminderKind.habit
+      ? 'habit:$itemId:${dayKey ?? ''}:$label'
+      : 'task:$itemId:$label';
 }
 
 /// Plans the next [count] reminder occurrences for a habit, starting from
@@ -34,6 +59,7 @@ List<ReminderOccurrence> planHabitReminders({
   required DateTime now,
   required Set<String> checkedDays,
   int count = 7,
+  int habitId = 0,
 }) {
   if (reminderTime == null || count <= 0) return const [];
   final local = reminderTime.toLocal();
@@ -55,7 +81,15 @@ List<ReminderOccurrence> planHabitReminders({
       );
       // Only future occurrences (a reminder earlier today has already passed).
       if (when.isAfter(now)) {
-        result.add(ReminderOccurrence(when: when, label: habitName));
+        result.add(
+          ReminderOccurrence(
+            when: when,
+            label: habitName,
+            kind: ReminderKind.habit,
+            itemId: habitId,
+            dayKey: key,
+          ),
+        );
       }
     }
     day = nextDay(day);
@@ -71,11 +105,19 @@ List<ReminderOccurrence> planTaskReminder({
   required DateTime? reminderAt,
   required DateTime now,
   required bool completed,
+  int taskId = 0,
 }) {
   if (reminderAt == null || completed) return const [];
   final local = reminderAt.toLocal();
   if (!local.isAfter(now)) return const [];
-  return [ReminderOccurrence(when: local, label: taskTitle)];
+  return [
+    ReminderOccurrence(
+      when: local,
+      label: taskTitle,
+      kind: ReminderKind.task,
+      itemId: taskId,
+    ),
+  ];
 }
 
 /// Stable notification id for a habit's reminder slot. Slots are numbered so

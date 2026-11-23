@@ -100,7 +100,7 @@ void main() {
       }
     });
 
-    test('equal timestamps break by deviceId deterministically', () {
+    test('equal timestamps break by content, symmetric across devices', () {
       final a = env(
         'aaa',
         data: {
@@ -117,6 +117,23 @@ void main() {
       final r2 = mergeEnvelopes(envelopes: [b, a], deviceId: 'x', now: now);
       expect(rowsOf(r1, 'habits').single['name'], 'B');
       expect(jsonEncode(r1.envelope['data']), jsonEncode(r2.envelope['data']));
+
+      // Crucially, the winner is the same no matter WHICH device merges —
+      // otherwise two devices would swap winners every cycle (never converge).
+      final fromA = mergeEnvelopes(
+        envelopes: [a, b],
+        deviceId: 'aaa',
+        now: now,
+      );
+      final fromB = mergeEnvelopes(
+        envelopes: [a, b],
+        deviceId: 'bbb',
+        now: now,
+      );
+      expect(
+        rowsOf(fromA, 'habits').single['name'],
+        rowsOf(fromB, 'habits').single['name'],
+      );
     });
 
     test('identical copies are not a conflict', () {
@@ -387,6 +404,66 @@ void main() {
         jsonEncode(once.envelope['data']),
         jsonEncode(twice.envelope['data']),
       );
+    });
+
+    test('pre-v4 rows (missing targetAmount/amount) merge equal to v4 rows', () {
+      // A v4 device's row carries explicit nulls for the new nullable columns.
+      final v4Habit = {...habit('h1', 100), 'targetAmount': null};
+      final v4Checkin = {
+        ...checkin('c1', 'h1', '2026-11-20', 100),
+        'amount': null,
+      };
+      // An older device's file omits those keys entirely.
+      final oldHabit = habit('h1', 100); // no targetAmount key
+      final oldCheckin = checkin('c1', 'h1', '2026-11-20', 100); // no amount
+
+      final a = env(
+        'a',
+        data: {
+          'habits': [v4Habit],
+          'checkins': [v4Checkin],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [oldHabit],
+          'checkins': [oldCheckin],
+        },
+      );
+      final merged = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      // Same content → no conflict, and the merged rows carry the full key set
+      // so a re-collect compares equal (no rewrite loop).
+      expect(merged.stats.conflictsResolved, 0);
+      expect(
+        rowsOf(merged, 'habits').single.containsKey('targetAmount'),
+        isTrue,
+      );
+      expect(rowsOf(merged, 'checkins').single.containsKey('amount'), isTrue);
+
+      // Idempotent against the normalized output.
+      final again = mergeEnvelopes(
+        envelopes: [merged.envelope, a, b],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(
+        jsonEncode(merged.envelope['data']),
+        jsonEncode(again.envelope['data']),
+      );
+    });
+
+    test('normalizeSyncRow fills missing keys with null, keeps unknowns', () {
+      final row = {'uuid': 'x', 'name': 'H', 'extra': 1};
+      final norm = normalizeSyncRow('habits', row);
+      expect(norm['targetAmount'], isNull);
+      expect(norm.containsKey('targetAmount'), isTrue);
+      expect(norm['extra'], 1);
+      expect(norm['name'], 'H');
+      // Input untouched.
+      expect(row.containsKey('targetAmount'), isFalse);
+      // Unknown table passes through.
+      expect(normalizeSyncRow('unknown', row), same(row));
     });
   });
 }

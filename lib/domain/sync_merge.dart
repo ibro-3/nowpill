@@ -11,8 +11,9 @@ import 'dart:convert';
 /// the whole merge is deterministic and unit-testable, like the streak replay.
 ///
 /// Rules (all deterministic, independent of input order):
-///  * Per uuid, the copy with the greatest `updatedAt` wins; ties break by
-///    source `deviceId`, then by canonical row JSON.
+///  * Per uuid, the copy with the greatest `updatedAt` wins; ties break by a
+///    symmetric content hash (device-private `id` excluded) so every device
+///    picks the same winner and the merged state is a fixed point.
 ///  * A tombstone kills its uuid when `deletedAt >= updatedAt` (at equal
 ///    timestamps the delete wins). A strictly newer row copy survives —
 ///    an edit after a delete resurrects the row on every device.
@@ -40,6 +41,91 @@ const Map<String, Map<String, String>> kSyncParentRefs = {
   'checkins': {'habitUuid': 'habits'},
   'freezes': {'habitUuid': 'habits'},
 };
+
+/// Full current-schema (v4) key set per row table. Older envelopes (e.g. a
+/// pre-v4 device's file) omit nullable columns added later; rows are
+/// normalized to these keys (missing → null) before merging so a missing key
+/// and an explicit null compare equal. Without this, a v4 device would see
+/// its own row as "changed" against an older copy every cycle and rewrite it
+/// forever (a sync feedback loop).
+const Map<String, List<String>> kSyncRowKeys = {
+  'tasks': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'title',
+    'notes',
+    'dueAt',
+    'priority',
+    'completedAt',
+    'recurrenceRule',
+    'reminderAt',
+    'createdAt',
+    'sortOrder',
+  ],
+  'habits': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'name',
+    'notes',
+    'iconKey',
+    'color',
+    'scheduleType',
+    'weekdays',
+    'targetPerWeek',
+    'reminderTime',
+    'freezeMode',
+    'targetAmount',
+    'createdAt',
+    'archivedAt',
+    'sortOrder',
+  ],
+  'tags': ['id', 'uuid', 'updatedAt', 'name', 'color'],
+  'subtasks': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'taskId',
+    'taskUuid',
+    'title',
+    'done',
+    'position',
+  ],
+  'taskTags': ['uuid', 'updatedAt', 'taskId', 'tagId', 'taskUuid', 'tagUuid'],
+  'checkins': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'habitId',
+    'habitUuid',
+    'date',
+    'note',
+    'amount',
+  ],
+  'freezes': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'habitId',
+    'habitUuid',
+    'date',
+    'createdAt',
+  ],
+  'tombstones': ['uuid', 'sourceTable', 'deletedAt', 'deviceId'],
+};
+
+/// Returns [row] with every current-schema key present (missing → null).
+/// Unknown keys are preserved. Pure; never mutates the input.
+Map<String, Object?> normalizeSyncRow(String table, Map<String, Object?> row) {
+  final keys = kSyncRowKeys[table];
+  if (keys == null) return row;
+  final result = Map<String, Object?>.from(row);
+  for (final key in keys) {
+    result.putIfAbsent(key, () => null);
+  }
+  return result;
+}
 
 /// What the merge did, for the sync status UI and tests.
 class SyncMergeStats {
@@ -257,7 +343,12 @@ List<Map<String, Object?>> _rows(Map<String, Object?> envelope, String table) {
   if (data is! Map<String, Object?>) return const [];
   final rows = data[table];
   if (rows is! List) return const [];
-  return rows.whereType<Map<String, Object?>>().toList();
+  // Normalize to the full current-schema key set so older envelopes (missing
+  // nullable columns) merge and compare identically to current ones.
+  return rows
+      .whereType<Map<String, Object?>>()
+      .map((r) => normalizeSyncRow(table, r))
+      .toList();
 }
 
 String _deviceId(Map<String, Object?> envelope) =>
@@ -266,14 +357,27 @@ String _deviceId(Map<String, Object?> envelope) =>
 String _deviceIdOf(Map<String, Object?> tombstone) =>
     tombstone['deviceId'] as String? ?? '';
 
-/// Orders candidates worst → best: updatedAt, then deviceId, then canonical
-/// JSON. Deterministic regardless of input order.
+/// Orders candidates worst → best: updatedAt, then a symmetric content hash.
+///
+/// The tiebreak deliberately does NOT use the source deviceId: at equal
+/// timestamps two devices hold the same uuid with different content, and a
+/// deviceId tiebreak would make each device prefer its own copy — they would
+/// swap winners every cycle and never converge. A content-only tiebreak gives
+/// every device the same winner, so the state is a fixed point. The local
+/// `id` is device-private and excluded (it differs across devices for the
+/// same logical row and must not sway the outcome).
 int _compareCandidates(_Candidate a, _Candidate b) {
   final byTime = a.updatedAt.compareTo(b.updatedAt);
   if (byTime != 0) return byTime;
-  final byDevice = a.deviceId.compareTo(b.deviceId);
-  if (byDevice != 0) return byDevice;
-  return _canonical(a.row).compareTo(_canonical(b.row));
+  return _contentKey(a.row).compareTo(_contentKey(b.row));
+}
+
+/// Canonical content key: sorted-key JSON with the device-private `id`
+/// removed. Matches the sync coordinator's change-detection comparison so a
+/// merged result that equals the local state is never re-applied.
+String _contentKey(Map<String, Object?> row) {
+  final copy = Map<String, Object?>.from(row)..remove('id');
+  return _canonical(copy);
 }
 
 int _compareTombstones(

@@ -402,11 +402,25 @@ class ExportService {
         contentJson: (r) => _contentJson(r.toJson()),
       );
 
-      // Adopt the merged tombstone set verbatim (union, never pruned).
-      await _db.delete(_db.tombstones).go();
-      await _db.batch((b) {
-        b.insertAll(_db.tombstones, merged.tombstones);
-      });
+      // Adopt the merged tombstone set (union, never pruned). Only rewrite
+      // when it actually changed — an unconditional delete+reinsert would
+      // fire table notifications every apply and re-trigger the data streams.
+      final currentTombs = await _db.select(_db.tombstones).get();
+      final currentKeys = {
+        for (final t in currentTombs)
+          '${t.uuid}|${t.sourceTable}|${t.deletedAt.toUtc().millisecondsSinceEpoch}|${t.deviceId}',
+      };
+      final wantedKeys = {
+        for (final t in merged.tombstones)
+          '${t.uuid}|${t.sourceTable}|${t.deletedAt.toUtc().millisecondsSinceEpoch}|${t.deviceId}',
+      };
+      if (currentKeys.length != wantedKeys.length ||
+          !currentKeys.containsAll(wantedKeys)) {
+        await _db.delete(_db.tombstones).go();
+        await _db.batch((b) {
+          b.insertAll(_db.tombstones, merged.tombstones);
+        });
+      }
     });
   }
 

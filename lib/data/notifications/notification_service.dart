@@ -7,12 +7,16 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../domain/reminder_planner.dart';
+import 'notification_action_handler.dart';
 
 /// Android notification channel for habit/task reminders.
 const String kReminderChannelId = 'nowpill_reminders';
 const String kReminderChannelName = 'Reminders';
 const String kReminderChannelDescription =
     'Habit and task reminders scheduled by NowPill.';
+
+/// iOS notification category carrying the Done / Snooze actions.
+const String kIosReminderCategory = 'nowpill_reminder_actions';
 
 /// Platform-agnostic notification scheduling.
 ///
@@ -90,20 +94,33 @@ class NotificationService {
       }
 
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const ios = DarwinInitializationSettings(
+      final ios = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
         requestSoundPermission: false,
+        notificationCategories: [
+          DarwinNotificationCategory(
+            kIosReminderCategory,
+            actions: [
+              DarwinNotificationAction.plain(kActionDone, 'Done'),
+              DarwinNotificationAction.plain(kActionSnooze10, 'Snooze 10 min'),
+              DarwinNotificationAction.plain(kActionSnooze60, 'Snooze 1 hour'),
+            ],
+          ),
+        ],
       );
       const linux = LinuxInitializationSettings(
         defaultActionName: 'Open NowPill',
       );
       await _plugin.initialize(
-        settings: const InitializationSettings(
+        settings: InitializationSettings(
           android: android,
           iOS: ios,
           linux: linux,
         ),
+        onDidReceiveNotificationResponse: _onResponse,
+        onDidReceiveBackgroundNotificationResponse:
+            notificationBackgroundHandler,
       );
 
       if (defaultTargetPlatform == TargetPlatform.android) {
@@ -147,20 +164,41 @@ class NotificationService {
     }
   }
 
-  NotificationDetails _details() {
-    return const NotificationDetails(
+  NotificationDetails _details({ReminderOccurrence? occ}) {
+    return NotificationDetails(
       android: AndroidNotificationDetails(
         kReminderChannelId,
         kReminderChannelName,
         channelDescription: kReminderChannelDescription,
         importance: Importance.high,
         priority: Priority.high,
+        // Done / Snooze actions (Phase 22). Handled in a background isolate
+        // when the app is closed; see notificationBackgroundHandler.
+        actions: occ == null
+            ? null
+            : const [
+                AndroidNotificationAction(kActionDone, 'Done'),
+                AndroidNotificationAction(kActionSnooze10, 'Snooze 10 min'),
+                AndroidNotificationAction(kActionSnooze60, 'Snooze 1 hour'),
+              ],
       ),
-      iOS: DarwinNotificationDetails(),
-      linux: LinuxNotificationDetails(),
-      web: WebNotificationDetails(),
+      iOS: DarwinNotificationDetails(
+        categoryIdentifier: occ == null ? null : kIosReminderCategory,
+      ),
+      linux: const LinuxNotificationDetails(),
+      web: const WebNotificationDetails(),
     );
   }
+
+  /// Foreground notification/action response. The provider wiring routes
+  /// action taps through the shared database; a plain tap opens the app.
+  void _onResponse(NotificationResponse response) {
+    onActionResponse?.call(response);
+  }
+
+  /// Set by the provider wiring so foreground action taps (app open) apply
+  /// through the shared database instead of being ignored.
+  void Function(NotificationResponse response)? onActionResponse;
 
   /// Schedules a batch of reminders (replacing any prior ones for the same
   /// ids). On Linux and web these become in-app timers.
@@ -189,11 +227,11 @@ class NotificationService {
         await _plugin.zonedSchedule(
           id: id,
           scheduledDate: when,
-          notificationDetails: _details(),
+          notificationDetails: _details(occ: occ),
           androidScheduleMode: mode,
           title: 'NowPill reminder',
           body: occ.label,
-          payload: 'reminder:$id',
+          payload: occ.payload,
         );
       } else {
         // Linux / web: in-app timer fallback (fires only while the app runs).
@@ -251,6 +289,59 @@ class NotificationService {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Re-shows a reminder after a snooze delay under a dedicated id (above the
+  /// normal reminder ranges). Inexact scheduling — no exact-alarm permission
+  /// needed. Shared by the foreground action path.
+  Future<void> snooze({
+    required int id,
+    required DateTime when,
+    required String label,
+    required String payload,
+  }) async {
+    await initialize();
+    if (!supportsOsScheduling) {
+      // Linux / web fallback: in-app timer.
+      _fallbackTimers[id]?.cancel();
+      final delay = when.difference(DateTime.now());
+      if (delay.isNegative) return;
+      _fallbackTimers[id] = Timer(delay, () {
+        _fallbackTimers.remove(id);
+        showNow(id: id, title: 'NowPill reminder', body: label);
+      });
+      return;
+    }
+    final mode = await _androidScheduleMode();
+    await _plugin.zonedSchedule(
+      id: id,
+      scheduledDate: tz.TZDateTime.from(when, tz.local),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          kReminderChannelId,
+          kReminderChannelName,
+          channelDescription: kReminderChannelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          actions: [
+            AndroidNotificationAction(kActionDone, 'Done'),
+            AndroidNotificationAction(kActionSnooze10, 'Snooze 10 min'),
+            AndroidNotificationAction(kActionSnooze60, 'Snooze 1 hour'),
+          ],
+        ),
+        iOS: DarwinNotificationDetails(
+          categoryIdentifier: kIosReminderCategory,
+        ),
+        linux: LinuxNotificationDetails(),
+        web: WebNotificationDetails(),
+      ),
+      androidScheduleMode: mode == AndroidScheduleMode.exactAllowWhileIdle
+          ? AndroidScheduleMode.inexactAllowWhileIdle
+          : mode,
+      title: 'NowPill reminder',
+      body: label,
+      payload: payload,
+    );
   }
 
   /// Releases in-app fallback timers. Called when the provider scope closes.
