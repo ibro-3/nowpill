@@ -15,6 +15,8 @@ BUILD STREAKS THAT STICK
 • A rolling streak odometer and a monthly heatmap you can tap to backfill.
 • Freeze tokens earn automatically and bridge a missed day — or spend them
   yourself in manual mode. Backfilling a frozen day refunds the token.
+• Measurable habits: set a numeric daily goal (8 glasses, 30 minutes…) and log
+  progress with a stepper. Only reaching 100% counts toward the streak.
 
 CRUSH YOUR TO-DOS
 • Tasks with subtasks, tags, priorities, and due dates.
@@ -27,6 +29,8 @@ A TODAY SCREEN THAT CELEBRATES
 
 STAY ON TRACK
 • Reminders with exact alarms on Android (graceful fallback), iOS, and Linux.
+• Done / Snooze actions right on the reminder — check off a habit or complete a
+  task without opening the app.
 • Home-screen widget showing today's progress and your top streak.
 
 SEE YOUR PROGRESS
@@ -35,6 +39,9 @@ SEE YOUR PROGRESS
 PRIVATE BY DESIGN
 • Everything stays on your device. No account, no cloud, no tracking.
 • Versioned JSON export/import so your data is always yours.
+• Automatic daily backups (last 7 kept) with one-tap restore.
+• Optional folder sync: keep devices in step through a folder you choose
+  (Syncthing, Dropbox, iCloud Drive…). No server — the files stay yours.
 
 MAKE IT YOURS
 • Material You dynamic color, light/dark/system themes.
@@ -51,11 +58,12 @@ habit tracker, to-do, streaks, productivity, offline, material design
 Everyone
 
 ## Privacy
-No data collected. All data stored locally on-device.
+No data collected. All data stored locally on-device. Optional folder sync
+reads/writes only the user-chosen folder; the app itself transmits nothing.
+Full policy + Play data-safety answers: `store/privacy-policy.md`.
 
 ## Screenshots
-Desktop captures from the Phase 17 visual pass live in `doc/screenshots/`
-(today-light, today-dark, stats-dark, habits-dark, settings-dark). For store
-submission, capture phone-sized screenshots on the Android emulator (1080×2400)
-and an iOS device/simulator; the desktop shots serve as feature-graphic source
-material.
+Phone captures (1080×2400) from the Android emulator live in `store/screenshots/`
+for the Play listing. Desktop captures from the Phase 17 visual pass live in
+`doc/screenshots/` (today-light, today-dark, stats-dark, habits-dark,
+settings-dark) and serve as feature-graphic source material.

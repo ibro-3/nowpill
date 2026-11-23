@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.2.0** (see `CHANGELOG.md`).
+Current release: **v0.3.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -24,15 +24,20 @@ Current release: **v0.2.0** (see `CHANGELOG.md`).
   colors, monthly heatmap with tap-backfill (≤30 days), streak odometer, freeze
   tokens (earned automatically, auto-consumed to bridge a missed day, refunded on
   backfill), **manual freeze mode** (opt-in per habit: choose when to spend a
-  token), archive & delete.
+  token), **measurable habits** (numeric daily goal; only 100% counts toward the
+  streak, partial progress shown via a Today stepper), archive & delete.
 - **Stats** — 30-day trend, weekly summary, streak leaderboard, tag donut.
 - **Reminders** — exact alarms on Android (graceful inexact fallback), iOS, and
   Linux (in-app); **web reminders fire in-tab** with a permission + test-fire
-  flow. Survive reboot via a boot receiver.
+  flow. Survive reboot via a boot receiver. **Done / Snooze actions** on the
+  notification itself (Android background handler; iOS category sources ship).
 - **Home-screen widget** — today's progress + top streak on the launcher
   (Android AppWidget; iOS WidgetKit sources included, build needs macOS).
-- **Backup** — versioned JSON export/import (schema v2, imports v1) with a
-  confirm-replace-all flow.
+- **Backup & sync** — versioned JSON export/import (schema v4, imports v1–v3)
+  with a confirm-replace-all flow; **automatic daily backups** (last 7 kept,
+  explicit restore); **optional folder sync** through a user-chosen folder
+  (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW
+  merge with tombstones — no server, no account).
 - **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
@@ -85,6 +90,7 @@ regenerate with `dart run build_runner build`.
 
 ```bash
 flutter build apk --release
+flutter build appbundle --release   # Play Store upload (signed AAB)
 flutter build web --release
 flutter build linux --release
 # iOS: flutter build ipa  (requires macOS + signing)
@@ -102,8 +108,10 @@ lib/
   core/       theme (M3E tokens, Nunito, dynamic color), motion (AppMotion,
               MotionScope), router (go_router StatefulShellRoute), settings
   domain/     pure Dart engines: streak replay, recurrence, schedules,
-              reminder planner, stats — all unit-tested, no Flutter imports
-  data/       Drift/SQLite db + DAOs, repositories, export/backup, notifications,
+              reminder planner, stats, sync merge — all unit-tested, no
+              Flutter imports
+  data/       Drift/SQLite db + DAOs, repositories, export/backup, auto-backup,
+              notifications (incl. background action handler), folder sync,
               widget (today-summary snapshot bridge for home-screen widgets)
   features/   today / tasks / habits / stats / settings / shell
 ```
@@ -115,7 +123,11 @@ past day automatically refunds any freeze it would have consumed.
 ## Notes
 
 - App ID is `app.nowpill` (Android, iOS, Linux).
-- Data is stored locally with JSON export/import; cloud sync is planned for a later release.
+- Data is stored locally. Optional folder sync (Android + desktop) keeps devices
+  in step through a folder you choose — no server. Web folder sync and a hosted
+  sync service are planned for a later release.
+- Store submission materials live in `store/` (listing copy, privacy policy +
+  Play data-safety answers, phone screenshots).
 - The iOS home-screen widget ships as WidgetKit sources + integration steps in
   `ios/NowPillWidget/` — adding the extension target requires Xcode on macOS.
 - See `doc/m3e_spike_decision.md` (design-system adoption), `doc/motion_audit.md`

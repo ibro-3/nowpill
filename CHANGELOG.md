@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.3.0 — 2026-11-23
+
+Sync & daily-driver core: your data follows you across devices, backs itself
+up, and reminders act without opening the app.
+
+### Features
+- **Folder sync (optional, off by default)** — keep devices in step through a
+  folder you choose (Syncthing, Dropbox, iCloud Drive, a shared drive…). No
+  account, no server: each device writes its own envelope file and a pure
+  last-writer-wins merge (with tombstones for deletes/undos) converges them.
+  Android uses the system folder picker with a persisted permission; desktop
+  uses the native directory picker. Reactive cycles on every change, plus
+  poll / app-resume / manual "Sync now". Live status in Settings. Web folder
+  sync is planned for v0.4.
+- **Automatic backups** — a daily snapshot on first launch of the day, last 7
+  kept, listed in Settings with an explicit confirm-to-restore. Nothing is ever
+  restored automatically.
+- **Measurable habits** — optional numeric daily goal (e.g. 8 glasses). A Today
+  stepper logs partial progress (shown, but only 100% counts toward the
+  streak); the heatmap shades partial days; backfill completes the whole goal.
+  Existing habits are unchanged.
+- **Notification actions** — Done / Snooze (10 min / 1 hour) right on the
+  reminder. Android handles them in a background isolate even when the app is
+  closed (writes go through the same database, so sync picks them up); iOS
+  category sources ship (build needs macOS).
+
+### Under the hood
+- Schema v3 (cross-device identity: per-row uuid + updatedAt, tombstones) and
+  v4 (measurable amounts), both with guarded migrations; export envelope v4
+  still imports v1–v3 backups.
+- 314 unit/widget tests + Linux e2e; emulator-verified two-device merge,
+  reactive tombstone propagation, and background Done action.
+- CI actions bumped to current majors (checkout v7, setup-java v6, cache v6,
+  upload-artifact v7) — clears the Node-20 deprecation annotations.
+
+### Store prep
+- Signed release AAB, phone screenshots (1080×2400), privacy policy + Play
+  data-safety copy in `store/`.
+
 ## v0.2.0 — 2026-11-23
 
 Six feature drops on top of v0.1.0, plus store-release preparation.
