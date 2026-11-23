@@ -1,10 +1,29 @@
 # NowPill
 
-A playful **Material 3 Expressive** habit tracker & to-do list. Local-first,
-offline, with streaks, freeze tokens, recurring tasks, reminders, and stats.
+A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
+offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
+and stats — wrapped in smooth, spring-driven motion.
 
-> Status: early development (v0.1.0 in progress).
-> Implementation plan: `~/.opencode/plan/nowpill-plan.md`.
+Current release: **v0.1.0** (see `CHANGELOG.md`).
+
+## Features
+
+- **Today dashboard** — greeting + spring progress ring; overdue → habits due →
+  tasks due → done-today; one-line quick-add; an all-done celebration (ring
+  overshoot, shape burst, confetti).
+- **Tasks** — subtasks, tags, priorities, due dates, recurring tasks
+  (complete → spawn next occurrence), swipe-to-complete, filterable list.
+- **Habits** — daily / weekdays / weekly-target schedules, curated icons & brand
+  colors, monthly heatmap with tap-backfill (≤30 days), streak odometer, freeze
+  tokens (earned automatically, auto-consumed to bridge a missed day, refunded on
+  backfill), archive & delete.
+- **Stats** — 30-day trend, weekly summary, streak leaderboard, tag donut.
+- **Reminders** — exact alarms on Android (graceful inexact fallback), iOS, and
+  Linux (in-app); web shows a hint. Survive reboot via a boot receiver.
+- **Backup** — versioned JSON export/import with a confirm-replace-all flow.
+- **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
+  `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
+  color, and a reduce-motion mode (honors the OS accessibility setting).
 
 ## Platforms
 
@@ -15,38 +34,38 @@ Android · iOS · Web · Linux desktop
 - Flutter 3.50+ / Dart 3.14+ (uses the standalone `material_ui` package)
 - Android SDK for Android builds; Xcode/macOS for iOS builds
 - Linux: clang, cmake, ninja, GTK3 headers
-- A Chromium-based browser for web runs. On this machine we use
-  [Helium](https://helium.computer): `export CHROME_EXECUTABLE=/usr/bin/helium-browser`
+- A Chromium-based browser for web runs, e.g.
+  `export CHROME_EXECUTABLE=/usr/bin/helium-browser`
 
 ## Run
 
 ```bash
 flutter pub get
+dart run build_runner build   # generated code is gitignored
 
-# Linux desktop
-flutter run -d linux
-
-# Web (Chromium-based browser)
-CHROME_EXECUTABLE=/usr/bin/helium-browser flutter run -d chrome
-
-# Android (device or emulator connected)
-flutter run -d android
+flutter run -d linux          # Linux desktop
+flutter run -d chrome         # Web (Chromium-based browser)
+flutter run -d android        # Android device or emulator
 ```
 
 ## Test & quality gates
 
 ```bash
 flutter analyze
-dart format .
-flutter test
+dart format --output=none --set-exit-if-changed lib test integration_test test_driver
+flutter test                              # unit + widget tests
+flutter test integration_test -d linux    # end-to-end flows + frame budgets
+
+# Android emulator (perf suite needs --no-dds):
+flutter drive --no-dds --driver=test_driver/integration_test.dart \
+  --target=integration_test/perf_test.dart -d <emulator-id>
 ```
+
+CI (`.github/workflows/ci.yml`) runs analyze → format → build_runner → tests,
+then builds web + APK and runs the Linux integration tests headless.
 
 Generated code (`*.g.dart`, `*.freezed.dart`, `*.drift.dart`) is gitignored;
-regenerate with:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
+regenerate with `dart run build_runner build`.
 
 ## Build
 
@@ -57,8 +76,25 @@ flutter build linux --release
 # iOS: flutter build ipa  (requires macOS + signing)
 ```
 
+## Architecture
+
+```
+lib/
+  core/       theme (M3E tokens, Nunito, dynamic color), motion (AppMotion,
+              MotionScope), router (go_router StatefulShellRoute), settings
+  domain/     pure Dart engines: streak replay, recurrence, schedules,
+              reminder planner, stats — all unit-tested, no Flutter imports
+  data/       Drift/SQLite db + DAOs, repositories, export/backup, notifications
+  features/   today / tasks / habits / stats / settings / shell
+```
+
+Local-first: all data lives in Drift/SQLite. Streaks and freeze tokens are
+*derived* by replaying check-in history (no mutable counters), so backfilling a
+past day automatically refunds any freeze it would have consumed.
+
 ## Notes
 
 - App ID `com.example.nowpill` is a **placeholder** — change before any store release.
-- Reminders work on Android/iOS/Linux; web reminders are deferred.
-- Data is stored locally (Drift/SQLite) with JSON export/import; cloud sync is planned for a later release.
+- Data is stored locally with JSON export/import; cloud sync is planned for a later release.
+- See `doc/m3e_spike_decision.md` (design-system adoption) and `doc/motion_audit.md`
+  (motion polish pass).
