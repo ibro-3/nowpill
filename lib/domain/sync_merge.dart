@@ -238,7 +238,7 @@ SyncMergeResult mergeEnvelopes({
 
   return SyncMergeResult(
     envelope: {
-      'schemaVersion': 3,
+      'schemaVersion': 4,
       'exportedAt': now.toUtc().millisecondsSinceEpoch,
       'deviceId': deviceId,
       'data': data,

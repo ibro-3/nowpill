@@ -140,10 +140,16 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
 
   Future<List<HabitCheckin>> getAllCheckins() => select(habitCheckins).get();
 
-  /// Adds a check-in. Returns the new row id, or -1 if one already exists for
-  /// that habit+date. The unique constraint is the source of truth; the
-  /// pre-check gives a stable "already exists" signal (drift's DO NOTHING
-  /// returns the connection's last rowid, which is not a reliable sentinel).
+  /// Adds or updates a check-in. Returns the row id, or -1 when a classic
+  /// (non-measurable) check-in already exists for that habit+date. The unique
+  /// constraint is the source of truth; the pre-check gives a stable "already
+  /// exists" signal (drift's DO NOTHING returns the connection's last rowid,
+  /// which is not a reliable sentinel).
+  ///
+  /// When the companion's `amount` is present (measurable habits, schema v4)
+  /// an existing row is updated in place — keeping its uuid so the change
+  /// merges as an edit, not a delete+recreate — and stamped with a fresh
+  /// `updatedAt`.
   ///
   /// Re-checking a previously removed day revives the original row uuid (the
   /// row is gone locally but its tombstone may have propagated) and stamps a
@@ -156,10 +162,24 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
                   c.date.equals(entry.date.value),
             ))
             .getSingleOrNull();
-    if (existing != null) return -1;
     final habit = await getHabit(entry.habitId.value);
     if (habit == null) {
       throw StateError('Cannot check in missing habit ${entry.habitId.value}');
+    }
+    if (existing != null) {
+      // Only a non-null amount (measurable habit) updates in place; classic
+      // check-ins stay idempotent.
+      if (entry.amount.value == null) return -1;
+      await (update(
+        habitCheckins,
+      )..where((c) => c.id.equals(existing.id))).write(
+        HabitCheckinsCompanion(
+          amount: entry.amount,
+          note: entry.note.present ? entry.note : const Value.absent(),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+      return existing.id;
     }
     return into(habitCheckins).insert(
       entry.copyWith(habitUuid: Value(habit.uuid)),

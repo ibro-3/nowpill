@@ -77,7 +77,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       final choice = await _showFreezeChoice(canFreeze: streak.tokens > 0);
       switch (choice) {
         case _DayChoice.backfill:
-          await repo.checkIn(widget.habitId, key);
+          // Backfill counts as full completion (measurable: the whole goal).
+          await repo.checkIn(widget.habitId, key, amount: habit.targetAmount);
         case _DayChoice.freeze:
           await repo.placeFreeze(widget.habitId, freezeKey);
         case _DayChoice.cancel:
@@ -86,8 +87,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       return;
     }
 
-    // Auto mode: tap toggles a backfill check-in.
-    await repo.checkIn(widget.habitId, key);
+    // Auto mode: tap toggles a backfill check-in (full goal for measurable).
+    await repo.checkIn(widget.habitId, key, amount: habit.targetAmount);
   }
 
   Future<_DayChoice> _showFreezeChoice({required bool canFreeze}) async {
@@ -306,6 +307,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 startDate: habit.createdAt.toLocal(),
                 color: color,
                 onToggleDay: _toggleDay,
+                targetAmount: habit.targetAmount,
+                amounts: {
+                  for (final c in checkins)
+                    if (c.amount != null) c.date: c.amount!,
+                },
               ),
               const SizedBox(height: 8),
               Text(

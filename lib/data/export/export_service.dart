@@ -10,12 +10,15 @@ import '../db/app_database.dart';
 /// Current export envelope schema version. Bump when the payload shape changes
 /// and add a migration path in `ExportService.importFromString`.
 ///
-/// v3 (v0.3.0) adds cross-device sync identity: per-row `uuid` + `updatedAt`,
-/// parent uuid references, a `tombstones` list, and the source `deviceId`.
+/// v4 (v0.3.0) adds measurable habits: per-habit `targetAmount` and per-check-in
+/// `amount` (both nullable — pre-v4 rows import as classic habits / full
+/// completions).
+/// v3 adds cross-device sync identity: per-row `uuid` + `updatedAt`, parent
+/// uuid references, a `tombstones` list, and the source `deviceId`.
 /// v2 adds the `freezes` list and per-habit `freezeMode`.
 /// v1 payloads still import: habits default to auto mode with no freezes;
 /// pre-v3 rows receive fresh uuids and derived timestamps.
-const int kExportSchemaVersion = 3;
+const int kExportSchemaVersion = 4;
 
 /// Oldest envelope version this build can import.
 const int kMinImportSchemaVersion = 1;
@@ -183,6 +186,21 @@ class ExportEnvelope {
             'updatedAt': millisOf(f['createdAt']),
           };
         }).toList();
+      }
+
+      if (version < 4) {
+        // Pre-v4 payloads have no measurable-habit fields. Null target =
+        // classic habit; null amount = full completion (streaks unchanged).
+        habitRows = habitRows
+            .map(
+              (h) => h.containsKey('targetAmount')
+                  ? h
+                  : {...h, 'targetAmount': null},
+            )
+            .toList();
+        checkinRows = checkinRows
+            .map((c) => c.containsKey('amount') ? c : {...c, 'amount': null})
+            .toList();
       }
 
       return ExportEnvelope(

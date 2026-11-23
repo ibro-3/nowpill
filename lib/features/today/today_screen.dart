@@ -57,6 +57,42 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     }
   }
 
+  /// Logs one more unit toward a measurable habit's daily goal. Reaching the
+  /// goal counts as the day's check-in (streak); partial progress is UI-only.
+  Future<void> _addAmount(TodayHabit item) async {
+    final repo = ref.read(habitRepositoryProvider);
+    final today = formatDate(DateTime.now());
+    final target = item.targetAmount ?? 1;
+    final next = (item.amountToday ?? 0) + 1;
+    await repo.checkIn(item.habit.id, today, amount: next);
+    unawaited(HapticFeedback.lightImpact());
+    if (next >= target) unawaited(HapticFeedback.mediumImpact());
+  }
+
+  /// Removes one logged unit; dropping to zero clears the day's check-in.
+  Future<void> _removeAmount(TodayHabit item) async {
+    final repo = ref.read(habitRepositoryProvider);
+    final today = formatDate(DateTime.now());
+    final next = (item.amountToday ?? 0) - 1;
+    if (next <= 0) {
+      await repo.removeCheckIn(item.habit.id, today);
+    } else {
+      await repo.checkIn(item.habit.id, today, amount: next);
+    }
+  }
+
+  /// Marks a measurable habit's goal fully met (or clears it when done).
+  Future<void> _completeGoal(TodayHabit item) async {
+    final repo = ref.read(habitRepositoryProvider);
+    final today = formatDate(DateTime.now());
+    if (item.checkedToday) {
+      await repo.removeCheckIn(item.habit.id, today);
+    } else {
+      await repo.checkIn(item.habit.id, today, amount: item.targetAmount);
+      unawaited(HapticFeedback.mediumImpact());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
@@ -132,6 +168,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                               key: ValueKey('today-habit-${item.habit.id}'),
                               item: item,
                               onToggle: () => _toggleHabit(item),
+                              onAddAmount: () => _addAmount(item),
+                              onRemoveAmount: () => _removeAmount(item),
+                              onCompleteGoal: () => _completeGoal(item),
                             ),
                           ),
                         const SizedBox(height: 12),
@@ -376,22 +415,31 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// Compact habit row for the dashboard: icon cookie, name, streak odometer,
-/// and the signature check-pill.
+/// and the signature check-pill. Measurable habits swap the pill for a
+/// progress stepper (− amount/target +) plus a goal-complete pill.
 class _TodayHabitTile extends StatelessWidget {
   const _TodayHabitTile({
     required this.item,
     required this.onToggle,
+    required this.onAddAmount,
+    required this.onRemoveAmount,
+    required this.onCompleteGoal,
     super.key,
   });
 
   final TodayHabit item;
   final VoidCallback onToggle;
+  final VoidCallback onAddAmount;
+  final VoidCallback onRemoveAmount;
+  final VoidCallback onCompleteGoal;
 
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
+    final l10n = AppLocalizations.of(context);
     final habit = item.habit;
     final color = Color(habit.color);
+    final measurable = item.targetAmount != null;
 
     return M3ECard(
       variant: M3ECardVariant.filled,
@@ -407,33 +455,177 @@ class _TodayHabitTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              habit.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.baseline.titleMedium.copyWith(
-                decoration: item.checkedToday
-                    ? TextDecoration.lineThrough
-                    : null,
-                color: item.checkedToday
-                    ? theme.colorScheme.onSurfaceVariant
-                    : theme.colorScheme.onSurface,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  habit.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.typography.baseline.titleMedium.copyWith(
+                    decoration: item.checkedToday
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: item.checkedToday
+                        ? theme.colorScheme.onSurfaceVariant
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (measurable) ...[
+                  const SizedBox(height: 4),
+                  _AmountBar(
+                    progress: item.amountProgress,
+                    color: color,
+                    done: item.checkedToday,
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 8),
           _HabitStreakBadge(habitId: habit.id),
           const SizedBox(width: 12),
-          CheckPill(
-            checked: item.checkedToday,
-            activeColor: color,
-            onChanged: (_) => onToggle(),
-            semanticLabel: item.checkedToday
-                ? AppLocalizations.of(context).undoCheckInHabit(habit.name)
-                : AppLocalizations.of(context).checkInHabit(habit.name),
-          ),
+          if (measurable)
+            _AmountStepper(
+              item: item,
+              color: color,
+              l10n: l10n,
+              onAdd: onAddAmount,
+              onRemove: onRemoveAmount,
+              onComplete: onCompleteGoal,
+            )
+          else
+            CheckPill(
+              checked: item.checkedToday,
+              activeColor: color,
+              onChanged: (_) => onToggle(),
+              semanticLabel: item.checkedToday
+                  ? l10n.undoCheckInHabit(habit.name)
+                  : l10n.checkInHabit(habit.name),
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// Thin progress bar under a measurable habit's name (0…1 of the daily goal).
+class _AmountBar extends StatelessWidget {
+  const _AmountBar({
+    required this.progress,
+    required this.color,
+    required this.done,
+  });
+
+  final double progress;
+  final Color color;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: SizedBox(
+        height: 5,
+        child: Stack(
+          children: [
+            Container(color: theme.colorScheme.surfaceContainerHighest),
+            FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                color: done ? color : color.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// − amount/target + stepper with a goal-complete pill for measurable habits.
+class _AmountStepper extends StatelessWidget {
+  const _AmountStepper({
+    required this.item,
+    required this.color,
+    required this.l10n,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onComplete,
+  });
+
+  final TodayHabit item;
+  final Color color;
+  final AppLocalizations l10n;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+  final VoidCallback onComplete;
+
+  String _fmt(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final done = item.amountToday ?? 0;
+    final target = item.targetAmount ?? 1;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          label: l10n.removeAmount(item.habit.name),
+          child: GestureDetector(
+            key: ValueKey('amount-minus-${item.habit.id}'),
+            onTap: done > 0 ? onRemove : null,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                M3EIcons.remove_circle_outline,
+                size: 22,
+                color: done > 0
+                    ? theme.colorScheme.onSurfaceVariant
+                    : theme.colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Text(
+            l10n.amountProgress(_fmt(done), _fmt(target)),
+            style: theme.typography.baseline.labelMedium.copyWith(
+              color: item.checkedToday
+                  ? theme.colorScheme.onSurfaceVariant
+                  : theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+        Semantics(
+          button: true,
+          label: l10n.addAmount(item.habit.name),
+          child: GestureDetector(
+            key: ValueKey('amount-plus-${item.habit.id}'),
+            onTap: onAdd,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(M3EIcons.add_circle, size: 24, color: color),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        CheckPill(
+          checked: item.checkedToday,
+          activeColor: color,
+          onChanged: (_) => onComplete(),
+          semanticLabel: item.checkedToday
+              ? l10n.clearGoal(item.habit.name)
+              : l10n.completeGoal(item.habit.name),
+        ),
+      ],
     );
   }
 }

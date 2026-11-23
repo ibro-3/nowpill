@@ -146,7 +146,7 @@ void main() {
           .customSelect('PRAGMA user_version')
           .map((r) => r.data.values.first as int)
           .getSingle();
-      expect(version, 3);
+      expect(version, 4);
       await db.close();
     });
   });

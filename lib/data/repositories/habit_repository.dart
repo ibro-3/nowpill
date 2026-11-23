@@ -39,6 +39,7 @@ class HabitRepository {
     int? targetPerWeek,
     DateTime? reminderTime,
     FreezeMode freezeMode = FreezeMode.auto,
+    double? targetAmount,
     int sortOrder = 0,
   }) {
     return _habits.insertHabit(
@@ -52,6 +53,7 @@ class HabitRepository {
         targetPerWeek: Value(targetPerWeek),
         reminderTime: Value(reminderTime),
         freezeMode: Value(freezeMode),
+        targetAmount: Value(targetAmount),
         createdAt: DateTime.now().toUtc(),
         sortOrder: Value(sortOrder),
       ),
@@ -92,13 +94,22 @@ class HabitRepository {
   // ---------------------------------------------------------------------------
 
   /// Checks in a habit for a local calendar day ([date] = `yyyy-MM-dd`).
-  /// Idempotent: returns the row id, or -1 if already checked in.
-  Future<int> checkIn(int habitId, String date, {String? note}) {
+  ///
+  /// Classic habits: idempotent — returns the row id, or -1 if already checked
+  /// in. Measurable habits ([amount] given): creates or updates the day's
+  /// logged amount in place (returns the row id).
+  Future<int> checkIn(
+    int habitId,
+    String date, {
+    String? note,
+    double? amount,
+  }) {
     return _habits.checkIn(
       HabitCheckinsCompanion(
         habitId: Value(habitId),
         date: Value(date),
         note: Value(note),
+        amount: Value(amount),
       ),
     );
   }

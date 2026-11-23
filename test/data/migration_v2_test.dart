@@ -74,13 +74,13 @@ void main() {
         );
     expect(await db.select(db.habitFreezes).get(), hasLength(1));
 
-    // Schema is now at v3 (the v1→v2 path continues through the v3 sync
-    // migration in the same upgrade).
+    // Schema is now at v4 (the v1→v2 path continues through the v3 sync and
+    // v4 measurable-habit migrations in the same upgrade).
     final version = await db
         .customSelect('PRAGMA user_version')
         .map((r) => r.data.values.first as int)
         .getSingle();
-    expect(version, 3);
+    expect(version, 4);
 
     await db.close();
   });

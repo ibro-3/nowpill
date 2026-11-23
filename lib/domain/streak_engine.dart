@@ -88,6 +88,14 @@ const int weeksPerToken = 4;
 ///
 /// In both modes a real check-in always wins over a freeze, so backfilling a
 /// frozen day refunds the token (the freeze is simply not needed/consumed).
+///
+/// [targetAmount] enables measurable habits (v0.3.0): when non-null, a day
+/// only counts toward the streak if its logged [amounts] entry reaches the
+/// target (100%). Partial progress is UI-only — it never extends the streak.
+/// A check-in without an amount counts as full (legacy / one-tap check-ins).
+/// When [targetAmount] is null the output is byte-identical to pre-v0.3.0.
+/// For weekly-target habits each fully-met day counts once toward the weekly
+/// target; partial days do not count.
 StreakResult replayStreak({
   required HabitSchedule schedule,
   required Set<String> checkins,
@@ -95,6 +103,8 @@ StreakResult replayStreak({
   required DateTime startDate,
   FreezeMode freezeMode = FreezeMode.auto,
   Set<String> manualFreezes = const {},
+  double? targetAmount,
+  Map<String, double> amounts = const {},
 }) {
   // startDate is a calendar day ("the first day the habit existed"), not an
   // instant. Normalize to date-only local so a creation time later in the day
@@ -108,6 +118,8 @@ StreakResult replayStreak({
       startDate: startDay,
       freezeMode: freezeMode,
       manualFreezes: manualFreezes,
+      targetAmount: targetAmount,
+      amounts: amounts,
     );
   }
   return _replayWeeklyTarget(
@@ -117,7 +129,23 @@ StreakResult replayStreak({
     startDate: startDay,
     freezeMode: freezeMode,
     manualFreezes: manualFreezes,
+    targetAmount: targetAmount,
+    amounts: amounts,
   );
+}
+
+/// Whether a check-in on [key] satisfies the habit's numeric goal. With no
+/// target every check-in counts; with a target a missing amount counts as
+/// full (one-tap / legacy check-ins), otherwise the amount must reach it.
+bool dayMeetsGoal(
+  String key,
+  double? targetAmount,
+  Map<String, double> amounts,
+) {
+  if (targetAmount == null) return true;
+  final amount = amounts[key];
+  if (amount == null) return true;
+  return amount >= targetAmount;
 }
 
 StreakResult _replayDayBased({
@@ -127,6 +155,8 @@ StreakResult _replayDayBased({
   required DateTime startDate,
   required FreezeMode freezeMode,
   required Set<String> manualFreezes,
+  required double? targetAmount,
+  required Map<String, double> amounts,
 }) {
   var current = 0;
   var best = 0;
@@ -142,9 +172,10 @@ StreakResult _replayDayBased({
     final key = formatDate(day);
     final isToday = daysBetween(day, end) == 0;
     final checked = checkins.contains(key);
+    final metGoal = checked && dayMeetsGoal(key, targetAmount, amounts);
     final due = schedule.isDueOn(day);
 
-    if (checked) {
+    if (metGoal) {
       completedDays++;
       current++;
       if (current > best) best = current;
@@ -153,7 +184,8 @@ StreakResult _replayDayBased({
         earns.add(key);
       }
     } else if (due && !isToday) {
-      // A missed scheduled day that has fully elapsed. In auto mode any
+      // A missed scheduled day that has fully elapsed (a partial measurable
+      // day counts as missed — only 100% keeps the streak). In auto mode any
       // available token bridges it; in manual mode only an explicit freeze does.
       final bridged =
           freezeMode == FreezeMode.auto || manualFreezes.contains(key);
@@ -166,7 +198,8 @@ StreakResult _replayDayBased({
         current = 0;
       }
     }
-    // Unscheduled days and today-without-checkin leave the streak unchanged.
+    // Unscheduled days, partial progress today, and today-without-checkin
+    // leave the streak unchanged.
 
     day = nextDay(day);
   }
@@ -188,6 +221,8 @@ StreakResult _replayWeeklyTarget({
   required DateTime startDate,
   required FreezeMode freezeMode,
   required Set<String> manualFreezes,
+  required double? targetAmount,
+  required Map<String, double> amounts,
 }) {
   final target = schedule.targetPerWeek ?? 1;
   var current = 0;
@@ -197,7 +232,8 @@ StreakResult _replayWeeklyTarget({
   final frozen = <String>{};
   final earns = <String>{};
 
-  // Count check-ins per week (Monday-start).
+  // Count goal-met check-ins per week (Monday-start). For measurable habits a
+  // partial day does not count toward the weekly target.
   final perWeek = <DateTime, int>{};
   for (final key in checkins) {
     final day = parseDate(key);
@@ -207,6 +243,7 @@ StreakResult _replayWeeklyTarget({
       continue;
     }
     if (day.isAfter(today)) continue;
+    if (!dayMeetsGoal(key, targetAmount, amounts)) continue;
     completedDays++;
     final week = startOfWeek(day);
     perWeek[week] = (perWeek[week] ?? 0) + 1;

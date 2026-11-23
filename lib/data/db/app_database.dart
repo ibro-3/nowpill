@@ -14,8 +14,9 @@ part 'app_database.g.dart';
 
 /// The NowPill local database. Offline-first; all feature data lives here.
 ///
-/// Schema version 3 (v0.3.0 adds cross-device sync identity: per-row `uuid` +
-/// `updatedAt`, parent uuid references, and the [Tombstones] table).
+/// Schema version 4 (v0.3.0: v3 adds cross-device sync identity — per-row
+/// `uuid` + `updatedAt`, parent uuid references, [Tombstones]; v4 adds
+/// measurable habits — `Habits.targetAmount` + `HabitCheckins.amount`).
 /// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
 /// task_tags, checkins, freezes) work.
 @DriftDatabase(
@@ -43,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   final String deviceId;
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -59,6 +60,12 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await _migrateToV3(m);
+      }
+      if (from < 4) {
+        // v0.3.0 measurable habits. Null target = classic habit; null amount
+        // = full completion, so existing streaks are unchanged.
+        await m.addColumn(habits, habits.targetAmount);
+        await m.addColumn(habitCheckins, habitCheckins.amount);
       }
     },
     beforeOpen: (details) async {

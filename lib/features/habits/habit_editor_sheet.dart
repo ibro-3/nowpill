@@ -33,6 +33,7 @@ class _HabitEditorForm extends ConsumerStatefulWidget {
 class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   late final TextEditingController _name;
   late final TextEditingController _notes;
+  late final TextEditingController _targetAmount;
   late String _iconKey;
   late int _color;
   late HabitScheduleType _scheduleType;
@@ -50,6 +51,14 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     final h = widget.habit;
     _name = TextEditingController(text: h?.name ?? '');
     _notes = TextEditingController(text: h?.notes ?? '');
+    final amount = h?.targetAmount;
+    _targetAmount = TextEditingController(
+      text: amount == null
+          ? ''
+          : (amount == amount.roundToDouble()
+                ? amount.toInt().toString()
+                : amount.toString()),
+    );
     _iconKey = h?.iconKey ?? 'spark';
     _color = h?.color ?? kHabitColors.first;
     _scheduleType = h?.scheduleType ?? HabitScheduleType.daily;
@@ -63,6 +72,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   void dispose() {
     _name.dispose();
     _notes.dispose();
+    _targetAmount.dispose();
     super.dispose();
   }
 
@@ -102,6 +112,11 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         ? _targetPerWeek
         : null;
     final reminderUtc = _reminderTime?.toUtc();
+    final amountText = _targetAmount.text.trim().replaceAll(',', '.');
+    final parsedAmount = double.tryParse(amountText);
+    final targetAmount = parsedAmount != null && parsedAmount > 0
+        ? parsedAmount
+        : null;
 
     if (_isEdit) {
       await repo.update(
@@ -115,6 +130,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
           targetPerWeek: Value(target),
           reminderTime: Value(reminderUtc),
           freezeMode: _freezeMode,
+          targetAmount: Value(targetAmount),
         ),
       );
     } else {
@@ -128,6 +144,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         targetPerWeek: target,
         reminderTime: reminderUtc,
         freezeMode: _freezeMode,
+        targetAmount: targetAmount,
       );
     }
 
@@ -226,6 +243,21 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
               onChanged: (v) => setState(() => _targetPerWeek = v),
             ),
           ],
+          const SizedBox(height: 20),
+          _SectionLabel(l10n.dailyGoal, theme),
+          const SizedBox(height: 8),
+          M3ETextField(
+            controller: _targetAmount,
+            label: l10n.dailyGoalHint,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.dailyGoalDesc,
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.reminder, theme),
           const SizedBox(height: 8),

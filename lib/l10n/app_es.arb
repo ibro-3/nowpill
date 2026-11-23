@@ -297,5 +297,59 @@
     }
   },
   "autoBackupRestored": "Copia restaurada.",
-  "autoBackupFailed": "No se pudo restaurar esa copia."
+  "autoBackupFailed": "No se pudo restaurar esa copia.",
+  "dailyGoal": "Meta diaria",
+  "dailyGoalDesc": "Objetivo numérico opcional (p. ej., 8 vasos). Solo llegar al 100 % cuenta para la racha; el progreso parcial se muestra pero no la extiende.",
+  "dailyGoalHint": "p. ej., 8",
+  "goalPerDay": "{value} / día",
+  "@goalPerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "amountProgress": "{done} / {target}",
+  "@amountProgress": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "addAmount": "Registrar uno más de {name}",
+  "@addAmount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeAmount": "Quitar uno de {name}",
+  "@removeAmount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "completeGoal": "Completar la meta de {name}",
+  "@completeGoal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clearGoal": "Borrar la meta de {name}",
+  "@clearGoal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

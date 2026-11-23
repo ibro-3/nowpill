@@ -156,6 +156,11 @@ class Habits extends Table {
   IntColumn get freezeMode =>
       intEnum<FreezeMode>().withDefault(const Constant(0))();
 
+  /// Optional numeric daily goal (schema v4, measurable habits). When set, a
+  /// check-in only counts toward the streak at 100% of this amount; partial
+  /// progress is UI-only. Null = classic one-tap habit.
+  RealColumn get targetAmount => real().nullable()();
+
   IntColumn get createdAt => integer().map(const UtcMillisConverter())();
 
   /// Archived habits are hidden from active lists but keep their history.
@@ -188,6 +193,10 @@ class HabitCheckins extends Table {
   TextColumn get date => text().withLength(min: 10, max: 10)();
 
   TextColumn get note => text().nullable()();
+
+  /// Logged amount for measurable habits (schema v4). Null = full completion
+  /// (one-tap check-ins and pre-v4 rows count as 100%).
+  RealColumn get amount => real().nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [

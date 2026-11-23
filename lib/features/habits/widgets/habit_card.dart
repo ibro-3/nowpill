@@ -122,26 +122,33 @@ class HabitCard extends ConsumerWidget {
   }
 
   String _scheduleLabel(AppLocalizations l10n, Habit h) {
-    switch (h.scheduleType) {
-      case HabitScheduleType.daily:
-        return l10n.everyDay;
-      case HabitScheduleType.weekdays:
-        final names = [
-          l10n.weekdayMon,
-          l10n.weekdayTue,
-          l10n.weekdayWed,
-          l10n.weekdayThu,
-          l10n.weekdayFri,
-          l10n.weekdaySat,
-          l10n.weekdaySun,
-        ];
-        final days = (h.weekdays ?? [])
-            .where((d) => d >= 1 && d <= 7)
-            .map((d) => names[d - 1])
-            .join(', ');
-        return days.isEmpty ? l10n.scheduleWeekdays : days;
-      case HabitScheduleType.weeklyTarget:
-        return l10n.perWeek(h.targetPerWeek ?? 1);
-    }
+    final base = switch (h.scheduleType) {
+      HabitScheduleType.daily => l10n.everyDay,
+      HabitScheduleType.weekdays => _weekdayLabel(l10n, h),
+      HabitScheduleType.weeklyTarget => l10n.perWeek(h.targetPerWeek ?? 1),
+    };
+    final target = h.targetAmount;
+    if (target == null) return base;
+    final fmt = target == target.roundToDouble()
+        ? target.toInt().toString()
+        : target.toString();
+    return '$base · ${l10n.goalPerDay(fmt)}';
+  }
+
+  String _weekdayLabel(AppLocalizations l10n, Habit h) {
+    final names = [
+      l10n.weekdayMon,
+      l10n.weekdayTue,
+      l10n.weekdayWed,
+      l10n.weekdayThu,
+      l10n.weekdayFri,
+      l10n.weekdaySat,
+      l10n.weekdaySun,
+    ];
+    final days = (h.weekdays ?? [])
+        .where((d) => d >= 1 && d <= 7)
+        .map((d) => names[d - 1])
+        .join(', ');
+    return days.isEmpty ? l10n.scheduleWeekdays : days;
   }
 }

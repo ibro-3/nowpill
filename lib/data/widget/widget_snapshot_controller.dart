@@ -64,8 +64,12 @@ class WidgetSnapshotController {
 
     // Current streak per active habit (pure replay), for the headline streak.
     final checkedByHabit = <int, Set<String>>{};
+    final amountsByHabit = <int, Map<String, double>>{};
     for (final c in checkins) {
       (checkedByHabit[c.habitId] ??= <String>{}).add(c.date);
+      if (c.amount != null) {
+        (amountsByHabit[c.habitId] ??= <String, double>{})[c.date] = c.amount!;
+      }
     }
     final freezes = await _habits.getAllFreezes();
     final freezesByHabit = <int, Set<String>>{};
@@ -85,6 +89,8 @@ class WidgetSnapshotController {
         startDate: habit.createdAt.toLocal(),
         freezeMode: habit.freezeMode,
         manualFreezes: freezesByHabit[habit.id] ?? const <String>{},
+        targetAmount: habit.targetAmount,
+        amounts: amountsByHabit[habit.id] ?? const <String, double>{},
       );
       streaks[habit.name] = result.currentStreak;
     }

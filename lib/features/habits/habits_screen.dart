@@ -61,7 +61,10 @@ class HabitsScreen extends ConsumerWidget {
     if (checked) {
       await repo.removeCheckIn(habitId, today);
     } else {
-      await repo.checkIn(habitId, today);
+      // Measurable habits: the list pill completes the whole goal (partial
+      // progress is logged from the Today stepper).
+      final target = ref.read(habitProvider(habitId)).value?.targetAmount;
+      await repo.checkIn(habitId, today, amount: target);
     }
   }
 }

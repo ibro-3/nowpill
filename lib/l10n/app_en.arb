@@ -426,5 +426,59 @@
     }
   },
   "autoBackupRestored": "Backup restored.",
-  "autoBackupFailed": "Could not restore that backup."
+  "autoBackupFailed": "Could not restore that backup.",
+  "dailyGoal": "Daily goal",
+  "dailyGoalDesc": "Optional numeric target (e.g. 8 glasses). Only reaching 100% counts toward the streak; partial progress is shown but doesn't extend it.",
+  "dailyGoalHint": "e.g. 8",
+  "goalPerDay": "{value} / day",
+  "@goalPerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "amountProgress": "{done} / {target}",
+  "@amountProgress": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "addAmount": "Log one more for {name}",
+  "@addAmount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeAmount": "Remove one for {name}",
+  "@removeAmount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "completeGoal": "Complete the goal for {name}",
+  "@completeGoal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clearGoal": "Clear the goal for {name}",
+  "@clearGoal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

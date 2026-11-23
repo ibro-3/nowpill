@@ -195,14 +195,14 @@ void main() {
     expect(a.sync.state.status, SyncStatus.idle);
   });
 
-  test('envelope files carry the device id and v3 shape', () async {
+  test('envelope files carry the device id and v4 shape', () async {
     final a = device('devA');
     await HabitRepository(a.db).create(name: 'Read', color: 1);
     await a.sync.syncNow();
     final content = File('${dir.path}/nowpill-sync-devA.json')
         .readAsStringSync();
     final decoded = jsonDecode(content) as Map<String, Object?>;
-    expect(decoded['schemaVersion'], 3);
+    expect(decoded['schemaVersion'], 4);
     expect(decoded['deviceId'], 'devA');
   });
 }

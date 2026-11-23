@@ -67,15 +67,27 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
     startDate: habit.createdAt.toLocal(),
     freezeMode: habit.freezeMode,
     manualFreezes: freezes.map((f) => f.date).toSet(),
+    targetAmount: habit.targetAmount,
+    amounts: {
+      for (final c in checkins)
+        if (c.amount != null) c.date: c.amount!,
+    },
   );
 });
 
-/// Whether a habit is checked in today.
+/// Whether today's check-in satisfies the habit (measurable habits: the
+/// logged amount reached the goal; a check-in without an amount counts full).
 final habitCheckedTodayProvider = Provider.family<bool, int>((ref, habitId) {
+  final habit = ref.watch(habitProvider(habitId)).value;
   final checkins =
       ref.watch(habitCheckinsProvider(habitId)).value ?? const <HabitCheckin>[];
   final today = formatDate(DateTime.now());
-  return checkins.any((c) => c.date == today);
+  final row = checkins.where((c) => c.date == today).firstOrNull;
+  if (row == null) return false;
+  final target = habit?.targetAmount;
+  if (target == null) return true;
+  final amount = row.amount;
+  return amount == null || amount >= target;
 });
 
 /// The pure schedule for a habit (for due-day rendering).

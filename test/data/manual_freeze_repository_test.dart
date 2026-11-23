@@ -79,7 +79,7 @@ void main() {
       final json = await service.exportToString();
       final decoded = jsonDecode(json) as Map<String, Object?>;
       // v0.3.0 exports v3 (sync identity); freeze data still round-trips.
-      expect(decoded['schemaVersion'], 3);
+      expect(decoded['schemaVersion'], 4);
       final data = decoded['data'] as Map<String, Object?>;
       expect(data['freezes'], hasLength(1));
 

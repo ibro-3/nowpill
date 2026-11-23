@@ -5,10 +5,30 @@ import '../../domain/schedule.dart';
 /// A habit shown in the Today dashboard, paired with whether it is already
 /// checked in today.
 class TodayHabit {
-  const TodayHabit({required this.habit, required this.checkedToday});
+  const TodayHabit({
+    required this.habit,
+    required this.checkedToday,
+    this.amountToday,
+  });
 
   final Habit habit;
+
+  /// Whether today's check-in satisfies the habit (measurable habits: the
+  /// logged amount reached the numeric goal; classic habits: any check-in).
   final bool checkedToday;
+
+  /// Today's logged amount for measurable habits (null when none yet).
+  final double? amountToday;
+
+  /// The numeric daily goal, when this is a measurable habit.
+  double? get targetAmount => habit.targetAmount;
+
+  /// 0…1 progress toward today's numeric goal (measurable habits only).
+  double get amountProgress {
+    final target = targetAmount;
+    if (target == null || target <= 0) return checkedToday ? 1 : 0;
+    return ((amountToday ?? 0) / target).clamp(0.0, 1.0);
+  }
 }
 
 /// Everything the Today dashboard renders, derived reactively from tasks and
@@ -102,9 +122,11 @@ TodayViewModel computeTodayViewModel({
     (a, b) => (b.completedAt ?? now).compareTo(a.completedAt ?? now),
   );
 
-  final checkedTodayByHabit = <int>{};
+  // Today's check-in rows per habit (a row's presence = checked; amount is
+  // null for classic one-tap check-ins).
+  final todayCheckins = <int, HabitCheckin>{};
   for (final c in checkins) {
-    if (c.date == todayKey) checkedTodayByHabit.add(c.habitId);
+    if (c.date == todayKey) todayCheckins[c.habitId] = c;
   }
 
   final dueHabits = <TodayHabit>[];
@@ -115,11 +137,15 @@ TodayViewModel computeTodayViewModel({
       targetPerWeek: habit.targetPerWeek,
     );
     if (!schedule.isDueOn(now)) continue;
+    final row = todayCheckins[habit.id];
+    final amount = row?.amount;
+    // Measurable habits count as done only at 100% of the goal; a check-in
+    // without an amount (one-tap / legacy) counts as full.
+    final target = habit.targetAmount;
+    final checked =
+        row != null && (target == null || amount == null || amount >= target);
     dueHabits.add(
-      TodayHabit(
-        habit: habit,
-        checkedToday: checkedTodayByHabit.contains(habit.id),
-      ),
+      TodayHabit(habit: habit, checkedToday: checked, amountToday: amount),
     );
   }
   // Unchecked habits first so the actionable ones lead the section.

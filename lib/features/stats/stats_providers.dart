@@ -41,8 +41,12 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
 
   // Leaderboard: replay each active habit's streak from its check-ins.
   final checkinsByHabit = <int, Set<String>>{};
+  final amountsByHabit = <int, Map<String, double>>{};
   for (final c in checkins) {
     (checkinsByHabit[c.habitId] ??= <String>{}).add(c.date);
+    if (c.amount != null) {
+      (amountsByHabit[c.habitId] ??= <String, double>{})[c.date] = c.amount!;
+    }
   }
   final entries = <LeaderboardEntry>[];
   var bestOverall = 0;
@@ -57,6 +61,8 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       checkins: checkinsByHabit[habit.id] ?? const <String>{},
       today: now,
       startDate: habit.createdAt.toLocal(),
+      targetAmount: habit.targetAmount,
+      amounts: amountsByHabit[habit.id] ?? const <String, double>{},
     );
     if (streak.bestStreak > bestOverall) bestOverall = streak.bestStreak;
     entries.add(

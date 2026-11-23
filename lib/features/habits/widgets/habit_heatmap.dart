@@ -10,8 +10,11 @@ import '../../../domain/streak_engine.dart';
 
 /// The visual state of a single heatmap day.
 enum HeatmapDayState {
-  /// Checked in.
+  /// Checked in (measurable habits: goal fully met).
   done,
+
+  /// Measurable habit: some progress logged, but below the daily goal.
+  partial,
 
   /// A freeze token bridged this missed day.
   frozen,
@@ -40,6 +43,8 @@ class HabitHeatmap extends StatefulWidget {
     required this.startDate,
     required this.color,
     required this.onToggleDay,
+    this.targetAmount,
+    this.amounts = const {},
     super.key,
   });
 
@@ -60,6 +65,12 @@ class HabitHeatmap extends StatefulWidget {
 
   /// Called when a backfillable day is tapped.
   final ValueChanged<DateTime> onToggleDay;
+
+  /// Numeric daily goal for measurable habits (null = classic).
+  final double? targetAmount;
+
+  /// Logged amounts per day for measurable habits.
+  final Map<String, double> amounts;
 
   @override
   State<HabitHeatmap> createState() => _HabitHeatmapState();
@@ -114,7 +125,15 @@ class _HabitHeatmapState extends State<HabitHeatmap>
     if (day.isBefore(_dateOnly(widget.startDate))) {
       return HeatmapDayState.inactive;
     }
-    if (widget.checkins.contains(key)) return HeatmapDayState.done;
+    if (widget.checkins.contains(key)) {
+      // Measurable habits: full goal = done, partial progress = partial shade.
+      final target = widget.targetAmount;
+      if (target != null) {
+        final amount = widget.amounts[key];
+        if (amount != null && amount < target) return HeatmapDayState.partial;
+      }
+      return HeatmapDayState.done;
+    }
     // Weekly-target freezes are stored under the week's Monday; render ❄ on
     // every unchecked day of a frozen week.
     final frozenKey = widget.schedule.isDayBased
@@ -243,6 +262,10 @@ class _HeatmapCell extends StatelessWidget {
           size: 14,
           color: theme.colorScheme.onPrimary,
         );
+      case HeatmapDayState.partial:
+        fill = color.withValues(alpha: 0.35);
+        border = color.withValues(alpha: 0.7);
+        child = null;
       case HeatmapDayState.frozen:
         fill = theme.colorScheme.tertiaryContainer;
         border = theme.colorScheme.tertiary;

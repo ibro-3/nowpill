@@ -125,7 +125,7 @@ void main() {
     expect(exported.existsSync(), isTrue);
     final envelope =
         jsonDecode(await exported.readAsString()) as Map<String, Object?>;
-    expect(envelope['schemaVersion'], 3);
+    expect(envelope['schemaVersion'], 4);
     final data = envelope['data'] as Map<String, Object?>;
     expect(data['habits'], hasLength(1));
     expect(data['checkins'], hasLength(3));
