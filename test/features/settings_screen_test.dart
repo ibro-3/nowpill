@@ -7,6 +7,7 @@ import 'package:nowpill/data/db/app_database.dart';
 import 'package:nowpill/data/export/backup_service.dart';
 import 'package:nowpill/data/export/export_service.dart';
 import 'package:nowpill/data/notifications/notification_permission_service.dart';
+import 'package:nowpill/data/notifications/notification_service.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/data/repositories/task_repository.dart';
@@ -66,16 +67,41 @@ class FakePermissionService extends NotificationPermissionService {
   }
 }
 
+/// A notification service that records test fires instead of touching a
+/// platform plugin.
+class FakeNotificationService extends NotificationService {
+  FakeNotificationService() : super();
+
+  bool showResult = true;
+  bool supported = true;
+  int showCalls = 0;
+
+  @override
+  bool get webSupported => supported;
+
+  @override
+  Future<bool> showNow({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    showCalls++;
+    return showResult;
+  }
+}
+
 void main() {
   late AppDatabase db;
   late FakeBackupService backup;
   late FakePermissionService permission;
+  late FakeNotificationService notifications;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     db = createTestDatabase();
     backup = FakeBackupService(ExportService(db));
     permission = FakePermissionService();
+    notifications = FakeNotificationService();
   });
 
   Widget wrap(Widget child) {
@@ -84,6 +110,7 @@ void main() {
         appDatabaseProvider.overrideWithValue(db),
         backupServiceProvider.overrideWithValue(backup),
         notificationPermissionServiceProvider.overrideWithValue(permission),
+        notificationServiceProvider.overrideWithValue(notifications),
       ],
       child: MaterialApp(
         theme: ThemeData(useMaterial3: true),
@@ -283,6 +310,39 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Allow'), findsNothing);
+    await cleanup(tester);
+  });
+
+  testWidgets('test notification fires and reports success', (tester) async {
+    await pumpScreen(tester);
+    await tester.tap(find.text('Send test notification'));
+    await settle(tester);
+    expect(notifications.showCalls, 1);
+    expect(find.text('Test notification sent.'), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('failed test notification reports an error', (tester) async {
+    notifications.showResult = false;
+    await pumpScreen(tester);
+    await tester.tap(find.text('Send test notification'));
+    await settle(tester);
+    expect(find.text('Could not send a test notification.'), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('unsupported browser shows a hint instead of firing', (
+    tester,
+  ) async {
+    notifications.supported = false;
+    await pumpScreen(tester);
+    await tester.tap(find.text('Send test notification'));
+    await settle(tester);
+    expect(notifications.showCalls, 0);
+    expect(
+      find.textContaining('does not support notifications'),
+      findsOneWidget,
+    );
     await cleanup(tester);
   });
 }

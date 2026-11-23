@@ -32,7 +32,7 @@ class NotificationPermissionService {
 
   /// Whether this platform gates notifications behind a runtime permission.
   bool get requiresRuntimePermission {
-    if (kIsWeb) return false;
+    if (kIsWeb) return true;
     return Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
   }
 
@@ -44,6 +44,16 @@ class NotificationPermissionService {
       return NotificationPermissionStatus.notRequired;
     }
     try {
+      if (kIsWeb) {
+        final web = _plugin
+            .resolvePlatformSpecificImplementation<
+              WebFlutterLocalNotificationsPlugin
+            >();
+        if (web == null) return NotificationPermissionStatus.unknown;
+        return web.permissionStatus == WebNotificationPermission.granted
+            ? NotificationPermissionStatus.granted
+            : NotificationPermissionStatus.denied;
+      }
       if (Platform.isAndroid) {
         final android = _plugin
             .resolvePlatformSpecificImplementation<
@@ -71,12 +81,24 @@ class NotificationPermissionService {
   }
 
   /// Requests notification permission (Android 13+ POST_NOTIFICATIONS, iOS
-  /// alert/sound/badge). Returns the resulting status.
+  /// alert/sound/badge, web Notification API). Returns the resulting status.
+  /// On web, call only in response to a user gesture — browsers may reject
+  /// unprompted requests.
   Future<NotificationPermissionStatus> request() async {
     if (!requiresRuntimePermission) {
       return NotificationPermissionStatus.notRequired;
     }
     try {
+      if (kIsWeb) {
+        final web = _plugin
+            .resolvePlatformSpecificImplementation<
+              WebFlutterLocalNotificationsPlugin
+            >();
+        final granted = await web?.requestNotificationsPermission();
+        return granted == true
+            ? NotificationPermissionStatus.granted
+            : NotificationPermissionStatus.denied;
+      }
       if (Platform.isAndroid) {
         final android = _plugin
             .resolvePlatformSpecificImplementation<

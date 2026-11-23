@@ -22,7 +22,11 @@ const String kReminderChannelDescription =
 /// * **Linux** — the desktop plugin only supports immediate notifications, so
 ///   reminders are kept as in-app timers (fire while the app runs) and can be
 ///   fired immediately for verification.
-/// * **Web** — no-op; the UI shows a hint that reminders need the mobile app.
+/// * **Web** — the browser plugin also only supports immediate notifications
+///   (via a service worker), so reminders use the same in-app timer fallback:
+///   they fire while the tab is open. Permission is requested on user gesture;
+///   unsupported browsers (no Notification API / service workers) degrade to a
+///   no-op with a UI hint.
 ///
 /// All methods are safe to call in widget tests: plugin failures are swallowed
 /// so a missing platform handler never crashes the UI.
@@ -33,8 +37,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
 
-  /// Linux in-app fallback timers, keyed by notification id.
-  final Map<int, Timer> _linuxTimers = {};
+  /// In-app fallback timers (Linux + web), keyed by notification id. These
+  /// fire only while the app/tab is running.
+  final Map<int, Timer> _fallbackTimers = {};
 
   /// Whether this platform can schedule OS-level notifications.
   bool get supportsOsScheduling {
@@ -44,16 +49,37 @@ class NotificationService {
         defaultTargetPlatform == TargetPlatform.macOS;
   }
 
-  /// Whether reminders are a no-op on this platform (web).
-  bool get isNoOp => kIsWeb;
+  /// Whether reminders are a complete no-op on this platform. No supported
+  /// platform is a pure no-op anymore; unsupported web browsers degrade via
+  /// guarded failures (see [webSupported]).
+  bool get isNoOp => false;
+
+  /// Whether the browser exposes the Notification API (web only; always true
+  /// on other platforms). False in very old browsers / restricted contexts.
+  bool get webSupported {
+    if (!kIsWeb) return true;
+    try {
+      return WebFlutterLocalNotificationsPlugin.isSupported;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Initializes the plugin and the timezone database. Idempotent.
   Future<void> initialize() async {
-    if (_initialized || kIsWeb) {
-      _initialized = true;
-      return;
-    }
+    if (_initialized) return;
     try {
+      if (kIsWeb) {
+        // Registers the plugin's notification service worker. Fails gracefully
+        // when service workers are unavailable (private mode, old browsers).
+        await _plugin.initialize(
+          settings: const InitializationSettings(
+            web: WebInitializationSettings(),
+          ),
+        );
+        _initialized = true;
+        return;
+      }
       tzdata.initializeTimeZones();
       try {
         final info = await FlutterTimezone.getLocalTimezone();
@@ -132,16 +158,16 @@ class NotificationService {
       ),
       iOS: DarwinNotificationDetails(),
       linux: LinuxNotificationDetails(),
+      web: WebNotificationDetails(),
     );
   }
 
   /// Schedules a batch of reminders (replacing any prior ones for the same
-  /// ids). On Linux these become in-app timers; on web they are dropped.
+  /// ids). On Linux and web these become in-app timers.
   Future<void> scheduleAll(
     Iterable<ReminderOccurrence> occurrences, {
     required int Function(ReminderOccurrence, int) idFor,
   }) async {
-    if (kIsWeb) return;
     await initialize();
     final mode = await _androidScheduleMode();
     var slot = 0;
@@ -170,12 +196,12 @@ class NotificationService {
           payload: 'reminder:$id',
         );
       } else {
-        // Linux: in-app timer fallback (fires only while the app runs).
-        _linuxTimers[id]?.cancel();
+        // Linux / web: in-app timer fallback (fires only while the app runs).
+        _fallbackTimers[id]?.cancel();
         final delay = occ.when.difference(DateTime.now());
         if (delay.isNegative) return;
-        _linuxTimers[id] = Timer(delay, () {
-          _linuxTimers.remove(id);
+        _fallbackTimers[id] = Timer(delay, () {
+          _fallbackTimers.remove(id);
           showNow(id: id, title: 'NowPill reminder', body: occ.label);
         });
       }
@@ -184,10 +210,10 @@ class NotificationService {
     }
   }
 
-  /// Cancels a single reminder by id (OS schedule or Linux timer).
+  /// Cancels a single reminder by id (OS schedule or in-app timer).
   Future<void> cancel(int id) async {
-    _linuxTimers.remove(id)?.cancel();
-    if (kIsWeb) return;
+    _fallbackTimers.remove(id)?.cancel();
+    if (kIsWeb) return; // web has no OS-level pending notifications
     try {
       await _plugin.cancel(id: id);
     } catch (_) {}
@@ -195,24 +221,23 @@ class NotificationService {
 
   /// Cancels every pending reminder.
   Future<void> cancelAll() async {
-    for (final timer in _linuxTimers.values) {
+    for (final timer in _fallbackTimers.values) {
       timer.cancel();
     }
-    _linuxTimers.clear();
+    _fallbackTimers.clear();
     if (kIsWeb) return;
     try {
       await _plugin.cancelAll();
     } catch (_) {}
   }
 
-  /// Shows a notification immediately (used for the Linux manual-fire test and
+  /// Shows a notification immediately (used for manual-fire verification and
   /// the in-app timer fallback). Returns true when the platform accepted it.
   Future<bool> showNow({
     required int id,
     required String title,
     required String body,
   }) async {
-    if (kIsWeb) return false;
     await initialize();
     try {
       await _plugin.show(
@@ -228,11 +253,11 @@ class NotificationService {
     }
   }
 
-  /// Releases Linux fallback timers. Called when the provider scope closes.
+  /// Releases in-app fallback timers. Called when the provider scope closes.
   void dispose() {
-    for (final timer in _linuxTimers.values) {
+    for (final timer in _fallbackTimers.values) {
       timer.cancel();
     }
-    _linuxTimers.clear();
+    _fallbackTimers.clear();
   }
 }

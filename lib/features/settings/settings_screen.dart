@@ -102,14 +102,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _sendTestNotification() async {
     final service = ref.read(notificationServiceProvider);
-    if (service.isNoOp) {
+    if (!service.webSupported) {
       M3ESnackbar.show(
         context,
         message:
-            'Reminders need the mobile or desktop app — not supported in '
-            'the browser.',
+            'This browser does not support notifications. Try Chrome, Edge, '
+            'or Firefox outside private mode.',
       );
       return;
+    }
+    // On web the notification only shows once permission is granted; request
+    // it here (this runs from a tap, satisfying the user-gesture requirement).
+    if (kIsWeb && _permission != NotificationPermissionStatus.granted) {
+      await _requestPermission();
+      if (!mounted) return;
+      if (_permission != NotificationPermissionStatus.granted) {
+        M3ESnackbar.show(
+          context,
+          message:
+              'Notifications are blocked. Allow them in your browser '
+              'settings, then try again.',
+        );
+        return;
+      }
     }
     final ok = await service.showNow(
       id: 0,
@@ -415,24 +430,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onRequest: _requestExactAlarms,
                   ),
                 ],
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: M3EButton.icon(
+                    onPressed: _sendTestNotification,
+                    style: M3EButtonStyle.tonal,
+                    icon: const Icon(M3EIcons.notifications_active),
+                    label: const Text('Send test notification'),
+                  ),
+                ),
                 if (kIsWeb) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'Reminders are not supported in the browser. Install the '
-                    'mobile or desktop app to get notified.',
+                    'Browser reminders fire while NowPill is open in a tab. '
+                    'For reminders when the app is closed, use the mobile or '
+                    'desktop app.',
                     style: theme.typography.baseline.bodySmall.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: M3EButton.icon(
-                      onPressed: _sendTestNotification,
-                      style: M3EButtonStyle.tonal,
-                      icon: const Icon(M3EIcons.notifications_active),
-                      label: const Text('Send test notification'),
                     ),
                   ),
                 ],
