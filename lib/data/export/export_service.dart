@@ -131,6 +131,15 @@ class ExportService {
   ///
   /// Returns the imported envelope (for confirmation UI / reminder reschedule).
   Future<ExportEnvelope> importFromString(String json) async {
+    final envelope = parseEnvelope(json);
+    await _replaceAll(envelope);
+    return envelope;
+  }
+
+  /// Parses and validates [json] without touching the database. Used by the
+  /// import flow to show a confirm-replace summary before committing.
+  /// Throws [ImportFormatException] on malformed or unsupported payloads.
+  ExportEnvelope parseEnvelope(String json) {
     final Object? decoded;
     try {
       decoded = jsonDecode(json);
@@ -140,9 +149,7 @@ class ExportService {
     if (decoded is! Map<String, Object?>) {
       throw ImportFormatException('Top-level JSON must be an object.');
     }
-    final envelope = ExportEnvelope.fromJson(decoded);
-    await _replaceAll(envelope);
-    return envelope;
+    return ExportEnvelope.fromJson(decoded);
   }
 
   Future<void> _replaceAll(ExportEnvelope e) async {

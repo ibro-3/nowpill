@@ -1,7 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../db/app_database.dart';
+import '../export/backup_service.dart';
 import '../export/export_service.dart';
+import '../notifications/notification_permission_service.dart';
 import 'habit_repository.dart';
 import 'tag_repository.dart';
 import 'task_repository.dart';
@@ -37,4 +39,14 @@ TagRepository tagRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 ExportService exportService(Ref ref) {
   return ExportService(ref.watch(appDatabaseProvider));
+}
+
+@Riverpod(keepAlive: true)
+NotificationPermissionService notificationPermissionService(Ref ref) {
+  return NotificationPermissionService();
+}
+
+@Riverpod(keepAlive: true)
+BackupService backupService(Ref ref) {
+  return BackupService(ref.watch(exportServiceProvider));
 }

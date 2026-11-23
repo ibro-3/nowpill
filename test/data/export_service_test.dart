@@ -125,6 +125,33 @@ void main() {
     });
   });
 
+  group('parseEnvelope (validate without writing)', () {
+    test('returns the envelope without touching the database', () async {
+      await seed();
+      final json = await service.exportToString();
+      final before = await db.select(db.tasks).get();
+
+      final envelope = service.parseEnvelope(json);
+      expect(envelope.habits, hasLength(1));
+      expect(envelope.checkins, hasLength(2));
+      expect(envelope.tasks, hasLength(1));
+
+      final after = await db.select(db.tasks).get();
+      expect(after.length, before.length);
+    });
+
+    test('throws on invalid payloads', () {
+      expect(
+        () => service.parseEnvelope('not json'),
+        throwsA(isA<ImportFormatException>()),
+      );
+      expect(
+        () => service.parseEnvelope('{"schemaVersion": 999}'),
+        throwsA(isA<ImportFormatException>()),
+      );
+    });
+  });
+
   group('import validation', () {
     test('rejects invalid JSON', () async {
       expect(

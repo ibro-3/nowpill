@@ -23,14 +23,16 @@ enum AppMotionMode {
 
 /// Immutable bundle of user preferences persisted via `shared_preferences`.
 ///
-/// Phase 1 covers theme, motion, and dynamic color. Later phases extend this
-/// with reminder defaults and week-start without breaking stored keys.
+/// Phase 1 covered theme, motion, and dynamic color; Phase 8 adds the default
+/// reminder time and week start without breaking stored keys.
 @immutable
 class AppSettings {
   const AppSettings({
     this.themeMode = AppThemeMode.system,
     this.motionMode = AppMotionMode.expressive,
     this.dynamicColor = true,
+    this.defaultReminderMinutes,
+    this.weekStartsOnMonday = true,
   });
 
   final AppThemeMode themeMode;
@@ -39,15 +41,41 @@ class AppSettings {
   /// Whether to derive the palette from the OS (Material You) when available.
   final bool dynamicColor;
 
+  /// Default reminder time-of-day for new habits/tasks, as minutes since
+  /// midnight (e.g. 540 = 09:00). Null = no default reminder.
+  final int? defaultReminderMinutes;
+
+  /// Whether weeks start on Monday (ISO). The streak engine and stats always
+  /// use Monday-start weeks; this preference is surfaced for the user and
+  /// will drive calendar-style views.
+  final bool weekStartsOnMonday;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     AppMotionMode? motionMode,
     bool? dynamicColor,
+    int? defaultReminderMinutes,
+    bool? weekStartsOnMonday,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       motionMode: motionMode ?? this.motionMode,
       dynamicColor: dynamicColor ?? this.dynamicColor,
+      defaultReminderMinutes:
+          defaultReminderMinutes ?? this.defaultReminderMinutes,
+      weekStartsOnMonday: weekStartsOnMonday ?? this.weekStartsOnMonday,
+    );
+  }
+
+  /// Returns a copy with the default reminder cleared (copyWith cannot null
+  /// a nullable field).
+  AppSettings clearDefaultReminder() {
+    return AppSettings(
+      themeMode: themeMode,
+      motionMode: motionMode,
+      dynamicColor: dynamicColor,
+      defaultReminderMinutes: null,
+      weekStartsOnMonday: weekStartsOnMonday,
     );
   }
 
@@ -56,9 +84,17 @@ class AppSettings {
     return other is AppSettings &&
         other.themeMode == themeMode &&
         other.motionMode == motionMode &&
-        other.dynamicColor == dynamicColor;
+        other.dynamicColor == dynamicColor &&
+        other.defaultReminderMinutes == defaultReminderMinutes &&
+        other.weekStartsOnMonday == weekStartsOnMonday;
   }
 
   @override
-  int get hashCode => Object.hash(themeMode, motionMode, dynamicColor);
+  int get hashCode => Object.hash(
+    themeMode,
+    motionMode,
+    dynamicColor,
+    defaultReminderMinutes,
+    weekStartsOnMonday,
+  );
 }

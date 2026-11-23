@@ -8,6 +8,8 @@ part 'app_settings_provider.g.dart';
 const _kThemeMode = 'settings.themeMode';
 const _kMotionMode = 'settings.motionMode';
 const _kDynamicColor = 'settings.dynamicColor';
+const _kDefaultReminderMinutes = 'settings.defaultReminderMinutes';
+const _kWeekStartsOnMonday = 'settings.weekStartsOnMonday';
 
 /// Loads and persists [AppSettings].
 ///
@@ -26,6 +28,8 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
       themeMode: _decodeTheme(prefs.getString(_kThemeMode)),
       motionMode: _decodeMotion(prefs.getString(_kMotionMode)),
       dynamicColor: prefs.getBool(_kDynamicColor) ?? true,
+      defaultReminderMinutes: prefs.getInt(_kDefaultReminderMinutes),
+      weekStartsOnMonday: prefs.getBool(_kWeekStartsOnMonday) ?? true,
     );
   }
 
@@ -42,6 +46,20 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
   void setDynamicColor(bool enabled) => _update(
     (s) => s.copyWith(dynamicColor: enabled),
     (p, s) => p.setBool(_kDynamicColor, s.dynamicColor),
+  );
+
+  void setDefaultReminderMinutes(int? minutes) => _update(
+    (s) => minutes == null
+        ? s.clearDefaultReminder()
+        : s.copyWith(defaultReminderMinutes: minutes),
+    (p, s) => s.defaultReminderMinutes == null
+        ? p.remove(_kDefaultReminderMinutes)
+        : p.setInt(_kDefaultReminderMinutes, s.defaultReminderMinutes!),
+  );
+
+  void setWeekStartsOnMonday(bool monday) => _update(
+    (s) => s.copyWith(weekStartsOnMonday: monday),
+    (p, s) => p.setBool(_kWeekStartsOnMonday, s.weekStartsOnMonday),
   );
 
   void _update(
