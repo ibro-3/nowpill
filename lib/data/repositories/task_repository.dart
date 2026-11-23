@@ -122,9 +122,9 @@ class TaskRepository {
 
   Future<int> addSubtask(int taskId, String title, {int position = 0}) {
     return _tasks.insertSubtask(
-      SubtasksCompanion.insert(
-        taskId: taskId,
-        title: title,
+      SubtasksCompanion(
+        taskId: Value(taskId),
+        title: Value(title),
         position: Value(position),
       ),
     );

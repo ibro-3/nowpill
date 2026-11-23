@@ -67,18 +67,20 @@ void main() {
         .insert(
           HabitFreezesCompanion.insert(
             habitId: 1,
+            habitUuid: habits.single.uuid,
             date: '2026-11-16',
             createdAt: DateTime.utc(2026, 11, 22),
           ),
         );
     expect(await db.select(db.habitFreezes).get(), hasLength(1));
 
-    // Schema is now at v2.
+    // Schema is now at v3 (the v1→v2 path continues through the v3 sync
+    // migration in the same upgrade).
     final version = await db
         .customSelect('PRAGMA user_version')
         .map((r) => r.data.values.first as int)
         .getSingle();
-    expect(version, 2);
+    expect(version, 3);
 
     await db.close();
   });

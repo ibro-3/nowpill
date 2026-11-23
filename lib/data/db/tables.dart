@@ -1,12 +1,25 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/enums.dart';
 import 'converters.dart';
+
+/// Shared UUID generator for cross-device row identity (schema v3). Local
+/// integer PKs remain the on-device keys; uuids identify rows across devices.
+const Uuid syncUuid = Uuid();
 
 /// Tasks (to-dos). Completing a recurring task spawns the next occurrence;
 /// history is preserved via [completedAt].
 class Tasks extends Table {
   IntColumn get id => integer().autoIncrement()();
+
+  /// Cross-device identity (schema v3). Unique per row, preserved on merge.
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
 
   TextColumn get title => text().withLength(min: 1, max: 500)();
 
@@ -39,8 +52,19 @@ class Tasks extends Table {
 class Subtasks extends Table {
   IntColumn get id => integer().autoIncrement()();
 
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
   IntColumn get taskId =>
       integer().references(Tasks, #id, onDelete: KeyAction.cascade)();
+
+  /// Parent task uuid (schema v3) — survives merges that remap local ids.
+  TextColumn get taskUuid => text()();
 
   TextColumn get title => text().withLength(min: 1, max: 500)();
 
@@ -53,6 +77,14 @@ class Subtasks extends Table {
 class Tags extends Table {
   IntColumn get id => integer().autoIncrement()();
 
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
   TextColumn get name => text().withLength(min: 1, max: 100).unique()();
 
   /// ARGB color value.
@@ -61,11 +93,23 @@ class Tags extends Table {
 
 /// Many-to-many link between tasks and tags.
 class TaskTags extends Table {
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
   IntColumn get taskId =>
       integer().references(Tasks, #id, onDelete: KeyAction.cascade)();
 
   IntColumn get tagId =>
       integer().references(Tags, #id, onDelete: KeyAction.cascade)();
+
+  /// Parent uuids (schema v3) — survive merges that remap local ids.
+  TextColumn get taskUuid => text()();
+  TextColumn get tagUuid => text()();
 
   @override
   Set<Column> get primaryKey => {taskId, tagId};
@@ -75,6 +119,14 @@ class TaskTags extends Table {
 /// engine from check-in history).
 class Habits extends Table {
   IntColumn get id => integer().autoIncrement()();
+
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
 
   TextColumn get name => text().withLength(min: 1, max: 200)();
 
@@ -118,8 +170,19 @@ class Habits extends Table {
 class HabitCheckins extends Table {
   IntColumn get id => integer().autoIncrement()();
 
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
   IntColumn get habitId =>
       integer().references(Habits, #id, onDelete: KeyAction.cascade)();
+
+  /// Parent habit uuid (schema v3) — survives merges that remap local ids.
+  TextColumn get habitUuid => text()();
 
   /// Local calendar day, `yyyy-MM-dd`.
   TextColumn get date => text().withLength(min: 10, max: 10)();
@@ -138,8 +201,19 @@ class HabitCheckins extends Table {
 class HabitFreezes extends Table {
   IntColumn get id => integer().autoIncrement()();
 
+  /// Cross-device identity (schema v3).
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge (schema v3).
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
   IntColumn get habitId =>
       integer().references(Habits, #id, onDelete: KeyAction.cascade)();
+
+  /// Parent habit uuid (schema v3) — survives merges that remap local ids.
+  TextColumn get habitUuid => text()();
 
   /// Local calendar day (`yyyy-MM-dd`) — the missed day, or the week's Monday
   /// for weekly-target habits.
@@ -151,4 +225,24 @@ class HabitFreezes extends Table {
   List<Set<Column>> get uniqueKeys => [
     {habitId, date},
   ];
+}
+
+/// Deletion markers for sync (schema v3). When a row is deleted locally its
+/// uuid is recorded here so other devices drop it on merge instead of
+/// resurrecting it. Never pruned — history must not come back.
+class Tombstones extends Table {
+  /// The uuid of the deleted row.
+  TextColumn get uuid => text()();
+
+  /// Source table name (`tasks`, `habit_checkins`, …).
+  TextColumn get sourceTable => text()();
+
+  /// When the delete happened (UTC millis). LWW against surviving row copies.
+  IntColumn get deletedAt => integer().map(const UtcMillisConverter())();
+
+  /// The device that performed the delete (deterministic tiebreak).
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {uuid};
 }

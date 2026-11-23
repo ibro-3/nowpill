@@ -95,9 +95,9 @@ class HabitRepository {
   /// Idempotent: returns the row id, or -1 if already checked in.
   Future<int> checkIn(int habitId, String date, {String? note}) {
     return _habits.checkIn(
-      HabitCheckinsCompanion.insert(
-        habitId: habitId,
-        date: date,
+      HabitCheckinsCompanion(
+        habitId: Value(habitId),
+        date: Value(date),
         note: Value(note),
       ),
     );
@@ -139,10 +139,10 @@ class HabitRepository {
   /// or -1 if one already exists.
   Future<int> placeFreeze(int habitId, String date) {
     return _habits.placeFreeze(
-      HabitFreezesCompanion.insert(
-        habitId: habitId,
-        date: date,
-        createdAt: DateTime.now().toUtc(),
+      HabitFreezesCompanion(
+        habitId: Value(habitId),
+        date: Value(date),
+        createdAt: Value(DateTime.now().toUtc()),
       ),
     );
   }

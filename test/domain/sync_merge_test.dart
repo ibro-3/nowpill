@@ -1,0 +1,392 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nowpill/domain/sync_merge.dart';
+
+/// Pure merge-engine matrix: LWW, tombstones, orphans, dedupe, convergence.
+void main() {
+  final now = DateTime.utc(2026, 11, 23, 12);
+
+  Map<String, Object?> env(
+    String device, {
+    Map<String, List<Map<String, Object?>>> data = const {},
+  }) {
+    return {
+      'schemaVersion': 3,
+      'exportedAt': now.millisecondsSinceEpoch,
+      'deviceId': device,
+      'data': {
+        'tasks': <Object>[],
+        'habits': <Object>[],
+        'tags': <Object>[],
+        'subtasks': <Object>[],
+        'taskTags': <Object>[],
+        'checkins': <Object>[],
+        'freezes': <Object>[],
+        'tombstones': <Object>[],
+        ...data,
+      },
+    };
+  }
+
+  Map<String, Object?> habit(String uuid, int updatedAt, {String name = 'H'}) =>
+      {
+        'id': 1,
+        'uuid': uuid,
+        'updatedAt': updatedAt,
+        'name': name,
+        'notes': null,
+        'iconKey': 'spark',
+        'color': 1,
+        'scheduleType': 0,
+        'weekdays': null,
+        'targetPerWeek': null,
+        'reminderTime': null,
+        'freezeMode': 0,
+        'createdAt': 0,
+        'archivedAt': null,
+        'sortOrder': 0,
+      };
+
+  Map<String, Object?> checkin(
+    String uuid,
+    String habitUuid,
+    String date,
+    int updatedAt,
+  ) => {
+    'id': 1,
+    'uuid': uuid,
+    'updatedAt': updatedAt,
+    'habitId': 1,
+    'habitUuid': habitUuid,
+    'date': date,
+    'note': null,
+  };
+
+  Map<String, Object?> tomb(String uuid, int deletedAt, String device) => {
+    'uuid': uuid,
+    'sourceTable': 'habit_checkins',
+    'deletedAt': deletedAt,
+    'deviceId': device,
+  };
+
+  List<Map<String, Object?>> rowsOf(SyncMergeResult r, String table) {
+    final data = r.envelope['data'] as Map<String, Object?>;
+    return (data[table] as List).cast<Map<String, Object?>>();
+  }
+
+  group('last-write-wins', () {
+    test('newer copy wins regardless of input order', () {
+      final old = env(
+        'a',
+        data: {
+          'habits': [habit('u1', 100, name: 'Old')],
+        },
+      );
+      final newer = env(
+        'b',
+        data: {
+          'habits': [habit('u1', 200, name: 'New')],
+        },
+      );
+
+      for (final order in [
+        [old, newer],
+        [newer, old],
+      ]) {
+        final r = mergeEnvelopes(envelopes: order, deviceId: 'a', now: now);
+        expect(rowsOf(r, 'habits').single['name'], 'New');
+        expect(r.stats.conflictsResolved, 1);
+      }
+    });
+
+    test('equal timestamps break by deviceId deterministically', () {
+      final a = env(
+        'aaa',
+        data: {
+          'habits': [habit('u1', 100, name: 'A')],
+        },
+      );
+      final b = env(
+        'bbb',
+        data: {
+          'habits': [habit('u1', 100, name: 'B')],
+        },
+      );
+      final r1 = mergeEnvelopes(envelopes: [a, b], deviceId: 'x', now: now);
+      final r2 = mergeEnvelopes(envelopes: [b, a], deviceId: 'x', now: now);
+      expect(rowsOf(r1, 'habits').single['name'], 'B');
+      expect(jsonEncode(r1.envelope['data']), jsonEncode(r2.envelope['data']));
+    });
+
+    test('identical copies are not a conflict', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('u1', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [habit('u1', 100)],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(r.stats.conflictsResolved, 0);
+      expect(rowsOf(r, 'habits'), hasLength(1));
+    });
+
+    test('disjoint rows union', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('u1', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [habit('u2', 100)],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'habits'), hasLength(2));
+    });
+  });
+
+  group('tombstones', () {
+    test('delete wins at equal timestamps', () {
+      final a = env(
+        'a',
+        data: {
+          'checkins': [checkin('c1', 'h1', '2026-11-20', 100)],
+          'habits': [habit('h1', 50)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'tombstones': [tomb('c1', 100, 'b')],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'checkins'), isEmpty);
+      expect(r.stats.deletedByTombstone, 1);
+    });
+
+    test('older tombstone does not kill a newer row (edit resurrects)', () {
+      final a = env(
+        'a',
+        data: {
+          'checkins': [checkin('c1', 'h1', '2026-11-20', 200)],
+          'habits': [habit('h1', 50)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'tombstones': [tomb('c1', 100, 'b')],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'checkins'), hasLength(1));
+    });
+
+    test('tombstones union and greatest deletedAt wins', () {
+      final a = env(
+        'a',
+        data: {
+          'tombstones': [tomb('c1', 100, 'a')],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'tombstones': [tomb('c1', 300, 'b'), tomb('c2', 50, 'b')],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      final tombs = rowsOf(r, 'tombstones');
+      expect(tombs, hasLength(2));
+      final c1 = tombs.firstWhere((t) => t['uuid'] == 'c1');
+      expect(c1['deletedAt'], 300);
+    });
+
+    test('deleted parent removes its children as orphans', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('h1', 50)],
+          'checkins': [checkin('c1', 'h1', '2026-11-20', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'tombstones': [tomb('h1', 500, 'b')],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'habits'), isEmpty);
+      expect(rowsOf(r, 'checkins'), isEmpty);
+      expect(r.stats.orphansDropped, 1);
+    });
+  });
+
+  group('orphans and dedupe', () {
+    test('child with unknown parent is dropped', () {
+      final a = env(
+        'a',
+        data: {
+          'checkins': [checkin('c1', 'missing', '2026-11-20', 100)],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'checkins'), isEmpty);
+      expect(r.stats.orphansDropped, 1);
+    });
+
+    test('same habit+day from two devices collapses to newest', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('h1', 50)],
+          'checkins': [checkin('cA', 'h1', '2026-11-20', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [habit('h1', 50)],
+          'checkins': [checkin('cB', 'h1', '2026-11-20', 200)],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      final checkins = rowsOf(r, 'checkins');
+      expect(checkins, hasLength(1));
+      expect(checkins.single['uuid'], 'cB');
+      expect(r.stats.duplicatesMerged, 1);
+    });
+
+    test('tags dedupe by name and links remap to the winner', () {
+      Map<String, Object?> tag(String uuid, int updatedAt) => {
+        'id': 1,
+        'uuid': uuid,
+        'updatedAt': updatedAt,
+        'name': 'home',
+        'color': 1,
+      };
+      Map<String, Object?> task(String uuid) => {
+        'id': 1,
+        'uuid': uuid,
+        'updatedAt': 10,
+        'title': 'T',
+        'notes': null,
+        'dueAt': null,
+        'priority': 0,
+        'completedAt': null,
+        'recurrenceRule': null,
+        'reminderAt': null,
+        'createdAt': 0,
+        'sortOrder': 0,
+      };
+      Map<String, Object?> link(String uuid, String tagUuid, int at) => {
+        'uuid': uuid,
+        'updatedAt': at,
+        'taskId': 1,
+        'tagId': 1,
+        'taskUuid': 't1',
+        'tagUuid': tagUuid,
+      };
+
+      final a = env(
+        'a',
+        data: {
+          'tasks': [task('t1')],
+          'tags': [tag('tagA', 100)],
+          'taskTags': [link('lA', 'tagA', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'tasks': [task('t1')],
+          'tags': [tag('tagB', 200)],
+          'taskTags': [link('lB', 'tagB', 200)],
+        },
+      );
+      final r = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      expect(rowsOf(r, 'tags'), hasLength(1));
+      expect(rowsOf(r, 'tags').single['uuid'], 'tagB');
+      final links = rowsOf(r, 'taskTags');
+      expect(links, hasLength(1));
+      expect(links.single['tagUuid'], 'tagB');
+    });
+  });
+
+  group('convergence', () {
+    test('three devices converge regardless of merge order', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('h1', 100, name: 'A')],
+          'checkins': [checkin('c1', 'h1', '2026-11-20', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [habit('h1', 300, name: 'B')],
+          'tombstones': [tomb('c1', 200, 'b')],
+        },
+      );
+      final c = env(
+        'c',
+        data: {
+          'habits': [habit('h1', 200, name: 'C')],
+          'checkins': [checkin('c2', 'h1', '2026-11-21', 150)],
+        },
+      );
+
+      final results = [
+        mergeEnvelopes(envelopes: [a, b, c], deviceId: 'x', now: now),
+        mergeEnvelopes(envelopes: [c, a, b], deviceId: 'x', now: now),
+        mergeEnvelopes(envelopes: [b, c, a], deviceId: 'x', now: now),
+      ];
+      final canonical = results
+          .map((r) => jsonEncode(r.envelope['data']))
+          .toSet();
+      expect(canonical, hasLength(1));
+
+      final r = results.first;
+      expect(rowsOf(r, 'habits').single['name'], 'B');
+      expect(rowsOf(r, 'checkins').map((c) => c['uuid']), ['c2']);
+    });
+
+    test('merging a result with its inputs is idempotent', () {
+      final a = env(
+        'a',
+        data: {
+          'habits': [habit('h1', 100, name: 'A')],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'habits': [habit('h1', 200, name: 'B')],
+        },
+      );
+      final once = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      final twice = mergeEnvelopes(
+        envelopes: [once.envelope, a, b],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(
+        jsonEncode(once.envelope['data']),
+        jsonEncode(twice.envelope['data']),
+      );
+    });
+  });
+}

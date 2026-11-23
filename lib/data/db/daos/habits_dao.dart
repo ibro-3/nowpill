@@ -6,7 +6,10 @@ import '../tables.dart';
 part 'habits_dao.g.dart';
 
 /// Data access for habits, their daily check-ins, and manual freezes.
-@DriftAccessor(tables: [Habits, HabitCheckins, HabitFreezes])
+///
+/// Sync-aware (schema v3): updates stamp `updatedAt`, deletes record
+/// tombstones (including cascaded check-ins/freezes) so devices converge.
+@DriftAccessor(tables: [Habits, HabitCheckins, HabitFreezes, Tombstones])
 class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
   HabitsDao(super.db);
 
@@ -47,10 +50,49 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
 
   Future<int> insertHabit(HabitsCompanion entry) => into(habits).insert(entry);
 
-  Future<bool> updateHabit(Habit entry) => update(habits).replace(entry);
+  Future<bool> updateHabit(Habit entry) =>
+      update(habits).replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
 
-  Future<int> deleteHabit(int id) {
-    return (delete(habits)..where((h) => h.id.equals(id))).go();
+  Future<int> deleteHabit(int id) async {
+    return attachedDatabase.transaction(() async {
+      final habit = await getHabit(id);
+      if (habit == null) return 0;
+      final now = DateTime.now().toUtc();
+      final deviceId = attachedDatabase.deviceId;
+
+      // Tombstone cascaded children before the parent delete removes them.
+      final checkins = await (select(
+        habitCheckins,
+      )..where((c) => c.habitId.equals(id))).get();
+      final freezes = await (select(
+        habitFreezes,
+      )..where((f) => f.habitId.equals(id))).get();
+      await batch((b) {
+        b.insertAll(tombstones, [
+          TombstonesCompanion.insert(
+            uuid: habit.uuid,
+            sourceTable: 'habits',
+            deletedAt: now,
+            deviceId: deviceId,
+          ),
+          for (final c in checkins)
+            TombstonesCompanion.insert(
+              uuid: c.uuid,
+              sourceTable: 'habit_checkins',
+              deletedAt: now,
+              deviceId: deviceId,
+            ),
+          for (final f in freezes)
+            TombstonesCompanion.insert(
+              uuid: f.uuid,
+              sourceTable: 'habit_freezes',
+              deletedAt: now,
+              deviceId: deviceId,
+            ),
+        ], mode: InsertMode.insertOrReplace);
+      });
+      return (delete(habits)..where((h) => h.id.equals(id))).go();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -102,6 +144,10 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
   /// that habit+date. The unique constraint is the source of truth; the
   /// pre-check gives a stable "already exists" signal (drift's DO NOTHING
   /// returns the connection's last rowid, which is not a reliable sentinel).
+  ///
+  /// Re-checking a previously removed day revives the original row uuid (the
+  /// row is gone locally but its tombstone may have propagated) and stamps a
+  /// fresh `updatedAt`, so the new check-in wins the merge on other devices.
   Future<int> checkIn(HabitCheckinsCompanion entry) async {
     final existing =
         await (select(habitCheckins)..where(
@@ -111,23 +157,59 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
             ))
             .getSingleOrNull();
     if (existing != null) return -1;
+    final habit = await getHabit(entry.habitId.value);
+    if (habit == null) {
+      throw StateError('Cannot check in missing habit ${entry.habitId.value}');
+    }
     return into(habitCheckins).insert(
-      entry,
+      entry.copyWith(habitUuid: Value(habit.uuid)),
       onConflict: DoNothing(
         target: [habitCheckins.habitId, habitCheckins.date],
       ),
     );
   }
 
-  /// Removes a check-in for a specific day (backfill undo).
-  Future<int> removeCheckIn(int habitId, String date) {
-    return (delete(
-      habitCheckins,
-    )..where((c) => c.habitId.equals(habitId) & c.date.equals(date))).go();
+  /// Removes a check-in for a specific day (backfill undo). Tombstones the row
+  /// so the undo propagates to other devices.
+  Future<int> removeCheckIn(int habitId, String date) async {
+    return attachedDatabase.transaction(() async {
+      final row =
+          await (select(habitCheckins)
+                ..where((c) => c.habitId.equals(habitId) & c.date.equals(date)))
+              .getSingleOrNull();
+      if (row == null) return 0;
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: row.uuid,
+          sourceTable: 'habit_checkins',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+      return (delete(
+        habitCheckins,
+      )..where((c) => c.habitId.equals(habitId) & c.date.equals(date))).go();
+    });
   }
 
-  Future<int> deleteCheckIn(int id) {
-    return (delete(habitCheckins)..where((c) => c.id.equals(id))).go();
+  Future<int> deleteCheckIn(int id) async {
+    return attachedDatabase.transaction(() async {
+      final row = await (select(
+        habitCheckins,
+      )..where((c) => c.id.equals(id))).getSingleOrNull();
+      if (row == null) return 0;
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: row.uuid,
+          sourceTable: 'habit_checkins',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+      return (delete(habitCheckins)..where((c) => c.id.equals(id))).go();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -163,16 +245,37 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
             ))
             .getSingleOrNull();
     if (existing != null) return -1;
+    final habit = await getHabit(entry.habitId.value);
+    if (habit == null) {
+      throw StateError('Cannot freeze missing habit ${entry.habitId.value}');
+    }
     return into(habitFreezes).insert(
-      entry,
+      entry.copyWith(habitUuid: Value(habit.uuid)),
       onConflict: DoNothing(target: [habitFreezes.habitId, habitFreezes.date]),
     );
   }
 
-  /// Removes an explicit freeze (refund). Returns rows removed.
-  Future<int> removeFreeze(int habitId, String date) {
-    return (delete(
-      habitFreezes,
-    )..where((f) => f.habitId.equals(habitId) & f.date.equals(date))).go();
+  /// Removes an explicit freeze (refund). Returns rows removed. Tombstones the
+  /// row so the refund propagates to other devices.
+  Future<int> removeFreeze(int habitId, String date) async {
+    return attachedDatabase.transaction(() async {
+      final row =
+          await (select(habitFreezes)
+                ..where((f) => f.habitId.equals(habitId) & f.date.equals(date)))
+              .getSingleOrNull();
+      if (row == null) return 0;
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: row.uuid,
+          sourceTable: 'habit_freezes',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+      return (delete(
+        habitFreezes,
+      )..where((f) => f.habitId.equals(habitId) & f.date.equals(date))).go();
+    });
   }
 }
