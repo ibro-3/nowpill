@@ -13,7 +13,13 @@ void main() {
   });
 
   testWidgets('App boots into the Today tab', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: NowPillApp()));
+    final db = createTestDatabase();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const NowPillApp(),
+      ),
+    );
     // Let preferences load, then render a bounded number of frames (the M3E
     // springs and progress indicators can keep scheduling frames, so we avoid
     // pumpAndSettle here).
@@ -22,6 +28,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Today'), findsWidgets);
+
+    // Flush drift's stream-cache timers and close the DB inside the test zone.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await db.close();
   });
 
   testWidgets('Bottom navigation switches tabs', (WidgetTester tester) async {

@@ -20,20 +20,6 @@ class SettingsAction extends StatelessWidget {
   }
 }
 
-/// Placeholder for the Today dashboard (built in Phase 6).
-class TodayScreen extends StatelessWidget {
-  const TodayScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _FeaturePlaceholder(
-      icon: M3EIcons.today,
-      title: 'Today',
-      message: 'Your daily habits and tasks will appear here.',
-    );
-  }
-}
-
 /// Placeholder for the Stats feature (built in Phase 7).
 class StatsScreen extends StatelessWidget {
   const StatsScreen({super.key});

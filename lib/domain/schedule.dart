@@ -28,19 +28,22 @@ bool habitDueOn(HabitSchedule schedule, DateTime day) => schedule.isDueOn(day);
 /// A task is overdue when its due *calendar day* is strictly before today.
 /// Tasks due today are not overdue (they still have the whole day). A task
 /// with no due date is never overdue. Completed tasks are never overdue.
+///
+/// [dueAt] is normalized to local time first — Drift returns UTC instants,
+/// and the calendar day must be the user's local day.
 bool isTaskOverdue({
   required DateTime? dueAt,
   required DateTime now,
   required bool completed,
 }) {
   if (completed || dueAt == null) return false;
-  return daysBetween(dueAt, now) > 0;
+  return daysBetween(dueAt.toLocal(), now.toLocal()) > 0;
 }
 
 /// Whether an open task is due on the calendar day of [now] (due today).
 bool isTaskDueToday({required DateTime? dueAt, required DateTime now}) {
   if (dueAt == null) return false;
-  return daysBetween(dueAt, now) == 0;
+  return daysBetween(dueAt.toLocal(), now.toLocal()) == 0;
 }
 
 /// Whether an open task belongs in the "Today" view: due today or overdue.
@@ -50,5 +53,5 @@ bool isTaskInToday({
   required bool completed,
 }) {
   if (completed || dueAt == null) return false;
-  return daysBetween(dueAt, now) >= 0;
+  return daysBetween(dueAt.toLocal(), now.toLocal()) >= 0;
 }

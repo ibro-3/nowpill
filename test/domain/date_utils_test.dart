@@ -44,6 +44,19 @@ void main() {
       expect(daysBetween(b, a), -1);
       expect(daysBetween(a, a), 0);
     });
+
+    test('daysBetween same calendar day is 0 regardless of time', () {
+      // Regression: Duration.inDays truncates toward zero, so a midnight due
+      // date compared against a later "now" used to yield 0 for -11h and
+      // misclassify due-today tasks as overdue.
+      final midnight = DateTime(2026, 11, 23);
+      final morning = DateTime(2026, 11, 23, 10, 45);
+      expect(daysBetween(midnight, morning), 0);
+      expect(daysBetween(morning, midnight), 0);
+      final yesterday = DateTime(2026, 11, 22);
+      expect(daysBetween(yesterday, morning), 1);
+      expect(daysBetween(morning, yesterday), -1);
+    });
   });
 
   group('startOfWeek', () {

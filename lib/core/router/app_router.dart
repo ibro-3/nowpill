@@ -5,6 +5,7 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/shell/feature_placeholders.dart';
 import '../../features/tasks/tasks_screen.dart';
+import '../../features/today/today_screen.dart';
 
 /// Route paths for the four primary destinations.
 abstract final class AppRoutes {

@@ -121,5 +121,34 @@ void main() {
         isFalse,
       );
     });
+
+    test('UTC instants (Drift rows) resolve to the local calendar day', () {
+      // Regression: Drift returns dueAt as UTC. A local-midnight due date in
+      // a positive-offset zone reads back as the previous UTC day and must
+      // still count as due today, not overdue.
+      final localNow = DateTime.now();
+      final localMidnight = DateTime(
+        localNow.year,
+        localNow.month,
+        localNow.day,
+      );
+      final utcDue = localMidnight.toUtc();
+      expect(isTaskDueToday(dueAt: utcDue, now: localNow), isTrue);
+      expect(
+        isTaskOverdue(dueAt: utcDue, now: localNow, completed: false),
+        isFalse,
+      );
+      expect(
+        isTaskInToday(dueAt: utcDue, now: localNow, completed: false),
+        isTrue,
+      );
+      final utcYesterday = localMidnight
+          .subtract(const Duration(days: 1))
+          .toUtc();
+      expect(
+        isTaskOverdue(dueAt: utcYesterday, now: localNow, completed: false),
+        isTrue,
+      );
+    });
   });
 }

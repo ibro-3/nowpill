@@ -1,3 +1,4 @@
+import 'package:flutter/physics.dart';
 import 'package:motor/motor.dart';
 
 /// NowPill's central motion tokens, mapped from the Material 3 Expressive
@@ -43,6 +44,14 @@ abstract final class AppMotion {
   static const Motion expressiveEffectsSlow =
       MaterialSpringMotion.expressiveEffectsSlow();
 
+  /// Confetti shower / celebration timeline. Critically damped and slow
+  /// (~2.5s to settle) so particle effects run their full course; the
+  /// spatial springs would overshoot past the end and cut them short.
+  /// Damping ratio 1.0 at stiffness 12 → coefficient 2·√12 ≈ 6.9282.
+  static const Motion expressiveCelebration = SpringMotion(
+    SpringDescription(mass: 1, stiffness: 12, damping: 6.928203230275509),
+  );
+
   // ---------------------------------------------------------------------------
   // Standard scheme (reduced motion)
   // ---------------------------------------------------------------------------
@@ -85,6 +94,7 @@ class MotionTokens {
     required this.effectsFast,
     required this.effectsDefault,
     required this.effectsSlow,
+    required this.celebration,
     required this.reduced,
   });
 
@@ -96,6 +106,7 @@ class MotionTokens {
     effectsFast: AppMotion.expressiveEffectsFast,
     effectsDefault: AppMotion.expressiveEffectsDefault,
     effectsSlow: AppMotion.expressiveEffectsSlow,
+    celebration: AppMotion.expressiveCelebration,
     reduced: false,
   );
 
@@ -107,6 +118,7 @@ class MotionTokens {
     effectsFast: AppMotion.standardEffectsFast,
     effectsDefault: AppMotion.standardEffectsDefault,
     effectsSlow: AppMotion.standardEffectsSlow,
+    celebration: AppMotion.expressiveCelebration,
     reduced: true,
   );
 
@@ -116,6 +128,9 @@ class MotionTokens {
   final Motion effectsFast;
   final Motion effectsDefault;
   final Motion effectsSlow;
+
+  /// Long, non-overshooting spring for particle/celebration timelines.
+  final Motion celebration;
 
   /// Whether this token set is the reduced-motion variant.
   final bool reduced;

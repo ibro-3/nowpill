@@ -1,17 +1,33 @@
-import 'dart:ui' show Size;
-
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'data/test_database.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  /// Boots the app with an isolated in-memory DB and registers teardown that
+  /// flushes drift's stream timers and closes it inside the test zone.
   Future<void> boot(WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: NowPillApp()));
+    final db = createTestDatabase();
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await db.close();
+    });
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const NowPillApp(),
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));

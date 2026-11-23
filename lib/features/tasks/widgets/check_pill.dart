@@ -74,7 +74,11 @@ class _CheckPillState extends State<CheckPill>
     // Retarget the spring when the motion scheme changes.
     _progress.motion = tokens.spatialFast;
 
+    // container: true keeps the pill a distinct semantics node even inside
+    // cards that merge sibling text into their spoken label — screen readers
+    // (and tests) can target the check control on its own.
     return Semantics(
+      container: true,
       button: true,
       checked: widget.checked,
       label:

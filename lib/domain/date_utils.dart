@@ -40,9 +40,12 @@ DateTime previousDay(DateTime day) =>
     DateTime(day.year, day.month, day.day - 1);
 
 /// Whole days from [a] to [b] (positive when [b] is later). Time ignored.
+///
+/// Uses UTC date-only arithmetic so local DST transitions (23/25-hour days)
+/// cannot truncate the result the way `Duration.inDays` would.
 int daysBetween(DateTime a, DateTime b) {
-  final da = DateTime(a.year, a.month, a.day);
-  final db = DateTime(b.year, b.month, b.day);
+  final da = DateTime.utc(a.year, a.month, a.day);
+  final db = DateTime.utc(b.year, b.month, b.day);
   return db.difference(da).inDays;
 }
 
