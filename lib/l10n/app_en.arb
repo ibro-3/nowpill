@@ -1,1 +1,415 @@
-{"@@locale": "en", "appName": "NowPill", "navToday": "Today", "navTasks": "Tasks", "navHabits": "Habits", "navStats": "Stats", "settings": "Settings", "back": "Back", "cancel": "Cancel", "delete": "Delete", "create": "Create", "save": "Save", "replace": "Replace", "continueLabel": "Continue", "notNow": "Not now", "enable": "Enable", "allow": "Allow", "done": "Done", "all": "All", "upcoming": "Upcoming", "greetingUpLate": "Up late", "greetingMorning": "Good morning", "greetingAfternoon": "Good afternoon", "greetingEvening": "Good evening", "greetingWindingDown": "Winding down", "todayClearDay": "A clear day ahead", "todayAllDoneSubtitle": "Everything done — enjoy your day!", "todayProgress": "{remaining} to go · {done} done", "@todayProgress": {"placeholders": {"remaining": {"type": "int"}, "done": {"type": "int"}}}, "todayEmpty": "Nothing due today. Add a task below, or enjoy the calm!", "allDoneBanner": "All done for today!", "sectionOverdue": "Overdue", "sectionHabits": "Habits", "sectionDueToday": "Due today", "sectionDoneToday": "Done today", "ringDoneToday": "done today", "quickAddHint": "Add a task for today…", "checkInHabit": "Check in {name}", "@checkInHabit": {"placeholders": {"name": {"type": "String"}}}, "undoCheckInHabit": "Undo check-in for {name}", "@undoCheckInHabit": {"placeholders": {"name": {"type": "String"}}}, "markComplete": "Mark complete", "markIncomplete": "Mark incomplete", "completedLabel": "Completed", "tasksEmptyToday": "Nothing due today. Enjoy the calm!", "tasksEmptyUpcoming": "No upcoming tasks.", "tasksEmptyAll": "No tasks yet. Tap + to add one.", "tasksEmptyDone": "Nothing completed yet.", "newTask": "New task", "editTask": "Edit task", "taskTitle": "Title", "notes": "Notes", "dueDate": "Due date", "setDate": "Set date", "time": "Time", "subtasks": "Subtasks", "clearDueDate": "Clear due date", "setReminder": "Set reminder", "clearReminder": "Clear reminder", "deleteTask": "Delete task", "addSubtask": "Add subtask", "removeSubtask": "Remove subtask", "priority": "Priority", "priorityNone": "None", "priorityLow": "Low", "priorityMed": "Med", "priorityHigh": "High", "repeat": "Repeat", "repeatNever": "Never", "repeatDaily": "Daily", "repeatWeekly": "Weekly", "repeatMonthly": "Monthly", "tags": "Tags", "newTag": "New tag", "tagName": "Tag name", "addTask": "Add task", "overdueLabel": "Overdue · {date}", "@overdueLabel": {"placeholders": {"date": {"type": "String"}}}, "newHabit": "New habit", "iconSpark": "Spark", "iconRun": "Run", "iconWalk": "Walk", "iconFitness": "Fitness", "iconMeditate": "Meditate", "iconRead": "Read", "iconWater": "Water", "iconSleep": "Sleep", "iconEat": "Eat well", "iconMusic": "Music", "iconCode": "Code", "iconArt": "Art", "iconPlant": "Plant", "iconSun": "Morning", "iconHeart": "Self-care", "iconMind": "Mind", "editHabit": "Edit habit", "habitName": "Habit name", "icon": "Icon", "color": "Color", "schedule": "Schedule", "scheduleDaily": "Daily", "scheduleWeekdays": "Weekdays", "scheduleWeekly": "Weekly", "everyDay": "Every day", "perWeek": "{value}× per week", "@perWeek": {"placeholders": {"value": {"type": "int"}}}, "weekdayMon": "Mon", "weekdayTue": "Tue", "weekdayWed": "Wed", "weekdayThu": "Thu", "weekdayFri": "Fri", "weekdaySat": "Sat", "weekdaySun": "Sun", "goal": "Goal:", "goalPerWeek": "{value}× / week", "@goalPerWeek": {"placeholders": {"value": {"type": "int"}}}, "decrease": "Decrease", "increase": "Increase", "reminder": "Reminder", "freezeTokens": "Freeze tokens", "freezeAuto": "Auto", "freezeManual": "Manual", "freezeAutoDesc": "Tokens automatically protect a missed day.", "freezeManualDesc": "You choose when to spend a token on a missed day.", "addHabit": "Add habit", "habitsEmpty": "No habits yet. Tap + to build your first streak.", "habitsEmptyActive": "No active habits yet.", "currentStreak": "Current streak", "bestStreak": "Best streak", "walletFullAuto": "Wallet full — tokens automatically protect a missed {unit}.", "@walletFullAuto": {"placeholders": {"unit": {"type": "String"}}}, "walletEarnAuto": "Earn a token every {unit}-{unitLabel} streak ({toNext} to go). Tokens automatically protect a missed {unitLabel}.", "@walletEarnAuto": {"placeholders": {"unit": {"type": "int"}, "unitLabel": {"type": "String"}, "toNext": {"type": "int"}}}, "walletFullManual": "Wallet full — tap a missed day to spend a token and protect your streak.", "walletEarnManual": "Earn a token every {unit}-{unitLabel} streak ({toNext} to go). Tap a missed day to spend a token.", "@walletEarnManual": {"placeholders": {"unit": {"type": "int"}, "unitLabel": {"type": "String"}, "toNext": {"type": "int"}}}, "unitDay": "day", "unitWeek": "week", "heatmapHintAuto": "Tap a day within the last 30 days to backfill a check-in.", "heatmapHintManual": "Tap a day within the last 30 days to backfill or freeze it.", "archive": "Archive", "deleteHabit": "Delete habit", "deleteHabitTitle": "Delete habit?", "deleteHabitBody": "This permanently removes the habit and all its check-in history. This cannot be undone.", "previousMonth": "Previous month", "nextMonth": "Next month", "dayMissedTitle": "This day was missed", "dayMissedCanFreeze": "Backfill a check-in, or spend a freeze token to protect your streak.", "dayMissedNoToken": "Backfill a check-in. No freeze tokens available to spend.", "freeze": "Freeze", "backfill": "Backfill", "statsEmpty": "No activity yet. Check off a habit or task and your stats will grow here.", "statsLast30Days": "Last 30 days", "statsWeeklySummary": "Weekly summary", "statsStreakLeaderboard": "Streak leaderboard", "statsTasksByTag": "Tasks by tag", "statsTagEmpty": "Tag tasks to see their breakdown here.", "statsSameAsLastWeek": "same as last week", "statsDeltaVs": "{delta} vs last week", "@statsDeltaVs": {"placeholders": {"delta": {"type": "String"}}}, "statsThisWeek": "{value} this week", "@statsThisWeek": {"placeholders": {"value": {"type": "int"}}}, "statsTagged": "tagged", "statsTasksDone": "tasks done", "statsCheckIns": "check-ins", "statsBestStreak": "best streak", "statsAllDone": "all done!", "unitDayShort": "d", "unitWeekShort": "wk", "leaderboardBest": "best {value}{unit}", "@leaderboardBest": {"placeholders": {"value": {"type": "int"}, "unit": {"type": "String"}}}, "settingsAppearance": "Appearance", "settingsTheme": "Theme", "themeSystem": "System", "themeLight": "Light", "themeDark": "Dark", "dynamicColor": "Dynamic color", "dynamicColorDesc": "Match your device wallpaper (Material You)", "settingsMotion": "Motion", "animationStyle": "Animation style", "motionDesc": "Expressive adds playful bounce. Standard reduces motion. Your system accessibility setting always takes priority.", "motionExpressive": "Expressive", "motionStandard": "Standard", "settingsRemindersWeek": "Reminders & week", "defaultReminderTime": "Default reminder time", "defaultReminderDesc": "Pre-filled when you add a reminder to a habit or task.", "setDefaultValue": "Set default", "clearDefaultReminder": "Clear default reminder", "weekStartsMonday": "Week starts on Monday", "weekStartDesc": "Streaks and stats always use Monday-start weeks; this sets the calendar display.", "settingsNotifications": "Notifications", "notifEnabled": "Notifications are enabled.", "notifDisabled": "Notifications are disabled. Reminders will not appear.", "notifNotRequired": "This platform does not require notification permission.", "notifChecking": "Checking notification permission…", "exactAlarmsOn": "Exact alarms allowed — reminders fire on time.", "exactAlarmsOff": "Exact alarms are off. Reminders may be delayed by the system.", "sendTestNotification": "Send test notification", "webReminderNote": "Browser reminders fire while NowPill is open in a tab. For reminders when the app is closed, use the mobile or desktop app.", "iosPrimingTitle": "Stay on track", "iosPrimingBody": "NowPill can remind you about habits and tasks at the times you choose. Tap Continue to allow notifications — you can change this anytime in the system Settings.", "testNotificationSent": "Test notification sent.", "testNotificationFailed": "Could not send a test notification.", "browserUnsupported": "This browser does not support notifications. Try Chrome, Edge, or Firefox outside private mode.", "notificationsBlocked": "Notifications are blocked. Allow them in your browser settings, then try again.", "testReminderBody": "This is a test reminder. Your notifications are working!", "settingsData": "Data", "backupRestore": "Backup & restore", "backupDesc": "Export everything to a JSON file, or restore from a backup. Restoring replaces all current data.", "export": "Export", "import": "Import", "backupExported": "Backup exported.", "exportCancelled": "Export cancelled.", "exportFailed": "Export failed. Please try again.", "backupRestored": "Backup restored.", "importFailed": "Import failed. Please try again.", "invalidBackup": "Invalid backup: {message}", "@invalidBackup": {"placeholders": {"message": {"type": "String"}}}, "replaceDataTitle": "Replace all data?", "replaceDataBody": "This backup contains {habits} habits, {checkins} check-ins, and {tasks} tasks. Importing replaces ALL current data and cannot be undone.", "@replaceDataBody": {"placeholders": {"habits": {"type": "int"}, "checkins": {"type": "int"}, "tasks": {"type": "int"}}}, "settingsAbout": "About", "aboutVersion": "Version {version} · Local-first habits & to-dos", "@aboutVersion": {"placeholders": {"version": {"type": "String"}}}, "settingsLanguage": "Language", "languageSystem": "System", "languageEnglish": "English", "languageSpanish": "Español", "weekdayMonday": "Monday", "weekdayTuesday": "Tuesday", "weekdayWednesday": "Wednesday", "weekdayThursday": "Thursday", "weekdayFriday": "Friday", "weekdaySaturday": "Saturday", "weekdaySunday": "Sunday", "monthJan": "Jan", "monthFeb": "Feb", "monthMar": "Mar", "monthApr": "Apr", "monthMay": "May", "monthJun": "Jun", "monthJul": "Jul", "monthAug": "Aug", "monthSep": "Sep", "monthOct": "Oct", "monthNov": "Nov", "monthDec": "Dec", "monthJanuary": "January", "monthFebruary": "February", "monthMarch": "March", "monthApril": "April", "monthMayFull": "May", "monthJune": "June", "monthJuly": "July", "monthAugust": "August", "monthSeptember": "September", "monthOctober": "October", "monthNovember": "November", "monthDecember": "December"}
+{
+  "@@locale": "en",
+  "appName": "NowPill",
+  "navToday": "Today",
+  "navTasks": "Tasks",
+  "navHabits": "Habits",
+  "navStats": "Stats",
+  "settings": "Settings",
+  "back": "Back",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "create": "Create",
+  "save": "Save",
+  "replace": "Replace",
+  "continueLabel": "Continue",
+  "notNow": "Not now",
+  "enable": "Enable",
+  "allow": "Allow",
+  "done": "Done",
+  "all": "All",
+  "upcoming": "Upcoming",
+  "greetingUpLate": "Up late",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "greetingWindingDown": "Winding down",
+  "todayClearDay": "A clear day ahead",
+  "todayAllDoneSubtitle": "Everything done — enjoy your day!",
+  "todayProgress": "{remaining} to go · {done} done",
+  "@todayProgress": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "todayEmpty": "Nothing due today. Add a task below, or enjoy the calm!",
+  "allDoneBanner": "All done for today!",
+  "sectionOverdue": "Overdue",
+  "sectionHabits": "Habits",
+  "sectionDueToday": "Due today",
+  "sectionDoneToday": "Done today",
+  "ringDoneToday": "done today",
+  "quickAddHint": "Add a task for today…",
+  "checkInHabit": "Check in {name}",
+  "@checkInHabit": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undoCheckInHabit": "Undo check-in for {name}",
+  "@undoCheckInHabit": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "markComplete": "Mark complete",
+  "markIncomplete": "Mark incomplete",
+  "completedLabel": "Completed",
+  "tasksEmptyToday": "Nothing due today. Enjoy the calm!",
+  "tasksEmptyUpcoming": "No upcoming tasks.",
+  "tasksEmptyAll": "No tasks yet. Tap + to add one.",
+  "tasksEmptyDone": "Nothing completed yet.",
+  "newTask": "New task",
+  "editTask": "Edit task",
+  "taskTitle": "Title",
+  "notes": "Notes",
+  "dueDate": "Due date",
+  "setDate": "Set date",
+  "time": "Time",
+  "subtasks": "Subtasks",
+  "clearDueDate": "Clear due date",
+  "setReminder": "Set reminder",
+  "clearReminder": "Clear reminder",
+  "deleteTask": "Delete task",
+  "addSubtask": "Add subtask",
+  "removeSubtask": "Remove subtask",
+  "priority": "Priority",
+  "priorityNone": "None",
+  "priorityLow": "Low",
+  "priorityMed": "Med",
+  "priorityHigh": "High",
+  "repeat": "Repeat",
+  "repeatNever": "Never",
+  "repeatDaily": "Daily",
+  "repeatWeekly": "Weekly",
+  "repeatMonthly": "Monthly",
+  "tags": "Tags",
+  "newTag": "New tag",
+  "tagName": "Tag name",
+  "addTask": "Add task",
+  "overdueLabel": "Overdue · {date}",
+  "@overdueLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "newHabit": "New habit",
+  "iconSpark": "Spark",
+  "iconRun": "Run",
+  "iconWalk": "Walk",
+  "iconFitness": "Fitness",
+  "iconMeditate": "Meditate",
+  "iconRead": "Read",
+  "iconWater": "Water",
+  "iconSleep": "Sleep",
+  "iconEat": "Eat well",
+  "iconMusic": "Music",
+  "iconCode": "Code",
+  "iconArt": "Art",
+  "iconPlant": "Plant",
+  "iconSun": "Morning",
+  "iconHeart": "Self-care",
+  "iconMind": "Mind",
+  "editHabit": "Edit habit",
+  "habitName": "Habit name",
+  "icon": "Icon",
+  "color": "Color",
+  "schedule": "Schedule",
+  "scheduleDaily": "Daily",
+  "scheduleWeekdays": "Weekdays",
+  "scheduleWeekly": "Weekly",
+  "everyDay": "Every day",
+  "perWeek": "{value}× per week",
+  "@perWeek": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "weekdayMon": "Mon",
+  "weekdayTue": "Tue",
+  "weekdayWed": "Wed",
+  "weekdayThu": "Thu",
+  "weekdayFri": "Fri",
+  "weekdaySat": "Sat",
+  "weekdaySun": "Sun",
+  "goal": "Goal:",
+  "goalPerWeek": "{value}× / week",
+  "@goalPerWeek": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "decrease": "Decrease",
+  "increase": "Increase",
+  "reminder": "Reminder",
+  "freezeTokens": "Freeze tokens",
+  "freezeAuto": "Auto",
+  "freezeManual": "Manual",
+  "freezeAutoDesc": "Tokens automatically protect a missed day.",
+  "freezeManualDesc": "You choose when to spend a token on a missed day.",
+  "addHabit": "Add habit",
+  "habitsEmpty": "No habits yet. Tap + to build your first streak.",
+  "habitsEmptyActive": "No active habits yet.",
+  "currentStreak": "Current streak",
+  "bestStreak": "Best streak",
+  "walletFullAuto": "Wallet full — tokens automatically protect a missed {unit}.",
+  "@walletFullAuto": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "walletEarnAuto": "Earn a token every {unit}-{unitLabel} streak ({toNext} to go). Tokens automatically protect a missed {unitLabel}.",
+  "@walletEarnAuto": {
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      },
+      "unitLabel": {
+        "type": "String"
+      },
+      "toNext": {
+        "type": "int"
+      }
+    }
+  },
+  "walletFullManual": "Wallet full — tap a missed day to spend a token and protect your streak.",
+  "walletEarnManual": "Earn a token every {unit}-{unitLabel} streak ({toNext} to go). Tap a missed day to spend a token.",
+  "@walletEarnManual": {
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      },
+      "unitLabel": {
+        "type": "String"
+      },
+      "toNext": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDay": "day",
+  "unitWeek": "week",
+  "heatmapHintAuto": "Tap a day within the last 30 days to backfill a check-in.",
+  "heatmapHintManual": "Tap a day within the last 30 days to backfill or freeze it.",
+  "archive": "Archive",
+  "deleteHabit": "Delete habit",
+  "deleteHabitTitle": "Delete habit?",
+  "deleteHabitBody": "This permanently removes the habit and all its check-in history. This cannot be undone.",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "dayMissedTitle": "This day was missed",
+  "dayMissedCanFreeze": "Backfill a check-in, or spend a freeze token to protect your streak.",
+  "dayMissedNoToken": "Backfill a check-in. No freeze tokens available to spend.",
+  "freeze": "Freeze",
+  "backfill": "Backfill",
+  "statsEmpty": "No activity yet. Check off a habit or task and your stats will grow here.",
+  "statsLast30Days": "Last 30 days",
+  "statsWeeklySummary": "Weekly summary",
+  "statsStreakLeaderboard": "Streak leaderboard",
+  "statsTasksByTag": "Tasks by tag",
+  "statsTagEmpty": "Tag tasks to see their breakdown here.",
+  "statsSameAsLastWeek": "same as last week",
+  "statsDeltaVs": "{delta} vs last week",
+  "@statsDeltaVs": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "statsThisWeek": "{value} this week",
+  "@statsThisWeek": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "statsTagged": "tagged",
+  "statsTasksDone": "tasks done",
+  "statsCheckIns": "check-ins",
+  "statsBestStreak": "best streak",
+  "statsAllDone": "all done!",
+  "unitDayShort": "d",
+  "unitWeekShort": "wk",
+  "leaderboardBest": "best {value}{unit}",
+  "@leaderboardBest": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAppearance": "Appearance",
+  "settingsTheme": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "dynamicColor": "Dynamic color",
+  "dynamicColorDesc": "Match your device wallpaper (Material You)",
+  "settingsMotion": "Motion",
+  "animationStyle": "Animation style",
+  "motionDesc": "Expressive adds playful bounce. Standard reduces motion. Your system accessibility setting always takes priority.",
+  "motionExpressive": "Expressive",
+  "motionStandard": "Standard",
+  "settingsRemindersWeek": "Reminders & week",
+  "defaultReminderTime": "Default reminder time",
+  "defaultReminderDesc": "Pre-filled when you add a reminder to a habit or task.",
+  "setDefaultValue": "Set default",
+  "clearDefaultReminder": "Clear default reminder",
+  "weekStartsMonday": "Week starts on Monday",
+  "weekStartDesc": "Streaks and stats always use Monday-start weeks; this sets the calendar display.",
+  "settingsNotifications": "Notifications",
+  "notifEnabled": "Notifications are enabled.",
+  "notifDisabled": "Notifications are disabled. Reminders will not appear.",
+  "notifNotRequired": "This platform does not require notification permission.",
+  "notifChecking": "Checking notification permission…",
+  "exactAlarmsOn": "Exact alarms allowed — reminders fire on time.",
+  "exactAlarmsOff": "Exact alarms are off. Reminders may be delayed by the system.",
+  "sendTestNotification": "Send test notification",
+  "webReminderNote": "Browser reminders fire while NowPill is open in a tab. For reminders when the app is closed, use the mobile or desktop app.",
+  "iosPrimingTitle": "Stay on track",
+  "iosPrimingBody": "NowPill can remind you about habits and tasks at the times you choose. Tap Continue to allow notifications — you can change this anytime in the system Settings.",
+  "testNotificationSent": "Test notification sent.",
+  "testNotificationFailed": "Could not send a test notification.",
+  "browserUnsupported": "This browser does not support notifications. Try Chrome, Edge, or Firefox outside private mode.",
+  "notificationsBlocked": "Notifications are blocked. Allow them in your browser settings, then try again.",
+  "testReminderBody": "This is a test reminder. Your notifications are working!",
+  "settingsData": "Data",
+  "backupRestore": "Backup & restore",
+  "backupDesc": "Export everything to a JSON file, or restore from a backup. Restoring replaces all current data.",
+  "export": "Export",
+  "import": "Import",
+  "backupExported": "Backup exported.",
+  "exportCancelled": "Export cancelled.",
+  "exportFailed": "Export failed. Please try again.",
+  "backupRestored": "Backup restored.",
+  "importFailed": "Import failed. Please try again.",
+  "invalidBackup": "Invalid backup: {message}",
+  "@invalidBackup": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "replaceDataTitle": "Replace all data?",
+  "replaceDataBody": "This backup contains {habits} habits, {checkins} check-ins, and {tasks} tasks. Importing replaces ALL current data and cannot be undone.",
+  "@replaceDataBody": {
+    "placeholders": {
+      "habits": {
+        "type": "int"
+      },
+      "checkins": {
+        "type": "int"
+      },
+      "tasks": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsAbout": "About",
+  "aboutVersion": "Version {version} · Local-first habits & to-dos",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLanguage": "Language",
+  "languageSystem": "System",
+  "languageEnglish": "English",
+  "languageSpanish": "Español",
+  "weekdayMonday": "Monday",
+  "weekdayTuesday": "Tuesday",
+  "weekdayWednesday": "Wednesday",
+  "weekdayThursday": "Thursday",
+  "weekdayFriday": "Friday",
+  "weekdaySaturday": "Saturday",
+  "weekdaySunday": "Sunday",
+  "monthJan": "Jan",
+  "monthFeb": "Feb",
+  "monthMar": "Mar",
+  "monthApr": "Apr",
+  "monthMay": "May",
+  "monthJun": "Jun",
+  "monthJul": "Jul",
+  "monthAug": "Aug",
+  "monthSep": "Sep",
+  "monthOct": "Oct",
+  "monthNov": "Nov",
+  "monthDec": "Dec",
+  "monthJanuary": "January",
+  "monthFebruary": "February",
+  "monthMarch": "March",
+  "monthApril": "April",
+  "monthMayFull": "May",
+  "monthJune": "June",
+  "monthJuly": "July",
+  "monthAugust": "August",
+  "monthSeptember": "September",
+  "monthOctober": "October",
+  "monthNovember": "November",
+  "monthDecember": "December",
+  "settingsSync": "Sync",
+  "syncTitle": "Folder sync",
+  "syncDesc": "Keep devices in sync through a folder you choose (Syncthing, Dropbox, iCloud Drive…). No account, no server — files stay yours.",
+  "syncEnable": "Enable sync",
+  "syncFolder": "Sync folder",
+  "syncNoFolder": "No folder chosen",
+  "syncChooseFolder": "Choose folder",
+  "syncChangeFolder": "Change folder",
+  "syncNow": "Sync now",
+  "syncStatusIdle": "Sync is off.",
+  "syncStatusSyncing": "Syncing…",
+  "syncStatusOk": "Up to date · last sync {time}",
+  "@syncStatusOk": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStatusUnavailable": "Sync folder is not reachable. Check the drive or re-choose the folder.",
+  "syncStatusFailed": "Sync failed: {error}",
+  "@syncStatusFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNever": "never",
+  "syncDeviceId": "This device: {id}",
+  "@syncDeviceId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "syncUnsupported": "Folder sync is available on Android and desktop. On web, use Export/Import below.",
+  "syncFolderSet": "Sync folder set.",
+  "syncFolderFailed": "Could not use that folder. Please try another."
+}

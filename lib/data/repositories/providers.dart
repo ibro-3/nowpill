@@ -6,6 +6,7 @@ import '../export/export_service.dart';
 import '../notifications/notification_permission_service.dart';
 import '../notifications/notification_service.dart';
 import '../notifications/reminder_coordinator.dart';
+import '../sync/device_identity.dart';
 import '../widget/widget_bridge_service.dart';
 import '../widget/widget_snapshot_controller.dart';
 import 'habit_repository.dart';
@@ -20,7 +21,7 @@ part 'providers.g.dart';
 /// in-memory database.
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
-  final db = AppDatabase();
+  final db = AppDatabase(deviceId: bootDeviceId);
   ref.onDispose(db.close);
   return db;
 }

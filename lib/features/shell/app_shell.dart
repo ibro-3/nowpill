@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/router/app_router.dart';
 import '../../data/repositories/providers.dart';
+import '../../data/sync/sync_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Width at or above which the shell switches from a bottom navigation bar to
@@ -88,6 +89,8 @@ class _AppShellState extends ConsumerState<AppShell>
     if (state == AppLifecycleState.resumed) {
       // Fire-and-forget: rescheduling is guarded and must never block the UI.
       unawaited(ref.read(reminderCoordinatorProvider).rescheduleAll());
+      // Pick up remote changes that landed while backgrounded.
+      ref.read(syncCoordinatorProvider).scheduleSync();
     }
   }
 
@@ -105,6 +108,8 @@ class _AppShellState extends ConsumerState<AppShell>
     ref.watch(reminderCoordinatorProvider);
     // Keep the home-screen widget in sync with the data.
     ref.watch(widgetSnapshotControllerProvider);
+    // Activate file sync (idle until enabled in Settings).
+    ref.watch(syncCoordinatorProvider);
 
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;

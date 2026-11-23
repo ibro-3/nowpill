@@ -8,9 +8,14 @@ import 'core/router/app_router.dart';
 import 'core/settings/app_settings.dart';
 import 'core/settings/app_settings_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'data/sync/device_identity.dart';
 import 'l10n/generated/app_localizations.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // The device identity must exist before the database opens so tombstones
+  // carry it (Phase 18/19 sync).
+  setBootDeviceId(await loadOrCreateDeviceId());
   runApp(const ProviderScope(child: NowPillApp()));
 }
 

@@ -11,6 +11,8 @@ const _kDynamicColor = 'settings.dynamicColor';
 const _kDefaultReminderMinutes = 'settings.defaultReminderMinutes';
 const _kWeekStartsOnMonday = 'settings.weekStartsOnMonday';
 const _kLocaleCode = 'settings.localeCode';
+const _kSyncEnabled = 'settings.syncEnabled';
+const _kSyncFolderHandle = 'settings.syncFolderHandle';
 
 /// Loads and persists [AppSettings].
 ///
@@ -32,6 +34,8 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
       defaultReminderMinutes: prefs.getInt(_kDefaultReminderMinutes),
       weekStartsOnMonday: prefs.getBool(_kWeekStartsOnMonday) ?? true,
       localeCode: prefs.getString(_kLocaleCode),
+      syncEnabled: prefs.getBool(_kSyncEnabled) ?? false,
+      syncFolderHandle: prefs.getString(_kSyncFolderHandle),
     );
   }
 
@@ -70,6 +74,21 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     (p, s) => s.localeCode == null
         ? p.remove(_kLocaleCode)
         : p.setString(_kLocaleCode, s.localeCode!),
+  );
+
+  void setSyncEnabled(bool enabled) => _update(
+    (s) => s.copyWith(syncEnabled: enabled),
+    (p, s) => p.setBool(_kSyncEnabled, s.syncEnabled),
+  );
+
+  /// Sets the sync folder handle; null clears it (and disables sync).
+  void setSyncFolderHandle(String? handle) => _update(
+    (s) => handle == null
+        ? s.clearSyncFolder()
+        : s.copyWith(syncFolderHandle: handle),
+    (p, s) => s.syncFolderHandle == null
+        ? p.remove(_kSyncFolderHandle)
+        : p.setString(_kSyncFolderHandle, s.syncFolderHandle!),
   );
 
   void _update(

@@ -12,6 +12,10 @@ import '../../data/export/backup_service.dart';
 import '../../data/export/export_service.dart';
 import '../../data/notifications/notification_permission_service.dart';
 import '../../data/repositories/providers.dart';
+import '../../data/sync/device_identity.dart';
+import '../../data/sync/sync_coordinator.dart';
+import '../../data/sync/sync_folder.dart';
+import '../../data/sync/sync_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// App preferences: appearance, motion, reminders, notifications, data
@@ -156,6 +160,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ExportOutcome.failed => l10n.exportFailed,
     };
     M3ESnackbar.show(context, message: message);
+  }
+
+  /// Opens the platform folder picker and persists the chosen sync folder.
+  Future<void> _chooseSyncFolder() async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final folder = await pickSyncFolder();
+      if (folder == null || !mounted) return;
+      if (!await folder.isAccessible()) {
+        if (mounted) {
+          M3ESnackbar.show(context, message: l10n.syncFolderFailed);
+        }
+        return;
+      }
+      ref.read(appSettingsProvider.notifier).setSyncFolderHandle(folder.handle);
+      if (mounted) {
+        M3ESnackbar.show(context, message: l10n.syncFolderSet);
+      }
+    } catch (_) {
+      if (mounted) {
+        M3ESnackbar.show(context, message: l10n.syncFolderFailed);
+      }
+    }
   }
 
   Future<void> _import() async {
@@ -517,6 +544,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          _SectionHeader(title: l10n.settingsSync, theme: theme),
+          const SizedBox(height: 8),
+          _SyncCard(
+            theme: theme,
+            settings: settings,
+            onChooseFolder: _chooseSyncFolder,
+          ),
+          const SizedBox(height: 24),
           _SectionHeader(title: l10n.settingsAbout, theme: theme),
           const SizedBox(height: 8),
           _SettingsCard(
@@ -689,6 +724,155 @@ class _SectionHeader extends StatelessWidget {
         style: theme.typography.emphasized.titleMedium.copyWith(
           color: theme.colorScheme.primary,
         ),
+      ),
+    );
+  }
+}
+
+/// Folder-sync controls: enable toggle, folder picker, live status, manual
+/// sync, and this device's identity. Web shows a hint (folder sync deferred).
+class _SyncCard extends ConsumerWidget {
+  const _SyncCard({
+    required this.theme,
+    required this.settings,
+    required this.onChooseFolder,
+  });
+
+  final M3EThemeData theme;
+  final AppSettings settings;
+  final Future<void> Function() onChooseFolder;
+
+  bool get _supported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.windows);
+
+  String _statusText(AppLocalizations l10n, SyncState state) {
+    if (!settings.syncEnabled || settings.syncFolderHandle == null) {
+      return l10n.syncStatusIdle;
+    }
+    return switch (state.status) {
+      SyncStatus.idle => l10n.syncStatusIdle,
+      SyncStatus.syncing => l10n.syncStatusSyncing,
+      SyncStatus.ok => l10n.syncStatusOk(_formatTime(state.lastSyncAt)),
+      SyncStatus.folderUnavailable => l10n.syncStatusUnavailable,
+      SyncStatus.failed => l10n.syncStatusFailed(state.lastError ?? '?'),
+    };
+  }
+
+  String _formatTime(DateTime? at) {
+    if (at == null) return '—';
+    final local = at.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final state = ref.watch(syncStateProvider);
+    final notifier = ref.read(appSettingsProvider.notifier);
+    final folderLabel = settings.syncFolderHandle == null
+        ? l10n.syncNoFolder
+        : (syncFolderFromHandle(settings.syncFolderHandle!)?.displayName ??
+              settings.syncFolderHandle!);
+
+    return _SettingsCard(
+      theme: theme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.syncTitle, style: theme.typography.baseline.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            l10n.syncDesc,
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (!_supported)
+            Text(
+              l10n.syncUnsupported,
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else ...[
+            _SwitchRow(
+              theme: theme,
+              title: l10n.syncEnable,
+              subtitle: folderLabel,
+              value: settings.syncEnabled && settings.syncFolderHandle != null,
+              onChanged: (on) {
+                if (on && settings.syncFolderHandle == null) {
+                  // Enabling without a folder goes straight to the picker.
+                  onChooseFolder().then((_) {
+                    final handle = ref
+                        .read(appSettingsProvider)
+                        .value
+                        ?.syncFolderHandle;
+                    if (handle != null) notifier.setSyncEnabled(true);
+                  });
+                } else {
+                  notifier.setSyncEnabled(on);
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: M3EButton.icon(
+                    onPressed: onChooseFolder,
+                    style: M3EButtonStyle.outlined,
+                    icon: const Icon(M3EIcons.folder),
+                    label: Text(
+                      settings.syncFolderHandle == null
+                          ? l10n.syncChooseFolder
+                          : l10n.syncChangeFolder,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: M3EButton.icon(
+                    onPressed:
+                        settings.syncEnabled &&
+                            settings.syncFolderHandle != null
+                        ? () => ref.read(syncCoordinatorProvider).syncNow()
+                        : null,
+                    style: M3EButtonStyle.tonal,
+                    icon: const Icon(M3EIcons.sync),
+                    label: Text(l10n.syncNow),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _statusText(l10n, state),
+              key: const ValueKey('sync-status'),
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color:
+                    state.status == SyncStatus.failed ||
+                        state.status == SyncStatus.folderUnavailable
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.syncDeviceId(bootDeviceId),
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

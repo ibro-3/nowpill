@@ -34,6 +34,8 @@ class AppSettings {
     this.defaultReminderMinutes,
     this.weekStartsOnMonday = true,
     this.localeCode,
+    this.syncEnabled = false,
+    this.syncFolderHandle,
   });
 
   final AppThemeMode themeMode;
@@ -54,6 +56,14 @@ class AppSettings {
   /// Explicit UI language override (e.g. 'en', 'es'). Null = follow system.
   final String? localeCode;
 
+  /// Whether file-based sync is on (v0.3.0). Off by default; requires a
+  /// chosen folder.
+  final bool syncEnabled;
+
+  /// Persisted sync-folder handle: a filesystem path (desktop) or SAF tree
+  /// URI (Android). Null = no folder chosen.
+  final String? syncFolderHandle;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     AppMotionMode? motionMode,
@@ -61,6 +71,8 @@ class AppSettings {
     int? defaultReminderMinutes,
     bool? weekStartsOnMonday,
     String? localeCode,
+    bool? syncEnabled,
+    String? syncFolderHandle,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -70,6 +82,8 @@ class AppSettings {
           defaultReminderMinutes ?? this.defaultReminderMinutes,
       weekStartsOnMonday: weekStartsOnMonday ?? this.weekStartsOnMonday,
       localeCode: localeCode ?? this.localeCode,
+      syncEnabled: syncEnabled ?? this.syncEnabled,
+      syncFolderHandle: syncFolderHandle ?? this.syncFolderHandle,
     );
   }
 
@@ -83,6 +97,8 @@ class AppSettings {
       defaultReminderMinutes: null,
       weekStartsOnMonday: weekStartsOnMonday,
       localeCode: localeCode,
+      syncEnabled: syncEnabled,
+      syncFolderHandle: syncFolderHandle,
     );
   }
 
@@ -95,6 +111,22 @@ class AppSettings {
       defaultReminderMinutes: defaultReminderMinutes,
       weekStartsOnMonday: weekStartsOnMonday,
       localeCode: null,
+      syncEnabled: syncEnabled,
+      syncFolderHandle: syncFolderHandle,
+    );
+  }
+
+  /// Returns a copy with the sync folder cleared (and sync disabled).
+  AppSettings clearSyncFolder() {
+    return AppSettings(
+      themeMode: themeMode,
+      motionMode: motionMode,
+      dynamicColor: dynamicColor,
+      defaultReminderMinutes: defaultReminderMinutes,
+      weekStartsOnMonday: weekStartsOnMonday,
+      localeCode: localeCode,
+      syncEnabled: false,
+      syncFolderHandle: null,
     );
   }
 
@@ -106,7 +138,9 @@ class AppSettings {
         other.dynamicColor == dynamicColor &&
         other.defaultReminderMinutes == defaultReminderMinutes &&
         other.weekStartsOnMonday == weekStartsOnMonday &&
-        other.localeCode == localeCode;
+        other.localeCode == localeCode &&
+        other.syncEnabled == syncEnabled &&
+        other.syncFolderHandle == syncFolderHandle;
   }
 
   @override
@@ -117,5 +151,7 @@ class AppSettings {
     defaultReminderMinutes,
     weekStartsOnMonday,
     localeCode,
+    syncEnabled,
+    syncFolderHandle,
   );
 }
