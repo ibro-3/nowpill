@@ -50,14 +50,21 @@ void main() {
   }
 
   /// The brightness every M3E component resolves, and the Material theme they
-  /// are projected onto — both must agree with the effective mode.
+  /// are projected onto — both must agree with the effective mode. The
+  /// scaffold background is asserted explicitly: it is a *derived* ThemeData
+  /// field, so it exposes any stale merge base (AnimatedTheme lag) that a
+  /// colorScheme-only check would miss.
   void expectBrightness(WidgetTester tester, Brightness expected) {
     final context = tester.element(find.text('Today').first);
-    expect(M3ETheme.of(context).brightness, expected);
-    expect(Theme.of(context).brightness, expected);
+    final m3e = M3ETheme.of(context);
+    final material = Theme.of(context);
+    expect(m3e.brightness, expected);
+    expect(material.brightness, expected);
+    expect(m3e.colorScheme.surface, material.colorScheme.surface);
     expect(
-      M3ETheme.of(context).colorScheme.surface,
-      Theme.of(context).colorScheme.surface,
+      material.scaffoldBackgroundColor,
+      m3e.colorScheme.toColorScheme().surface,
+      reason: 'scaffold background must match the active scheme, not lag it',
     );
   }
 

@@ -136,15 +136,35 @@ class _ExpressiveThemeHostState extends State<_ExpressiveThemeHost> {
 
   @override
   Widget build(BuildContext context) {
-    return M3ETheme(
-      data: AppTheme.light(),
-      controller: _controller,
-      // System mode tracks MediaQuery.platformBrightnessOf; locked modes use
-      // the controller's absolute override (which takes precedence).
-      autoTheming: widget.themeMode == AppThemeMode.system,
-      dynamicColoring: widget.dynamicColor,
-      initialTheme: Brightness.light,
-      child: widget.child,
+    // M3EResolvedTheme (inside M3ETheme) projects the resolved expressive
+    // scheme onto the nearest ancestor Material Theme. That ancestor is
+    // MaterialApp's AnimatedTheme, whose data lerps over ~200ms — so derived
+    // fields like scaffoldBackgroundColor would lag one mode behind while
+    // colorScheme (overwritten outright) snaps, leaving a white scaffold under
+    // dark cards (and vice versa). Provide an *immediate* Theme at the exact
+    // resolved brightness as the merge base so every field stays in sync.
+    final platform = MediaQuery.platformBrightnessOf(context);
+    final brightness = widget.themeMode == AppThemeMode.system
+        ? platform
+        : (widget.themeMode == AppThemeMode.dark
+              ? Brightness.dark
+              : Brightness.light);
+    final base = AppTheme.light();
+    final resolved = brightness == Brightness.dark
+        ? base.deriveDarkTemplate()
+        : base;
+    return Theme(
+      data: resolved.toThemeData(),
+      child: M3ETheme(
+        data: base,
+        controller: _controller,
+        // System mode tracks MediaQuery.platformBrightnessOf; locked modes use
+        // the controller's absolute override (which takes precedence).
+        autoTheming: widget.themeMode == AppThemeMode.system,
+        dynamicColoring: widget.dynamicColor,
+        initialTheme: Brightness.light,
+        child: widget.child,
+      ),
     );
   }
 }
