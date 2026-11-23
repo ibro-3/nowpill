@@ -28,7 +28,7 @@ class StatsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: M3EAppBar.top(
         titleText: l10n.navStats,
-        actions: const [SettingsAction()],
+        actions: const [SearchAction(), SettingsAction()],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),

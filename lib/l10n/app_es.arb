@@ -403,5 +403,19 @@
       }
     }
   },
-  "priorityMedium": "Media"
+  "priorityMedium": "Media",
+  "search": "Buscar",
+  "searchHint": "Busca tareas, hábitos, etiquetas…",
+  "searchEmptyHint": "Encuentra todo: títulos y notas de tareas, subtareas, nombres de hábitos y etiquetas. Los acentos no importan.",
+  "searchNoResults": "No se encontró nada para «{query}».",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTasks": "Tareas",
+  "searchHabits": "Hábitos",
+  "searchTags": "Etiquetas"
 }

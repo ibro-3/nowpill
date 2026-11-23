@@ -127,6 +127,9 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
         .get();
   }
 
+  /// All subtasks across tasks (for search).
+  Stream<List<Subtask>> watchAllSubtasks() => select(subtasks).watch();
+
   /// Inserts a subtask, resolving the parent task's uuid for sync.
   Future<int> insertSubtask(SubtasksCompanion entry) async {
     final parent = await getTask(entry.taskId.value);

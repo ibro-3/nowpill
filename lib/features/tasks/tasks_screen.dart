@@ -27,7 +27,7 @@ class TasksScreen extends ConsumerWidget {
     return Scaffold(
       appBar: M3EAppBar.top(
         titleText: l10n.navTasks,
-        actions: const [SettingsAction()],
+        actions: const [SearchAction(), SettingsAction()],
       ),
       floatingActionButton: M3EFab(
         icon: const Icon(M3EIcons.add),

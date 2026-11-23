@@ -110,7 +110,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     return Scaffold(
       appBar: M3EAppBar.top(
         titleText: l10n.navToday,
-        actions: const [SettingsAction()],
+        actions: const [SearchAction(), SettingsAction()],
       ),
       body: Stack(
         children: [

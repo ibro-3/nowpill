@@ -20,3 +20,19 @@ class SettingsAction extends StatelessWidget {
     );
   }
 }
+
+/// App-bar action that opens global search (v0.4). Sits beside [SettingsAction]
+/// on every primary tab.
+class SearchAction extends StatelessWidget {
+  const SearchAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return M3EIconButton(
+      variant: M3EIconButtonVariant.standard,
+      icon: const Icon(M3EIcons.search),
+      tooltip: AppLocalizations.of(context).search,
+      onPressed: () => context.push(AppRoutes.search),
+    );
+  }
+}

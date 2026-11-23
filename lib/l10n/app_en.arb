@@ -532,5 +532,19 @@
       }
     }
   },
-  "priorityMedium": "Medium"
+  "priorityMedium": "Medium",
+  "search": "Search",
+  "searchHint": "Search tasks, habits, tags…",
+  "searchEmptyHint": "Find anything: task titles and notes, subtasks, habit names, and tags. Accents don't matter.",
+  "searchNoResults": "Nothing found for “{query}”.",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTasks": "Tasks",
+  "searchHabits": "Habits",
+  "searchTags": "Tags"
 }
