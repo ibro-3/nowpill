@@ -26,6 +26,15 @@ struct TodaySnapshot {
     var topStreak: Int = 0
     var topHabitName: String = ""
     var dateKey: String = ""
+    var habits: [HabitRow] = []
+
+    /// One habit row (v2, Phase 27) — enough for an interactive check button.
+    struct HabitRow {
+        var id: Int
+        var name: String
+        var done: Bool
+        var color: Int
+    }
 
     static func load() -> TodaySnapshot {
         guard
@@ -44,11 +53,26 @@ struct TodaySnapshot {
         s.topStreak = obj["topStreak"] as? Int ?? 0
         s.topHabitName = obj["topHabitName"] as? String ?? ""
         s.dateKey = obj["dateKey"] as? String ?? ""
+        if let arr = obj["habits"] as? [[String: Any]] {
+            s.habits = arr.compactMap { h in
+                guard let id = h["id"] as? Int else { return nil }
+                return HabitRow(
+                    id: id,
+                    name: h["name"] as? String ?? "",
+                    done: h["done"] as? Bool ?? false,
+                    color: h["color"] as? Int ?? 0xFF2DD4A8
+                )
+            }
+        }
         return s
     }
 
     var percent: Double {
         total <= 0 ? 0 : Double(done) / Double(total)
+    }
+
+    var nextUndone: HabitRow? {
+        habits.first { !$0.done }
     }
 }
 
@@ -108,6 +132,24 @@ struct NowPillWidgetEntryView: View {
                 Text("Build your first streak")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
+            }
+            // v0.4 (Phase 27): one-tap check-in for the next undone habit.
+            // iOS 17+ interactive widgets; the intent applies through the
+            // shared store and reloads timelines (see CheckHabitIntent.swift).
+            if let next = entry.snapshot.nextUndone {
+                if #available(iOS 17.0, *) {
+                    HStack {
+                        Text(next.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        Spacer()
+                        Button(intent: CheckHabitIntent(habitID: next.id)) {
+                            Text("Check")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .tint(Color(red: 0.18, green: 0.83, blue: 0.66))
+                    }
+                }
             }
         }
         .padding(14)

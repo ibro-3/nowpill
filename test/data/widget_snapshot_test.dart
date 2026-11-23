@@ -80,6 +80,79 @@ void main() {
       expect(json['topHabitName'], 'Read');
       expect(json['dateKey'], '2026-11-23');
     });
+
+    test('v2 habit rows serialize and expose the next undone habit', () {
+      const snap = WidgetSnapshot(
+        done: 1,
+        total: 2,
+        remaining: 1,
+        allDone: false,
+        topStreak: 3,
+        topHabitName: 'Read',
+        dateKey: '2026-11-23',
+        updatedAtMillis: 123,
+        habits: [
+          WidgetHabit(id: 1, name: 'Read', done: true, color: 0xFF2DD4A8),
+          WidgetHabit(
+            id: 2,
+            name: 'Water',
+            done: false,
+            color: 0xFF5B8DEF,
+            amount: 3,
+            target: 8,
+          ),
+        ],
+      );
+      final rows = snap.toJson()['habits'] as List;
+      expect(rows, hasLength(2));
+      expect((rows[1] as Map)['amount'], 3);
+      expect((rows[1] as Map)['target'], 8);
+      expect((rows[0] as Map)['amount'], isNull);
+      expect(snap.nextUndoneHabit?.id, 2);
+    });
+
+    test('nextUndoneHabit is null when all done or none due', () {
+      const allDone = WidgetSnapshot(
+        done: 1,
+        total: 1,
+        remaining: 0,
+        allDone: true,
+        topStreak: 1,
+        topHabitName: 'Read',
+        dateKey: '2026-11-23',
+        updatedAtMillis: 0,
+        habits: [WidgetHabit(id: 1, name: 'Read', done: true, color: 1)],
+      );
+      expect(allDone.nextUndoneHabit, isNull);
+      expect(WidgetSnapshot.empty.nextUndoneHabit, isNull);
+    });
+
+    test('equality includes habit rows (change detection)', () {
+      const a = WidgetSnapshot(
+        done: 0,
+        total: 1,
+        remaining: 1,
+        allDone: false,
+        topStreak: 0,
+        topHabitName: '',
+        dateKey: '2026-11-23',
+        updatedAtMillis: 0,
+        habits: [WidgetHabit(id: 1, name: 'Read', done: false, color: 1)],
+      );
+      const b = WidgetSnapshot(
+        done: 1,
+        total: 1,
+        remaining: 0,
+        allDone: true,
+        topStreak: 1,
+        topHabitName: 'Read',
+        dateKey: '2026-11-23',
+        updatedAtMillis: 0,
+        habits: [WidgetHabit(id: 1, name: 'Read', done: true, color: 1)],
+      );
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
   });
 
   group('WidgetBridgeService', () {

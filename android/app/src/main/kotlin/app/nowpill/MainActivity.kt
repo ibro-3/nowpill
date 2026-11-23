@@ -15,6 +15,9 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Widget taps route to this live engine while the app is running
+        // (Phase 27); the receiver falls back to a headless engine otherwise.
+        NowPillEngineHolder.engine = flutterEngine
         // Home-screen widget bridge: the Flutter side pushes a today-summary
         // JSON snapshot whenever the data changes (Phase 15).
         MethodChannel(
@@ -126,6 +129,15 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        // Only clear the holder if it still points at this engine (a new
+        // activity may already have registered its own).
+        if (NowPillEngineHolder.engine === flutterEngine) {
+            NowPillEngineHolder.engine = null
+        }
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

@@ -9,6 +9,7 @@ import 'core/settings/app_settings.dart';
 import 'core/settings/app_settings_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'data/sync/device_identity.dart';
+import 'data/widget/widget_action_handler.dart' as widget_action;
 import 'l10n/generated/app_localizations.dart';
 
 void main() async {
@@ -18,6 +19,16 @@ void main() async {
   setBootDeviceId(await loadOrCreateDeviceId());
   runApp(const ProviderScope(child: NowPillApp()));
 }
+
+/// Headless entry point for home-screen widget check-ins while the app is
+/// closed (Android, Phase 27). The Kotlin `WidgetActionReceiver` launches a
+/// FlutterEngine here and sends the payload over `app.nowpill/widget_action`.
+///
+/// Declared in the root library so DartEntrypoint resolution is stable; the
+/// implementation lives behind a conditional export (native does the work,
+/// web/desktop no-op) so dart:ffi stays out of the web compilation.
+@pragma('vm:entry-point')
+void widgetActionMain() => widget_action.widgetActionMainImpl();
 
 /// Root widget: wires go_router, the M3E adaptive theme, dynamic color, and the
 /// motion scope together.

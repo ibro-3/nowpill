@@ -1,5 +1,57 @@
 import '../../features/today/today_view_model.dart';
 
+/// One habit row in the widget snapshot (v2): enough for the interactive
+/// home-screen widgets to render a check pill per habit.
+class WidgetHabit {
+  const WidgetHabit({
+    required this.id,
+    required this.name,
+    required this.done,
+    required this.color,
+    this.amount,
+    this.target,
+  });
+
+  /// Local database id — device-private, only used to dispatch check-ins on
+  /// this device (never synced).
+  final int id;
+  final String name;
+
+  /// Whether today's goal is met (measurable: amount reached target).
+  final bool done;
+
+  /// ARGB brand color chosen for the habit.
+  final int color;
+
+  /// Today's logged amount (measurable habits only).
+  final double? amount;
+
+  /// The numeric daily goal (measurable habits only).
+  final double? target;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'done': done,
+    'color': color,
+    'amount': amount,
+    'target': target,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WidgetHabit &&
+      other.id == id &&
+      other.name == name &&
+      other.done == done &&
+      other.color == color &&
+      other.amount == amount &&
+      other.target == target;
+
+  @override
+  int get hashCode => Object.hash(id, name, done, color, amount, target);
+}
+
 /// A compact, platform-agnostic summary of today's progress, consumed by the
 /// home-screen widgets (Android AppWidget / iOS WidgetKit). Kept pure so it is
 /// unit-testable; the bridge layer serializes it and pushes it to the OS.
@@ -13,6 +65,7 @@ class WidgetSnapshot {
     required this.topHabitName,
     required this.dateKey,
     required this.updatedAtMillis,
+    this.habits = const [],
   });
 
   /// Items already done today (checked habits + tasks completed today).
@@ -39,6 +92,17 @@ class WidgetSnapshot {
   /// When the snapshot was computed (UTC millis).
   final int updatedAtMillis;
 
+  /// Today's due habits, in dashboard order (v2 — interactive widgets).
+  final List<WidgetHabit> habits;
+
+  /// The first habit still undone today, or null when all are done / none due.
+  WidgetHabit? get nextUndoneHabit {
+    for (final h in habits) {
+      if (!h.done) return h;
+    }
+    return null;
+  }
+
   static const WidgetSnapshot empty = WidgetSnapshot(
     done: 0,
     total: 0,
@@ -60,6 +124,7 @@ class WidgetSnapshot {
     'topHabitName': topHabitName,
     'dateKey': dateKey,
     'updatedAtMillis': updatedAtMillis,
+    'habits': [for (final h in habits) h.toJson()],
   };
 
   @override
@@ -71,7 +136,16 @@ class WidgetSnapshot {
       other.allDone == allDone &&
       other.topStreak == topStreak &&
       other.topHabitName == topHabitName &&
-      other.dateKey == dateKey;
+      other.dateKey == dateKey &&
+      _habitsEqual(other.habits);
+
+  bool _habitsEqual(List<WidgetHabit> other) {
+    if (habits.length != other.length) return false;
+    for (var i = 0; i < habits.length; i++) {
+      if (habits[i] != other[i]) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => Object.hash(
@@ -82,6 +156,7 @@ class WidgetSnapshot {
     topStreak,
     topHabitName,
     dateKey,
+    Object.hashAll(habits),
   );
 }
 
@@ -111,5 +186,16 @@ WidgetSnapshot buildWidgetSnapshot({
     topHabitName: topName,
     dateKey: dateKey,
     updatedAtMillis: now.toUtc().millisecondsSinceEpoch,
+    habits: [
+      for (final h in vm.habits)
+        WidgetHabit(
+          id: h.habit.id,
+          name: h.habit.name,
+          done: h.checkedToday,
+          color: h.habit.color,
+          amount: h.amountToday,
+          target: h.targetAmount,
+        ),
+    ],
   );
 }

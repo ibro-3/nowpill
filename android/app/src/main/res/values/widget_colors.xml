@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Readable teal on the light mint open-pill tint. -->
+    <color name="widget_check_text">#FF0E7A5F</color>
+    <!-- White on the solid mint done-pill. -->
+    <color name="widget_done_text">#FFFFFFFF</color>
+</resources>

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,6 +14,7 @@ import '../notifications/notification_permission_service.dart';
 import '../notifications/notification_service.dart';
 import '../notifications/reminder_coordinator.dart';
 import '../sync/device_identity.dart';
+import '../widget/widget_action_handler.dart';
 import '../widget/widget_bridge_service.dart';
 import '../widget/widget_snapshot_controller.dart';
 import 'habit_repository.dart';
@@ -124,7 +128,23 @@ ReminderCoordinator reminderCoordinator(Ref ref) {
 
 @Riverpod(keepAlive: true)
 WidgetBridgeService widgetBridgeService(Ref ref) {
-  return WidgetBridgeService();
+  final service = WidgetBridgeService();
+  final db = ref.watch(appDatabaseProvider);
+  // Foreground widget taps (app open): the Kotlin receiver routes them to
+  // this live engine instead of spawning a headless one. Apply through the
+  // shared database, surface the write to the reactive UI, and return the
+  // fresh snapshot JSON so Kotlin re-renders every widget instance.
+  const channel = MethodChannel('app.nowpill/widget_action');
+  channel.setMethodCallHandler((call) async {
+    if (call.method != 'apply') return null;
+    final parsed = parseWidgetActionPayload(call.arguments as String?);
+    if (parsed == null) return null;
+    final snapshot = await applyWidgetCheckIn(db, parsed.habitId);
+    refreshDatabaseStreams(db);
+    return snapshot == null ? null : jsonEncode(snapshot.toJson());
+  });
+  ref.onDispose(() => channel.setMethodCallHandler(null));
+  return service;
 }
 
 /// The reactive home-screen widget updater. Watching this provider (e.g. from

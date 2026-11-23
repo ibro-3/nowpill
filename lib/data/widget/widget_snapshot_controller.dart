@@ -49,6 +49,13 @@ class WidgetSnapshotController {
 
   /// Recomputes the snapshot from current data and pushes it to the widget.
   Future<void> refresh() async {
+    await _bridge.update(await compute());
+  }
+
+  /// Recomputes the snapshot from current data without pushing it. The
+  /// widget-action background isolate uses this to hand the JSON to Kotlin
+  /// directly (the headless engine has no widget bridge handler).
+  Future<WidgetSnapshot> compute() async {
     final now = _clock();
     final habits = await _habits.getAll();
     final checkins = await _habits.getAllCheckins();
@@ -95,13 +102,12 @@ class WidgetSnapshotController {
       streaks[habit.name] = result.currentStreak;
     }
 
-    final snapshot = buildWidgetSnapshot(
+    return buildWidgetSnapshot(
       vm: vm,
       streaksByHabitName: streaks,
       dateKey: formatDate(now),
       now: now,
     );
-    await _bridge.update(snapshot);
   }
 
   /// Stops watching.
