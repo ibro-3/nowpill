@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.7.0** (see `CHANGELOG.md`).
+Current release: **v0.8.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -74,6 +74,42 @@ Current release: **v0.7.0** (see `CHANGELOG.md`).
 ## Platforms
 
 Android · iOS · Web · Linux desktop
+
+## Download
+
+Prebuilt assets for the latest release are on the
+[Releases page](https://github.com/ibro-3/nowpill/releases/latest):
+
+| Asset | Use |
+| --- | --- |
+| `nowpill-<version>-universal.apk` | Any Android device (one file, largest) |
+| `nowpill-<version>-arm64-v8a.apk` | Modern 64-bit Android |
+| `nowpill-<version>-armeabi-v7a.apk` | Older 32-bit Android |
+| `nowpill-<version>-linux-x64.tar.gz` | Linux desktop, x86-64 |
+
+**Android** — enable *Install unknown apps* for your file manager/browser, or
+run `adb install -r nowpill-<version>-arm64-v8a.apk`. Every APK is signed with
+the NowPill upload key (`CN=NowPill`), certificate SHA-256:
+
+```
+1F:1E:61:6F:19:38:39:EB:B4:4A:C0:63:97:FA:56:69:94:94:14:32:C1:44:64:8F:BC:76:A5:F5:B3:35:7E:01
+```
+
+Check it with `apksigner verify --print-certs nowpill-<version>-universal.apk`.
+
+**Linux** — extract and run the bundled executable:
+
+```bash
+tar -xzf nowpill-<version>-linux-x64.tar.gz
+cd nowpill-<version>-linux-x64
+./nowpill
+```
+
+Requires x86-64 Linux with GTK 3; the tarball is built on GitHub's Ubuntu runner
+for a broad glibc baseline.
+
+Each release includes a `SHA256SUMS` file covering all published assets — run
+`sha256sum -c SHA256SUMS` next to the downloads to verify them.
 
 ## Requirements
 

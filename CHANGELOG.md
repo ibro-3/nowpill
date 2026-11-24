@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.8.0 — 2026-11-24
+
+Installable builds. No app features or schema changes; data format stays v7.
+
+- Release assets: a signed universal Android APK, arm64-v8a and armeabi-v7a
+  APKs, and an x86-64 Linux tarball, each with SHA-256 checksums.
+- Added `tool/build_release.sh` for local signed APK builds and a tag-triggered
+  `.github/workflows/release.yml` that builds Linux on Ubuntu and publishes the
+  assets to the GitHub release.
+- README now has a Download section with install instructions and the APK
+  signing certificate fingerprint.
+
 ## v0.7.0 — 2026-11-24
 
 Routines and scoped vacation. The streak engine is unchanged: only *which*

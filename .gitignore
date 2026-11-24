@@ -76,3 +76,6 @@ android/app/build/
 
 # Dart DevTools local extension settings
 devtools_options.yaml
+
+# Local release artifacts (built by tool/build_release.sh)
+/dist/
