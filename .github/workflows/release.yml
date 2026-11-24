@@ -125,7 +125,15 @@ jobs:
             badging="$("$build_tools/aapt2" dump badging "$apk" 2>/dev/null | sed -n '1p')"
             echo "$apk: $badging"
             # Flutter adds 1000/2000/4000 to the base versionCode for split ABIs.
-            echo "$badging" | grep -Eq "versionCode='(1|2|4)?$build_number'"
+            base_code=$((10#$build_number))
+            code_ok=0
+            for code in "$base_code" "$((base_code + 1000))" "$((base_code + 2000))" "$((base_code + 4000))"; do
+              if grep -q "versionCode='$code'" <<<"$badging"; then code_ok=1; break; fi
+            done
+            if [[ "$code_ok" -ne 1 ]]; then
+              echo "Unexpected versionCode in $apk: $badging" >&2
+              exit 1
+            fi
             echo "$badging" | grep -q "versionName='$version'"
           done
           (cd dist && sha256sum *.apk > SHA256SUMS-android)

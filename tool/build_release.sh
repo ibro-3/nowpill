@@ -89,7 +89,15 @@ for asset in "${assets[@]}"; do
   echo "  $asset: $badging"
   # Flutter adds a per-ABI offset to the versionCode of split APKs
   # (1000 armeabi-v7a, 2000 arm64-v8a, 4000 x86_64).
-  grep -Eq "versionCode='(1|2|4)?$build_number'" <<<"$badging"
+  base_code=$((10#$build_number))
+  code_ok=0
+  for code in "$base_code" "$((base_code + 1000))" "$((base_code + 2000))" "$((base_code + 4000))"; do
+    if grep -q "versionCode='$code'" <<<"$badging"; then code_ok=1; break; fi
+  done
+  if [[ $code_ok -ne 1 ]]; then
+    echo "Unexpected versionCode in $asset: $badging" >&2
+    exit 1
+  fi
   grep -q "versionName='$version'" <<<"$badging"
   "$apksigner" verify "$apk" >/dev/null 2>&1
 done
