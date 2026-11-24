@@ -96,6 +96,8 @@ the NowPill upload key (`CN=NowPill`), certificate SHA-256:
 ```
 
 Check it with `apksigner verify --print-certs nowpill-<version>-universal.apk`.
+Pick one variant and keep using it: split APKs carry a higher internal version
+code than the universal one, so switching variants requires uninstalling first.
 
 **Linux** — extract and run the bundled executable:
 

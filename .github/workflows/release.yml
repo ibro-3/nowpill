@@ -124,7 +124,8 @@ jobs:
             grep -q 'CN=NowPill' <<<"$certs"
             badging="$("$build_tools/aapt2" dump badging "$apk" 2>/dev/null | sed -n '1p')"
             echo "$apk: $badging"
-            echo "$badging" | grep -q "versionCode='$build_number'"
+            # Flutter adds 1000/2000/4000 to the base versionCode for split ABIs.
+            echo "$badging" | grep -Eq "versionCode='(1|2|4)?$build_number'"
             echo "$badging" | grep -q "versionName='$version'"
           done
           (cd dist && sha256sum *.apk > SHA256SUMS-android)

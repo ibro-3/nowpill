@@ -87,7 +87,9 @@ for asset in "${assets[@]}"; do
   fi
   badging="$("$aapt2" dump badging "$apk" 2>/dev/null | sed -n '1p')"
   echo "  $asset: $badging"
-  grep -q "versionCode='$build_number'" <<<"$badging"
+  # Flutter adds a per-ABI offset to the versionCode of split APKs
+  # (1000 armeabi-v7a, 2000 arm64-v8a, 4000 x86_64).
+  grep -Eq "versionCode='(1|2|4)?$build_number'" <<<"$badging"
   grep -q "versionName='$version'" <<<"$badging"
   "$apksigner" verify "$apk" >/dev/null 2>&1
 done
