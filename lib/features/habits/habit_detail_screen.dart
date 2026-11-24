@@ -221,7 +221,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final habit = ref.watch(habitProvider(widget.habitId)).value;
     if (habit == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: M3ELoadingIndicator()));
     }
 
     final streak = ref.watch(habitStreakProvider(widget.habitId));

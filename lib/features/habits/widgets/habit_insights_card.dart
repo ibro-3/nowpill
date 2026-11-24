@@ -95,12 +95,11 @@ class HabitInsightsCard extends StatelessWidget {
             Semantics(
               container: true,
               label: '${insight.percent}%',
-              child: LinearProgressIndicator(
+              child: M3EProgressIndicator.linear(
                 value: insight.rate ?? 0,
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(8),
-                backgroundColor: scheme.surfaceContainerHighest,
                 color: scheme.primary,
+                trackColor: scheme.surfaceContainerHighest,
+                semanticsLabel: '${insight.percent}%',
               ),
             ),
             const SizedBox(height: 12),

@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion/spring_switcher.dart';
 import '../../core/router/app_router.dart';
 import '../../data/notifications/reminder_coordinator.dart';
 import '../../data/repositories/providers.dart';
 import '../../data/sync/sync_providers.dart';
+import '../../features/today/today_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Width at or above which the shell switches from a bottom navigation bar to
@@ -129,7 +131,28 @@ class _AppShellState extends ConsumerState<AppShell>
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;
     final index = widget.navigationShell.currentIndex;
-    final destinations = _destinations(AppLocalizations.of(context));
+    final l10n = AppLocalizations.of(context);
+    final destinations = _destinations(l10n);
+
+    // M3 navigation badges report dynamic information and clear once the user
+    // has seen the destination. Counts come from the same Today view model the
+    // dashboard renders, so they never drift from the list itself.
+    final today = ref.watch(todayViewModelProvider);
+    final badgeCounts = <int, int>{
+      1: today.overdueTasks.length,
+      2: today.habits.length,
+    };
+    int? badgeFor(int destination) {
+      final count = badgeCounts[destination] ?? 0;
+      return count > 0 ? count : null;
+    }
+
+    // The branch itself keeps its state (IndexedStack); only the incoming
+    // content's opacity/position springs. Reduced motion renders it directly.
+    final branch = SpringSwitcher(
+      switchKey: index,
+      child: widget.navigationShell,
+    );
 
     if (useRail) {
       return Scaffold(
@@ -139,28 +162,30 @@ class _AppShellState extends ConsumerState<AppShell>
               type: M3ENavigationRailType.expanded,
               selectedIndex: index,
               onDestinationSelected: _onDestinationSelected,
+              leading: const _RailBrand(),
               sections: [
                 M3ENavigationRailSection(
                   destinations: [
-                    for (final d in destinations)
+                    for (var i = 0; i < destinations.length; i++)
                       M3ENavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selectedIcon),
-                        label: d.label,
+                        icon: Icon(destinations[i].icon),
+                        selectedIcon: Icon(destinations[i].selectedIcon),
+                        label: destinations[i].label,
+                        badgeCount: badgeFor(i),
                       ),
                   ],
                 ),
               ],
               trailing: const _SettingsButton(),
             ),
-            Expanded(child: widget.navigationShell),
+            Expanded(child: branch),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: widget.navigationShell,
+      body: branch,
       // M3E's bar has a fixed intrinsic height; large system text needs room
       // for the labels to wrap without clipping.
       bottomNavigationBar: SizedBox(
@@ -169,14 +194,45 @@ class _AppShellState extends ConsumerState<AppShell>
           selectedIndex: index,
           onDestinationSelected: _onDestinationSelected,
           destinations: [
-            for (final d in destinations)
+            for (var i = 0; i < destinations.length; i++)
               M3ENavigationBarDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
-                label: d.label,
+                icon: Icon(destinations[i].icon),
+                selectedIcon: Icon(destinations[i].selectedIcon),
+                label: destinations[i].label,
+                badgeCount: badgeFor(i),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Compact brand mark for the expanded rail. A single shape container is used
+/// as an icon crop — never behind text-heavy content (M3 shape guidance).
+class _RailBrand extends StatelessWidget {
+  const _RailBrand();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          M3EShapeContainer(
+            kind: M3EShapeKind.cookie6Sided,
+            width: 36,
+            height: 36,
+            color: theme.colorScheme.primaryContainer,
+            child: Icon(
+              M3EIcons.today,
+              size: 20,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -158,3 +158,37 @@ notifies on any token change rather than only the `reduced` flag.
 
 No new dependencies; the M3E pin remains 1.2.3 and all APIs used are public and
 already present in the pinned package.
+
+## v0.9.4 re-audit (expressive design pass)
+
+**Result: still token-clean.** No `Curves.*`, ad-hoc `AnimationController`, or
+fixed-duration implicit animations in feature code. New motion is centralized
+in two shared primitives:
+
+| Widget | Token(s) | Reduced-motion behavior |
+| --- | --- | --- |
+| `SpringEntrance` (Today sections, Stats cards, all-done banner) | `spatialDefault` | child rendered directly, no fade/rise |
+| `SpringSwitcher` (tab branches, Stats range, Tasks/Habits filters) | `spatialFast` | child rendered directly |
+| `QuickAddBar` preview chips | `spatialFast` (bounded) | chips shown/hidden instantly |
+
+Design decisions (M3 publishes no values for these): a 60ms stagger per
+section capped at 180ms, an 18dp card rise / 8dp switch rise, and a 16dp CTA
+gap. M3's spring tokens themselves are unchanged.
+
+Accessibility notes:
+- Both primitives use `alwaysIncludeSemantics: true`, so an entrance never
+  hides controls from screen readers or from bounded widget-test pumps.
+- Today's large flexible app bar falls back to a small variant above 1.3×
+  system text scale, and the date moves into the header. This avoids the
+  M3E collapsed title block overflow that occurs at 2×.
+
+M3-spec guardrails checked during this pass:
+- Card corner radius stays at M3's 12dp step (large corners clip text-heavy
+  containers); filled cards keep `surface container highest`.
+- Accent washes are low-alpha *fills* over that surface, with `on surface` /
+  `on surface variant` text — never accent-colored body text.
+- App bar containers stay square; only the flexible variants are used.
+- FABs use medium size on compact/medium windows and a medium extended FAB on
+  expanded windows (≥840dp), matching M3 breakpoint guidance.
+
+No new dependencies; the M3E pin remains 1.2.3.

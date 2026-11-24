@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/theme/app_surfaces.dart';
 import '../../../data/db/app_database.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/schedule.dart';
@@ -39,8 +40,17 @@ class TaskCard extends ConsumerWidget {
 
     final doneCount = subtasks.where((s) => s.done).length;
 
+    // M3 card variants are style-only: outlined reads as lower emphasis for
+    // completed rows, filled keeps active work forward. Overdue work gets an
+    // error-toned wash; the swipe action stays unchanged.
     return M3ECard(
-      variant: M3ECardVariant.filled,
+      variant: completed ? M3ECardVariant.outlined : M3ECardVariant.filled,
+      color: !completed && overdue
+          ? AppSurfaces.tint(theme.colorScheme, theme.colorScheme.error)
+          : null,
+      border: !completed && overdue
+          ? BorderSide(color: AppSurfaces.accentBorder(theme.colorScheme.error))
+          : null,
       onPressed: onTap,
       onSwipe: completed ? null : onToggleComplete,
       swipeMode: M3ECardSwipeMode.dismiss,
@@ -131,10 +141,17 @@ class _PriorityDot extends StatelessWidget {
       TaskPriority.low => theme.colorScheme.primary,
       TaskPriority.none => theme.colorScheme.outline,
     };
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    // A short rectangular accent creates shape tension against the rounded
+    // card and reads at a glance, unlike a tiny dot.
+    return ExcludeSemantics(
+      child: Container(
+        width: 4,
+        height: 24,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(AppShape.card / 2),
+        ),
+      ),
     );
   }
 }

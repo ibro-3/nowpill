@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:motor/motor.dart';
 
+import '../../../core/motion/app_motion.dart';
+import '../../../core/motion/motion_scheme_provider.dart';
 import '../../../data/repositories/providers.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/quick_add_parser.dart';
@@ -23,14 +26,24 @@ class QuickAddBar extends ConsumerStatefulWidget {
   ConsumerState<QuickAddBar> createState() => _QuickAddBarState();
 }
 
-class _QuickAddBarState extends ConsumerState<QuickAddBar> {
+class _QuickAddBarState extends ConsumerState<QuickAddBar>
+    with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   bool _busy = false;
   QuickAddParse? _preview;
+  QuickAddParse? _lastPreview;
+  late final SingleMotionController _chips;
 
   @override
   void initState() {
     super.initState();
+    _chips = SingleMotionController.bounded(
+      motion: MotionTokens.expressive.spatialFast,
+      vsync: this,
+      lowerBound: 0,
+      upperBound: 1,
+      initialValue: 0,
+    );
     _controller.addListener(_reparse);
   }
 
@@ -38,6 +51,7 @@ class _QuickAddBarState extends ConsumerState<QuickAddBar> {
   void dispose() {
     _controller.removeListener(_reparse);
     _controller.dispose();
+    _chips.dispose();
     super.dispose();
   }
 
@@ -46,6 +60,17 @@ class _QuickAddBarState extends ConsumerState<QuickAddBar> {
     final next = text.trim().isEmpty
         ? null
         : parseQuickAdd(text, now: DateTime.now());
+    final hasMetadata = next?.hasMetadata ?? false;
+    if (next != null) _lastPreview = next;
+    // Retarget in flight — fast typing never stacks size animations. Under
+    // reduced motion there is nothing to animate, so snap the reveal value.
+    if (MotionScope.of(context).reduced) {
+      _chips.value = hasMetadata ? 1 : 0;
+    } else if (hasMetadata) {
+      _chips.animateTo(1);
+    } else {
+      _chips.animateTo(0);
+    }
     setState(() => _preview = next);
   }
 
@@ -99,17 +124,27 @@ class _QuickAddBarState extends ConsumerState<QuickAddBar> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = M3ETheme.of(context);
-    final preview = _preview;
+    final tokens = MotionScope.of(context);
+    _chips.motion = tokens.spatialFast;
+    final hasPreview = _preview?.hasMetadata ?? false;
+    final chips = _lastPreview;
+    final showChips = chips != null && (hasPreview || _chips.value > 0.01);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (preview != null && preview.hasMetadata)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _PreviewChips(parse: preview, theme: theme, l10n: l10n),
+          if (showChips)
+            SizeTransition(
+              sizeFactor: tokens.reduced
+                  ? AlwaysStoppedAnimation<double>(hasPreview ? 1 : 0)
+                  : _chips,
+              alignment: AlignmentDirectional.topStart,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _PreviewChips(parse: chips, theme: theme, l10n: l10n),
+              ),
             ),
           M3ETextField(
             controller: _controller,

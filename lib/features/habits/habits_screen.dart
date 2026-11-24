@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion/spring_switcher.dart';
+import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -25,6 +27,7 @@ class HabitsScreen extends ConsumerWidget {
     final habits = ref.watch(activeHabitsProvider).value ?? const [];
     final routines = ref.watch(allRoutinesProvider).value ?? const <Routine>[];
     final filter = ref.watch(routineFilterProvider);
+    final wide = MediaQuery.sizeOf(context).width >= 840;
     final visible = habits.where((habit) {
       if (filter == null) return true;
       if (filter == -1) return habit.routineId == null;
@@ -40,11 +43,18 @@ class HabitsScreen extends ConsumerWidget {
           SettingsAction(),
         ],
       ),
-      floatingActionButton: M3EFab(
-        icon: const Icon(M3EIcons.add),
-        tooltip: l10n.newHabit,
-        onPressed: () => showHabitEditor(context),
-      ),
+      floatingActionButton: wide
+          ? M3EExtendedFab(
+              label: l10n.newHabit,
+              icon: const Icon(M3EIcons.add),
+              size: M3EExtendedFabSize.medium,
+              onPressed: () => showHabitEditor(context),
+            )
+          : M3EFab(
+              icon: const Icon(M3EIcons.add),
+              tooltip: l10n.newHabit,
+              onPressed: () => showHabitEditor(context),
+            ),
       body: habits.isEmpty
           ? const _EmptyState()
           : Column(
@@ -82,62 +92,67 @@ class HabitsScreen extends ConsumerWidget {
                     ),
                   ),
                 Expanded(
-                  child: visible.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Text(
-                              l10n.habitsEmptyActive,
-                              style: theme.typography.baseline.bodyMedium,
+                  child: SpringSwitcher(
+                    switchKey: ValueKey('routine-$filter'),
+                    child: visible.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Text(
+                                l10n.habitsEmptyActive,
+                                style: theme.typography.baseline.bodyMedium,
+                              ),
                             ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                            children: [
+                              if (routines.isEmpty)
+                                ..._cards(context, ref, visible),
+                              for (final routine in routines)
+                                if (filter == null ||
+                                    filter == routine.id &&
+                                        visible.any(
+                                          (h) => h.routineId == routine.id,
+                                        ))
+                                  _RoutineSection(
+                                    key: ValueKey(
+                                      'routine-section-${routine.id}',
+                                    ),
+                                    name: routine.name,
+                                    color: Color(routine.color),
+                                    theme: theme,
+                                    children: _cards(
+                                      context,
+                                      ref,
+                                      visible
+                                          .where(
+                                            (h) => h.routineId == routine.id,
+                                          )
+                                          .toList(),
+                                    ),
+                                  ),
+                              if (routines.isNotEmpty &&
+                                  (filter == null || filter == -1))
+                                if (visible.any((h) => h.routineId == null))
+                                  _RoutineSection(
+                                    key: const ValueKey(
+                                      'routine-section-unrouted',
+                                    ),
+                                    name: l10n.unrouted,
+                                    color: theme.colorScheme.outline,
+                                    theme: theme,
+                                    children: _cards(
+                                      context,
+                                      ref,
+                                      visible
+                                          .where((h) => h.routineId == null)
+                                          .toList(),
+                                    ),
+                                  ),
+                            ],
                           ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                          children: [
-                            if (routines.isEmpty)
-                              ..._cards(context, ref, visible),
-                            for (final routine in routines)
-                              if (filter == null ||
-                                  filter == routine.id &&
-                                      visible.any(
-                                        (h) => h.routineId == routine.id,
-                                      ))
-                                _RoutineSection(
-                                  key: ValueKey(
-                                    'routine-section-${routine.id}',
-                                  ),
-                                  name: routine.name,
-                                  color: Color(routine.color),
-                                  theme: theme,
-                                  children: _cards(
-                                    context,
-                                    ref,
-                                    visible
-                                        .where((h) => h.routineId == routine.id)
-                                        .toList(),
-                                  ),
-                                ),
-                            if (routines.isNotEmpty &&
-                                (filter == null || filter == -1))
-                              if (visible.any((h) => h.routineId == null))
-                                _RoutineSection(
-                                  key: const ValueKey(
-                                    'routine-section-unrouted',
-                                  ),
-                                  name: l10n.unrouted,
-                                  color: theme.colorScheme.outline,
-                                  theme: theme,
-                                  children: _cards(
-                                    context,
-                                    ref,
-                                    visible
-                                        .where((h) => h.routineId == null)
-                                        .toList(),
-                                  ),
-                                ),
-                          ],
-                        ),
+                  ),
                 ),
               ],
             ),
@@ -250,14 +265,29 @@ class _RoutineSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(M3EIcons.circle, size: 14, color: color),
+              ExcludeSemantics(
+                child: Container(
+                  width: 6,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(AppShape.card / 2),
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   name,
                   style: theme.typography.emphasized.titleSmall.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: theme.colorScheme.onSurface,
                   ),
+                ),
+              ),
+              Text(
+                '${children.length}',
+                style: theme.typography.emphasized.labelSmall.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

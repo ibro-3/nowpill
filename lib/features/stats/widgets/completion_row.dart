@@ -83,12 +83,11 @@ class CompletionRow extends StatelessWidget {
             else
               content,
             const SizedBox(height: 6),
-            LinearProgressIndicator(
+            M3EProgressIndicator.linear(
               value: percent / 100,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(6),
-              backgroundColor: scheme.surfaceContainerHighest,
               color: accent,
+              trackColor: scheme.surfaceContainerHighest,
+              semanticsLabel: '$percent%',
             ),
           ],
         ),

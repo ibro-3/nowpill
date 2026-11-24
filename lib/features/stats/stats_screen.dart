@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:motor/motor.dart';
 
-import '../../core/motion/app_motion.dart';
-import '../../core/motion/motion_scheme_provider.dart';
+import '../../core/motion/spring_entrance.dart';
+import '../../core/motion/spring_switcher.dart';
 import '../../domain/insights_engine.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
@@ -34,119 +33,124 @@ class StatsScreen extends ConsumerWidget {
         titleText: l10n.navStats,
         actions: const [SearchAction(), SettingsAction()],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        children: [
-          M3ESegmentedButton<InsightRange>(
-            key: const ValueKey('stats-range'),
-            selected: {vm.range},
-            onSelectionChanged: (selection) =>
-                ref.read(statsRangeProvider.notifier).set(selection.first),
-            segments: [
-              M3ESegment(
-                value: InsightRange.last30Days,
-                label: l10n.statsRange30,
-              ),
-              M3ESegment(
-                value: InsightRange.last90Days,
-                label: l10n.statsRange90,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (!vm.hasData)
-            Padding(
-              padding: const EdgeInsets.only(top: 32),
-              child: FloatingPills(
-                icon: M3EIcons.insights,
-                message: l10n.statsEmpty,
-              ),
-            )
-          else ...[
-            _SummaryRow(
-              theme: theme,
-              checkins: vm.totalCheckins,
-              tasksDone: vm.totalTasksDone,
-              bestStreak: vm.bestStreakOverall,
-            ),
-            const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-0'),
-              index: 0,
-              child: _StatsCard(
-                theme: theme,
-                title: l10n.statsLastNDays(vm.range.days),
-                child: TrendChart(trend: vm.trend),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-1'),
-              index: 1,
-              child: _StatsCard(
-                theme: theme,
-                title: l10n.statsWeeklySummary,
-                child: WeeklyBars(
-                  weeks: vm.weeks,
-                  thisWeekTotal: vm.thisWeekTotal,
-                  lastWeekTotal: vm.lastWeekTotal,
+      // Range changes replay a spring fade-through on the whole scroll view,
+      // preserving the list's lazy child building.
+      body: SpringSwitcher(
+        switchKey: vm.range,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          children: [
+            M3ESegmentedButton<InsightRange>(
+              key: const ValueKey('stats-range'),
+              selected: {vm.range},
+              onSelectionChanged: (selection) =>
+                  ref.read(statsRangeProvider.notifier).set(selection.first),
+              segments: [
+                M3ESegment(
+                  value: InsightRange.last30Days,
+                  label: l10n.statsRange30,
                 ),
-              ),
+                M3ESegment(
+                  value: InsightRange.last90Days,
+                  label: l10n.statsRange90,
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-2'),
-              index: 2,
-              child: _StatsCard(
+            if (!vm.hasData)
+              Padding(
+                padding: const EdgeInsets.only(top: 32),
+                child: FloatingPills(
+                  icon: M3EIcons.insights,
+                  message: l10n.statsEmpty,
+                ),
+              )
+            else ...[
+              _SummaryRow(
                 theme: theme,
-                title: l10n.statsStreakLeaderboard,
-                child: StreakLeaderboard(entries: vm.leaderboard),
+                checkins: vm.totalCheckins,
+                tasksDone: vm.totalTasksDone,
+                bestStreak: vm.bestStreakOverall,
               ),
-            ),
-            const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-3'),
-              index: 3,
-              child: _StatsCard(
-                theme: theme,
-                title: l10n.statsTasksByTag,
-                child: TagDonut(slices: vm.tagSlices),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-4'),
-              index: 4,
-              child: _StatsCard(
-                theme: theme,
-                title: l10n.statsWeeklyReview,
-                child: WeeklyReviewCard(review: vm.review),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _Entrance(
-              key: const ValueKey('stats-entrance-5'),
-              index: 5,
-              child: _StatsCard(
-                theme: theme,
-                title: l10n.statsHabitCompletion,
-                child: HabitCompletionList(entries: vm.habitCompletion),
-              ),
-            ),
-            if (vm.routineCompletion.any((entry) => entry.key != null)) ...[
               const SizedBox(height: 16),
-              _Entrance(
-                key: const ValueKey('stats-entrance-6'),
-                index: 6,
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-0'),
+                index: 0,
                 child: _StatsCard(
                   theme: theme,
-                  title: l10n.statsRoutineComparison,
-                  child: RoutineComparison(entries: vm.routineCompletion),
+                  title: l10n.statsLastNDays(vm.range.days),
+                  child: TrendChart(trend: vm.trend),
                 ),
               ),
+              const SizedBox(height: 16),
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-1'),
+                index: 1,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsWeeklySummary,
+                  child: WeeklyBars(
+                    weeks: vm.weeks,
+                    thisWeekTotal: vm.thisWeekTotal,
+                    lastWeekTotal: vm.lastWeekTotal,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-2'),
+                index: 2,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsStreakLeaderboard,
+                  child: StreakLeaderboard(entries: vm.leaderboard),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-3'),
+                index: 3,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsTasksByTag,
+                  child: TagDonut(slices: vm.tagSlices),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-4'),
+                index: 4,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsWeeklyReview,
+                  child: WeeklyReviewCard(review: vm.review),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpringEntrance(
+                key: const ValueKey('stats-entrance-5'),
+                index: 5,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsHabitCompletion,
+                  child: HabitCompletionList(entries: vm.habitCompletion),
+                ),
+              ),
+              if (vm.routineCompletion.any((entry) => entry.key != null)) ...[
+                const SizedBox(height: 16),
+                SpringEntrance(
+                  key: const ValueKey('stats-entrance-6'),
+                  index: 6,
+                  child: _StatsCard(
+                    theme: theme,
+                    title: l10n.statsRoutineComparison,
+                    child: RoutineComparison(entries: vm.routineCompletion),
+                  ),
+                ),
+              ],
             ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -169,6 +173,8 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = theme.colorScheme;
+    // M3 role pairs: a container fill always uses its matching `on *` role.
     return Row(
       children: [
         Expanded(
@@ -177,7 +183,8 @@ class _SummaryRow extends StatelessWidget {
             value: '$checkins',
             label: l10n.statsCheckIns,
             icon: M3EIcons.check_circle,
-            color: theme.colorScheme.primary,
+            color: scheme.primaryContainer,
+            onColor: scheme.onPrimaryContainer,
           ),
         ),
         const SizedBox(width: 10),
@@ -187,7 +194,8 @@ class _SummaryRow extends StatelessWidget {
             value: '$tasksDone',
             label: l10n.statsTasksDone,
             icon: M3EIcons.task_alt,
-            color: theme.colorScheme.tertiary,
+            color: scheme.tertiaryContainer,
+            onColor: scheme.onTertiaryContainer,
           ),
         ),
         const SizedBox(width: 10),
@@ -197,7 +205,8 @@ class _SummaryRow extends StatelessWidget {
             value: '$bestStreak',
             label: l10n.statsBestStreak,
             icon: M3EIcons.local_fire_department,
-            color: theme.colorScheme.secondary,
+            color: scheme.secondaryContainer,
+            onColor: scheme.onSecondaryContainer,
           ),
         ),
       ],
@@ -212,6 +221,7 @@ class _SummaryTile extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.color,
+    required this.onColor,
   });
 
   final M3EThemeData theme;
@@ -219,27 +229,29 @@ class _SummaryTile extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  final Color onColor;
 
   @override
   Widget build(BuildContext context) {
     return M3ECard(
       variant: M3ECardVariant.filled,
+      color: color,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: 18, color: onColor),
           const SizedBox(height: 8),
           Text(
             value,
             style: theme.typography.emphasized.headlineSmall.copyWith(
-              color: theme.colorScheme.onSurface,
+              color: onColor,
             ),
           ),
           Text(
             label,
-            style: theme.typography.baseline.labelSmall.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: theme.typography.emphasized.labelSmall.copyWith(
+              color: onColor,
             ),
           ),
         ],
@@ -277,65 +289,6 @@ class _StatsCard extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-/// A cheap spring entrance: each card fades + rises into place, staggered by
-/// [index]. Static (no animation) under reduced motion.
-class _Entrance extends StatefulWidget {
-  const _Entrance({required this.index, required this.child, super.key});
-
-  final int index;
-  final Widget child;
-
-  @override
-  State<_Entrance> createState() => _EntranceState();
-}
-
-class _EntranceState extends State<_Entrance>
-    with SingleTickerProviderStateMixin {
-  late final SingleMotionController _rise;
-
-  @override
-  void initState() {
-    super.initState();
-    _rise = SingleMotionController(
-      motion: MotionTokens.expressive.spatialDefault,
-      vsync: this,
-      initialValue: 0,
-    );
-    // Bounded stagger (max 180ms): always fires, including inside widget
-    // tests' fake-async pumps, so no timer outlives the test.
-    Future<void>.delayed(Duration(milliseconds: 60 * widget.index), () {
-      if (mounted) _rise.animateTo(1);
-    });
-  }
-
-  @override
-  void dispose() {
-    _rise.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = MotionScope.of(context);
-    _rise.motion = tokens.spatialDefault;
-    if (tokens.reduced) return widget.child;
-    return AnimatedBuilder(
-      animation: _rise,
-      builder: (context, child) {
-        final t = _rise.value.clamp(0.0, 1.0);
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, 18 * (1 - t)),
-            child: child,
-          ),
-        );
-      },
-      child: widget.child,
     );
   }
 }

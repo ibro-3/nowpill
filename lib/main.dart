@@ -73,7 +73,7 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
         theme: AppTheme.light().toThemeData(),
         darkTheme: AppTheme.light().deriveDarkTemplate().toThemeData(),
         themeMode: platformDark ? ThemeMode.dark : ThemeMode.light,
-        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: const Scaffold(body: Center(child: M3ELoadingIndicator())),
       );
     }
 

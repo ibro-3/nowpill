@@ -4,6 +4,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/motion/shape_morph.dart';
+import '../../../core/theme/app_surfaces.dart';
 import '../../../data/db/app_database.dart';
 import '../../../domain/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -38,6 +39,11 @@ class HabitCard extends ConsumerWidget {
 
     return M3ECard(
       variant: M3ECardVariant.filled,
+      // The habit's own color is an accent fill/border, never body text.
+      color: checkedToday ? null : AppSurfaces.tint(theme.colorScheme, color),
+      border: checkedToday
+          ? null
+          : BorderSide(color: AppSurfaces.accentBorder(color)),
       onPressed: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(

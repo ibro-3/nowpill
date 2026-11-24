@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion/spring_switcher.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -28,17 +29,27 @@ class TasksScreen extends ConsumerWidget {
     // Filter chips grow with large system text; give their horizontal strips
     // room instead of clipping them to the default 44px.
     final chipRowHeight = 44 * MediaQuery.textScalerOf(context).scale(1.0);
+    final wide = MediaQuery.sizeOf(context).width >= 840;
 
     return Scaffold(
       appBar: M3EAppBar.top(
         titleText: l10n.navTasks,
         actions: const [SearchAction(), SettingsAction()],
       ),
-      floatingActionButton: M3EFab(
-        icon: const Icon(M3EIcons.add),
-        tooltip: l10n.newTask,
-        onPressed: () => showTaskEditor(context),
-      ),
+      // M3: use an extended FAB when a label clarifies the primary action on
+      // larger windows, and a medium FAB on compact/medium ones.
+      floatingActionButton: wide
+          ? M3EExtendedFab(
+              label: l10n.newTask,
+              icon: const Icon(M3EIcons.add),
+              size: M3EExtendedFabSize.medium,
+              onPressed: () => showTaskEditor(context),
+            )
+          : M3EFab(
+              icon: const Icon(M3EIcons.add),
+              tooltip: l10n.newTask,
+              onPressed: () => showTaskEditor(context),
+            ),
       body: Column(
         children: [
           Padding(
@@ -147,22 +158,25 @@ class TasksScreen extends ConsumerWidget {
               ),
             ),
           Expanded(
-            child: tasks.isEmpty
-                ? _EmptyState(filter: filter)
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                    itemCount: tasks.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) {
-                      final task = tasks[i];
-                      return TaskCard(
-                        key: ValueKey('task-${task.id}'),
-                        task: task,
-                        onTap: () => showTaskEditor(context, task: task),
-                        onToggleComplete: () => _toggle(ref, task),
-                      );
-                    },
-                  ),
+            child: SpringSwitcher(
+              switchKey: ValueKey('$filter|$listFilter|$tagFilter'),
+              child: tasks.isEmpty
+                  ? _EmptyState(filter: filter)
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                      itemCount: tasks.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) {
+                        final task = tasks[i];
+                        return TaskCard(
+                          key: ValueKey('task-${task.id}'),
+                          task: task,
+                          onTap: () => showTaskEditor(context, task: task),
+                          onToggleComplete: () => _toggle(ref, task),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
@@ -344,6 +358,8 @@ class _EmptyState extends StatelessWidget {
       TaskFilter.all => (M3EIcons.checklist, l10n.tasksEmptyAll),
       TaskFilter.done => (M3EIcons.check_circle, l10n.tasksEmptyDone),
     };
+    // The FAB is the single primary action on this screen; duplicating its
+    // label here would create a second "new task" target for assistive tech.
     return FloatingPills(icon: icon, message: message);
   }
 }

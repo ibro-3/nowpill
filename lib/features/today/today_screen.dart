@@ -6,6 +6,8 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/motion/shape_morph.dart';
+import '../../core/motion/spring_entrance.dart';
+import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -182,182 +184,236 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     _wasAllDone = vm.allDone;
 
     final now = DateTime.now();
+    // The flexible app bar's collapsed title block has a fixed height; at
+    // large system text the subtitle would overflow it. Keep the date on the
+    // dashboard instead when scaling is high.
+    final showBarSubtitle = MediaQuery.textScalerOf(context).scale(1.0) <= 1.3;
     return Scaffold(
-      appBar: M3EAppBar.top(
-        titleText: l10n.navToday,
-        actions: const [SearchAction(), SettingsAction()],
-      ),
       body: Stack(
         children: [
           Column(
             children: [
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  children: [
-                    _Header(vm: vm, theme: theme, now: now),
-                    const SizedBox(height: 20),
-                    if (onVacation) ...[
-                      _VacationBanner(
-                        theme: theme,
-                        message: _vacationBannerMessage(activePeriod, scopes),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    if (vm.total == 0 && quitHabits.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 32),
-                        child: FloatingPills(
-                          icon: M3EIcons.wb_twilight,
-                          message: l10n.todayEmpty,
-                        ),
-                      )
-                    else ...[
-                      if (vm.allDone) ...[
-                        _AllDoneBanner(theme: theme),
-                        const SizedBox(height: 16),
-                      ],
-                      if (vm.overdueTasks.isNotEmpty) ...[
-                        _SectionHeader(
-                          title: l10n.sectionOverdue,
-                          count: vm.overdueTasks.length,
-                          color: theme.colorScheme.error,
+                child: CustomScrollView(
+                  slivers: [
+                    // M3 large flexible app bar: the date is the page subtitle,
+                    // and the bar compresses to a small one while scrolling.
+                    M3EAppBar.sliver(
+                      titleText: l10n.navToday,
+                      subtitleText: showBarSubtitle
+                          ? _dateLabel(l10n, now)
+                          : null,
+                      variant: showBarSubtitle
+                          ? M3EAppBarVariant.largeFlexible
+                          : M3EAppBarVariant.small,
+                      actions: const [SearchAction(), SettingsAction()],
+                    ),
+                    SliverList(
+                      delegate: SliverChildListDelegate([
+                        _Header(
+                          vm: vm,
                           theme: theme,
+                          now: now,
+                          showDate: !showBarSubtitle,
                         ),
-                        for (final task in vm.overdueTasks)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TaskCard(
-                              key: ValueKey('today-task-${task.id}'),
-                              task: task,
-                              onTap: () => showTaskEditor(context, task: task),
-                              onToggleComplete: () => _toggleTask(task),
+                        const SizedBox(height: 20),
+                        if (onVacation) ...[
+                          _VacationBanner(
+                            theme: theme,
+                            message: _vacationBannerMessage(
+                              activePeriod,
+                              scopes,
                             ),
                           ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (vm.habits.isNotEmpty) ...[
-                        _SectionHeader(
-                          title: l10n.sectionHabits,
-                          count: vm.habits.length,
-                          color: theme.colorScheme.primary,
-                          theme: theme,
-                        ),
-                        for (final item in vm.habits)
+                          const SizedBox(height: 16),
+                        ],
+                        if (vm.total == 0 && quitHabits.isEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _TodayHabitTile(
-                              key: ValueKey('today-habit-${item.habit.id}'),
-                              item: item,
-                              onToggle: () => _toggleHabit(item),
-                              onAddAmount: () => _addAmount(item),
-                              onRemoveAmount: () => _removeAmount(item),
-                              onCompleteGoal: () => _completeGoal(item),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (quitHabits.isNotEmpty) ...[
-                        _SectionHeader(
-                          title: l10n.kindQuit,
-                          count: quitHabits.length,
-                          color: theme.colorScheme.tertiary,
-                          theme: theme,
-                        ),
-                        for (final habit in quitHabits)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: HabitCard(
-                              key: ValueKey('today-quit-${habit.id}'),
-                              habit: habit,
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      HabitDetailScreen(habitId: habit.id),
+                            padding: const EdgeInsets.only(top: 32),
+                            child: Column(
+                              children: [
+                                FloatingPills(
+                                  icon: M3EIcons.wb_twilight,
+                                  message: l10n.todayEmpty,
                                 ),
+                                const SizedBox(height: 16),
+                                M3EButton(
+                                  style: M3EButtonStyle.tonal,
+                                  onPressed: () => showTaskEditor(context),
+                                  label: Text(l10n.newTask),
+                                ),
+                              ],
+                            ),
+                          )
+                        else ...[
+                          if (vm.allDone) ...[
+                            SpringEntrance(
+                              key: const ValueKey('today-all-done-banner'),
+                              index: 0,
+                              rise: 12,
+                              child: _AllDoneBanner(theme: theme),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (vm.overdueTasks.isNotEmpty) ...[
+                            _entrancedSection(0, 'overdue', [
+                              _SectionHeader(
+                                title: l10n.sectionOverdue,
+                                count: vm.overdueTasks.length,
+                                color: theme.colorScheme.error,
+                                theme: theme,
                               ),
-                              onCheckIn: () {},
-                              onLogRelapse: () => _logRelapse(habit.id),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (pausedHabits.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Semantics(
-                          button: true,
-                          label: l10n.a11yExpandPaused,
-                          child: ListTile(
-                            key: const ValueKey('today-paused-disclosure'),
-                            leading: Icon(
-                              M3EIcons.beach_access,
-                              color: theme.colorScheme.primary,
-                            ),
-                            title: Text(
-                              l10n.todayPausedCount(pausedHabits.length),
-                            ),
-                            trailing: Icon(
-                              _showPaused
-                                  ? M3EIcons.expand_less
-                                  : M3EIcons.expand_more,
-                            ),
-                            onTap: () =>
-                                setState(() => _showPaused = !_showPaused),
-                          ),
-                        ),
-                        if (_showPaused)
-                          for (final habit in pausedHabits)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
+                              for (final task in vm.overdueTasks)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: TaskCard(
+                                    key: ValueKey('today-task-${task.id}'),
+                                    task: task,
+                                    onTap: () =>
+                                        showTaskEditor(context, task: task),
+                                    onToggleComplete: () => _toggleTask(task),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                            ]),
+                          ],
+                          if (vm.habits.isNotEmpty) ...[
+                            _entrancedSection(1, 'habits', [
+                              _SectionHeader(
+                                title: l10n.sectionHabits,
+                                count: vm.habits.length,
+                                color: theme.colorScheme.primary,
+                                theme: theme,
+                              ),
+                              for (final item in vm.habits)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: _TodayHabitTile(
+                                    key: ValueKey(
+                                      'today-habit-${item.habit.id}',
+                                    ),
+                                    item: item,
+                                    onToggle: () => _toggleHabit(item),
+                                    onAddAmount: () => _addAmount(item),
+                                    onRemoveAmount: () => _removeAmount(item),
+                                    onCompleteGoal: () => _completeGoal(item),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                            ]),
+                          ],
+                          if (quitHabits.isNotEmpty) ...[
+                            _entrancedSection(2, 'quit', [
+                              _SectionHeader(
+                                title: l10n.kindQuit,
+                                count: quitHabits.length,
+                                color: theme.colorScheme.tertiary,
+                                theme: theme,
+                              ),
+                              for (final habit in quitHabits)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: HabitCard(
+                                    key: ValueKey('today-quit-${habit.id}'),
+                                    habit: habit,
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => HabitDetailScreen(
+                                          habitId: habit.id,
+                                        ),
+                                      ),
+                                    ),
+                                    onCheckIn: () {},
+                                    onLogRelapse: () => _logRelapse(habit.id),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                            ]),
+                          ],
+                          if (pausedHabits.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Semantics(
+                              button: true,
+                              label: l10n.a11yExpandPaused,
                               child: ListTile(
-                                key: ValueKey('today-paused-${habit.id}'),
+                                key: const ValueKey('today-paused-disclosure'),
                                 leading: Icon(
-                                  habitIconForKey(habit.iconKey),
-                                  color: Color(habit.color),
+                                  M3EIcons.beach_access,
+                                  color: theme.colorScheme.primary,
                                 ),
-                                title: Text(habit.name),
-                                subtitle: Text(l10n.todayPaused),
+                                title: Text(
+                                  l10n.todayPausedCount(pausedHabits.length),
+                                ),
+                                trailing: Icon(
+                                  _showPaused
+                                      ? M3EIcons.expand_less
+                                      : M3EIcons.expand_more,
+                                ),
+                                onTap: () =>
+                                    setState(() => _showPaused = !_showPaused),
                               ),
                             ),
-                      ],
-                      if (vm.dueTodayTasks.isNotEmpty) ...[
-                        _SectionHeader(
-                          title: l10n.sectionDueToday,
-                          count: vm.dueTodayTasks.length,
-                          color: theme.colorScheme.primary,
-                          theme: theme,
-                        ),
-                        for (final task in vm.dueTodayTasks)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TaskCard(
-                              key: ValueKey('today-task-${task.id}'),
-                              task: task,
-                              onTap: () => showTaskEditor(context, task: task),
-                              onToggleComplete: () => _toggleTask(task),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (vm.completedTodayTasks.isNotEmpty) ...[
-                        _SectionHeader(
-                          title: l10n.sectionDoneToday,
-                          count: vm.completedTodayTasks.length,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          theme: theme,
-                        ),
-                        for (final task in vm.completedTodayTasks)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TaskCard(
-                              key: ValueKey('today-task-${task.id}'),
-                              task: task,
-                              onTap: () => showTaskEditor(context, task: task),
-                              onToggleComplete: () => _toggleTask(task),
-                            ),
-                          ),
-                      ],
-                    ],
+                            if (_showPaused)
+                              for (final habit in pausedHabits)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: ListTile(
+                                    key: ValueKey('today-paused-${habit.id}'),
+                                    leading: Icon(
+                                      habitIconForKey(habit.iconKey),
+                                      color: Color(habit.color),
+                                    ),
+                                    title: Text(habit.name),
+                                    subtitle: Text(l10n.todayPaused),
+                                  ),
+                                ),
+                          ],
+                          if (vm.dueTodayTasks.isNotEmpty) ...[
+                            _entrancedSection(3, 'due', [
+                              _SectionHeader(
+                                title: l10n.sectionDueToday,
+                                count: vm.dueTodayTasks.length,
+                                color: theme.colorScheme.primary,
+                                theme: theme,
+                              ),
+                              for (final task in vm.dueTodayTasks)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: TaskCard(
+                                    key: ValueKey('today-task-${task.id}'),
+                                    task: task,
+                                    onTap: () =>
+                                        showTaskEditor(context, task: task),
+                                    onToggleComplete: () => _toggleTask(task),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                            ]),
+                          ],
+                          if (vm.completedTodayTasks.isNotEmpty) ...[
+                            _entrancedSection(4, 'done', [
+                              _SectionHeader(
+                                title: l10n.sectionDoneToday,
+                                count: vm.completedTodayTasks.length,
+                                color: theme.colorScheme.onSurfaceVariant,
+                                theme: theme,
+                              ),
+                              for (final task in vm.completedTodayTasks)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: TaskCard(
+                                    key: ValueKey('today-task-${task.id}'),
+                                    task: task,
+                                    onTap: () =>
+                                        showTaskEditor(context, task: task),
+                                    onToggleComplete: () => _toggleTask(task),
+                                  ),
+                                ),
+                            ]),
+                          ],
+                        ],
+                      ]),
+                    ),
                   ],
                 ),
               ),
@@ -382,16 +438,77 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 }
 
+/// Wraps one dashboard section in a bounded spring entrance. Index is fixed
+/// per section (not by position) so state persists when other sections appear
+/// or disappear as data changes.
+Widget _entrancedSection(int index, String name, List<Widget> children) {
+  return SpringEntrance(
+    key: ValueKey('today-section-$name'),
+    index: index,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    ),
+  );
+}
+
+/// Date label used as the large flexible app bar's subtitle.
+String _dateLabel(AppLocalizations l10n, DateTime now) {
+  final weekdays = [
+    l10n.weekdayMonday,
+    l10n.weekdayTuesday,
+    l10n.weekdayWednesday,
+    l10n.weekdayThursday,
+    l10n.weekdayFriday,
+    l10n.weekdaySaturday,
+    l10n.weekdaySunday,
+  ];
+  final months = [
+    l10n.monthJan,
+    l10n.monthFeb,
+    l10n.monthMar,
+    l10n.monthApr,
+    l10n.monthMay,
+    l10n.monthJun,
+    l10n.monthJul,
+    l10n.monthAug,
+    l10n.monthSep,
+    l10n.monthOct,
+    l10n.monthNov,
+    l10n.monthDec,
+  ];
+  return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+}
+
+/// The dashboard hero: greeting, progress copy, and the spring ring. The date
+/// moved into the app bar subtitle, so this block stays compact while the bar
+/// collapses on scroll.
 class _Header extends StatelessWidget {
-  const _Header({required this.vm, required this.theme, required this.now});
+  const _Header({
+    required this.vm,
+    required this.theme,
+    required this.now,
+    this.showDate = false,
+  });
 
   final TodayViewModel vm;
   final M3EThemeData theme;
   final DateTime now;
+  final bool showDate;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final h = now.hour;
+    final greeting = h < 5
+        ? l10n.greetingUpLate
+        : h < 12
+        ? l10n.greetingMorning
+        : h < 17
+        ? l10n.greetingAfternoon
+        : h < 22
+        ? l10n.greetingEvening
+        : l10n.greetingWindingDown;
     return Row(
       children: [
         Expanded(
@@ -399,16 +516,18 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _greeting(l10n, now),
-                style: theme.typography.baseline.titleMedium.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                greeting,
+                style: theme.typography.emphasized.titleMedium.copyWith(
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                _dateLabel(l10n, now),
-                style: theme.typography.emphasized.headlineMedium,
-              ),
+              if (showDate) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _dateLabel(l10n, now),
+                  style: theme.typography.emphasized.titleMedium,
+                ),
+              ],
               const SizedBox(height: 6),
               Text(
                 vm.total == 0
@@ -433,42 +552,6 @@ class _Header extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _greeting(AppLocalizations l10n, DateTime now) {
-    final h = now.hour;
-    if (h < 5) return l10n.greetingUpLate;
-    if (h < 12) return l10n.greetingMorning;
-    if (h < 17) return l10n.greetingAfternoon;
-    if (h < 22) return l10n.greetingEvening;
-    return l10n.greetingWindingDown;
-  }
-
-  String _dateLabel(AppLocalizations l10n, DateTime now) {
-    final weekdays = [
-      l10n.weekdayMonday,
-      l10n.weekdayTuesday,
-      l10n.weekdayWednesday,
-      l10n.weekdayThursday,
-      l10n.weekdayFriday,
-      l10n.weekdaySaturday,
-      l10n.weekdaySunday,
-    ];
-    final months = [
-      l10n.monthJan,
-      l10n.monthFeb,
-      l10n.monthMar,
-      l10n.monthApr,
-      l10n.monthMay,
-      l10n.monthJun,
-      l10n.monthJul,
-      l10n.monthAug,
-      l10n.monthSep,
-      l10n.monthOct,
-      l10n.monthNov,
-      l10n.monthDec,
-    ];
-    return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 }
 
@@ -579,9 +662,22 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
+          // M3 shape tension: a short rectangular accent against rounded rows
+          // marks the section without putting a decorative shape behind text.
+          ExcludeSemantics(
+            child: Container(
+              width: 6,
+              height: 18,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(AppShape.card / 2),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(
             title,
             style: theme.typography.emphasized.titleSmall.copyWith(
@@ -593,11 +689,11 @@ class _SectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppShape.pill),
             ),
             child: Text(
               '$count',
-              style: theme.typography.baseline.labelSmall.copyWith(
+              style: theme.typography.emphasized.labelSmall.copyWith(
                 color: color,
               ),
             ),
@@ -637,6 +733,14 @@ class _TodayHabitTile extends StatelessWidget {
 
     return M3ECard(
       variant: M3ECardVariant.filled,
+      // M3 filled cards keep surfaceContainerHighest; a low-alpha accent wash
+      // adds identity without changing the foreground role.
+      color: item.checkedToday
+          ? null
+          : AppSurfaces.tint(theme.colorScheme, color),
+      border: item.checkedToday
+          ? null
+          : BorderSide(color: AppSurfaces.accentBorder(color)),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [

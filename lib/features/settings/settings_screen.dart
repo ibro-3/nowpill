@@ -1021,12 +1021,29 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        title,
-        style: theme.typography.emphasized.titleMedium.copyWith(
-          color: theme.colorScheme.primary,
-        ),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Row(
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              width: 6,
+              height: 18,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: theme.typography.emphasized.titleMedium.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1185,7 +1202,9 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return M3ECard(
-      variant: M3ECardVariant.filled,
+      // Elevated cards (surface container low) give Settings groups a little
+      // more separation than the filled cards used for scannable list rows.
+      variant: M3ECardVariant.elevated,
       padding: const EdgeInsets.all(20),
       child: child,
     );

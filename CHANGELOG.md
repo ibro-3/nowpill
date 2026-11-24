@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.9.4 — 2026-11-24
+
+Expressive design & motion pass. No data, schema, or export changes — format stays v7.
+
+### Features
+- **Today hero** — a large flexible app bar carries the date as its subtitle and
+  compresses on scroll; the header keeps the greeting, progress copy, and ring.
+  At large system text the bar falls back to a small variant and the date moves
+  into the header so nothing overflows.
+- **Expressive containment** — section headers gain a rectangular accent and
+  emphasized count chips; overdue tasks, habits, and quit habits get subtle
+  accent washes and borders; completed tasks use the lower-emphasis outlined
+  card. Settings groups use elevated cards.
+- **Task & habit lists** — spring fade-through on filter changes, routine
+  accent/count headers on Habits, and an extended FAB with a label on expanded
+  windows (medium FAB on compact/medium ones).
+- **Stats** — the three summary tiles become a tonal band using paired
+  primary/tertiary/secondary container roles with emphasized numbers; range
+  changes replay a spring fade-through.
+- **Navigation** — the shell fades/rises the incoming tab without losing branch
+  state; the expanded rail gets a brand mark and both navigation components
+  show small badges for outstanding tasks/habits.
+- **Loading states** — the splash, habit detail, insights, and completion rows
+  now use M3E loading/progress indicators.
+- **Quick add** — metadata preview chips spring their height open and closed.
+
+### Under the hood
+- New shared `SpringEntrance` and `SpringSwitcher` primitives in `core/motion`,
+  plus `AppShape` / `AppSurfaces` helpers in `core/theme`. All new motion reads
+  the central `MotionTokens` and keeps semantics visible during entrances.
+- App bars keep M3's square container and default heights; cards keep M3's
+  12dp radius and surface container mappings. Design decisions (bounded
+  stagger, rise distances, accent washes) are documented in `doc/motion_audit.md`.
+
 ## v0.9.2 — 2026-11-24
 
 Motion craft release. No data, schema, or export changes — format stays v7.
