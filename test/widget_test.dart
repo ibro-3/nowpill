@@ -9,7 +9,9 @@ import 'data/test_database.dart';
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
   });
 
   testWidgets('App boots into the Today tab', (WidgetTester tester) async {

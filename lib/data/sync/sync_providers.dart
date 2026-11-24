@@ -47,11 +47,13 @@ SyncCoordinator syncCoordinator(Ref ref) {
   // Any data change schedules a (debounced) sync cycle.
   final habits = ref.watch(habitRepositoryProvider);
   final tasks = ref.watch(taskRepositoryProvider);
+  final lists = ref.watch(taskListRepositoryProvider);
   final subs = [
     habits.watchAll().listen((_) => coordinator.scheduleSync()),
     habits.watchAllCheckins().listen((_) => coordinator.scheduleSync()),
     tasks.watchAll().listen((_) => coordinator.scheduleSync()),
     tasks.watchAllTaskTags().listen((_) => coordinator.scheduleSync()),
+    lists.watchAll().listen((_) => coordinator.scheduleSync()),
   ];
 
   ref.onDispose(() async {

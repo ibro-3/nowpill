@@ -36,6 +36,7 @@ class AppSettings {
     this.localeCode,
     this.syncEnabled = false,
     this.syncFolderHandle,
+    this.onboardingComplete = false,
   });
 
   final AppThemeMode themeMode;
@@ -64,6 +65,10 @@ class AppSettings {
   /// URI (Android). Null = no folder chosen.
   final String? syncFolderHandle;
 
+  /// Whether the first-run intro has been dismissed (v0.5.0). Stored locally
+  /// per device — importing a backup never skips it on a fresh install.
+  final bool onboardingComplete;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     AppMotionMode? motionMode,
@@ -73,6 +78,7 @@ class AppSettings {
     String? localeCode,
     bool? syncEnabled,
     String? syncFolderHandle,
+    bool? onboardingComplete,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -84,6 +90,7 @@ class AppSettings {
       localeCode: localeCode ?? this.localeCode,
       syncEnabled: syncEnabled ?? this.syncEnabled,
       syncFolderHandle: syncFolderHandle ?? this.syncFolderHandle,
+      onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     );
   }
 
@@ -99,6 +106,7 @@ class AppSettings {
       localeCode: localeCode,
       syncEnabled: syncEnabled,
       syncFolderHandle: syncFolderHandle,
+      onboardingComplete: onboardingComplete,
     );
   }
 
@@ -113,6 +121,7 @@ class AppSettings {
       localeCode: null,
       syncEnabled: syncEnabled,
       syncFolderHandle: syncFolderHandle,
+      onboardingComplete: onboardingComplete,
     );
   }
 
@@ -127,6 +136,7 @@ class AppSettings {
       localeCode: localeCode,
       syncEnabled: false,
       syncFolderHandle: null,
+      onboardingComplete: onboardingComplete,
     );
   }
 
@@ -140,7 +150,8 @@ class AppSettings {
         other.weekStartsOnMonday == weekStartsOnMonday &&
         other.localeCode == localeCode &&
         other.syncEnabled == syncEnabled &&
-        other.syncFolderHandle == syncFolderHandle;
+        other.syncFolderHandle == syncFolderHandle &&
+        other.onboardingComplete == onboardingComplete;
   }
 
   @override
@@ -153,5 +164,6 @@ class AppSettings {
     localeCode,
     syncEnabled,
     syncFolderHandle,
+    onboardingComplete,
   );
 }

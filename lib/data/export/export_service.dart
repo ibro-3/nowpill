@@ -10,6 +10,8 @@ import '../db/app_database.dart';
 /// Current export envelope schema version. Bump when the payload shape changes
 /// and add a migration path in `ExportService.importFromString`.
 ///
+/// v5 (v0.5.0) adds task lists: a `taskLists` list plus nullable `listId` /
+/// `listUuid` on tasks (older payloads import their tasks into the inbox).
 /// v4 (v0.3.0) adds measurable habits: per-habit `targetAmount` and per-check-in
 /// `amount` (both nullable — pre-v4 rows import as classic habits / full
 /// completions).
@@ -18,7 +20,7 @@ import '../db/app_database.dart';
 /// v2 adds the `freezes` list and per-habit `freezeMode`.
 /// v1 payloads still import: habits default to auto mode with no freezes;
 /// pre-v3 rows receive fresh uuids and derived timestamps.
-const int kExportSchemaVersion = 4;
+const int kExportSchemaVersion = 5;
 
 /// Oldest envelope version this build can import.
 const int kMinImportSchemaVersion = 1;
@@ -38,6 +40,7 @@ class ExportEnvelope {
     required this.exportedAt,
     required this.tasks,
     required this.subtasks,
+    required this.taskLists,
     required this.tags,
     required this.taskTags,
     required this.habits,
@@ -91,6 +94,12 @@ class ExportEnvelope {
       }).toList();
       final freezeRows = version >= 2 && data['freezes'] is List
           ? (data['freezes'] as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+
+      // v5 payloads carry the list table; older ones have none. An absent key
+      // is treated as an empty list so old backups still import.
+      final taskListRows = version >= 5 && data['taskLists'] is List
+          ? (data['taskLists'] as List).cast<Map<String, dynamic>>()
           : <Map<String, dynamic>>[];
 
       var taskRows = rows('tasks');
@@ -188,6 +197,15 @@ class ExportEnvelope {
         }).toList();
       }
 
+      if (version < 5) {
+        // Pre-v5 tasks have no list link; they become inbox tasks.
+        taskRows = taskRows
+            .map(
+              (t) => {...t, 'listId': t['listId'], 'listUuid': t['listUuid']},
+            )
+            .toList();
+      }
+
       if (version < 4) {
         // Pre-v4 payloads have no measurable-habit fields. Null target =
         // classic habit; null amount = full completion (streaks unchanged).
@@ -212,6 +230,7 @@ class ExportEnvelope {
         deviceId: json['deviceId'] is String ? json['deviceId'] as String : '',
         tasks: taskRows.map(Task.fromJson).toList(),
         subtasks: subtaskRows.map(Subtask.fromJson).toList(),
+        taskLists: taskListRows.map(TaskList.fromJson).toList(),
         tags: tagRows.map(Tag.fromJson).toList(),
         taskTags: taskTagRows.map(TaskTag.fromJson).toList(),
         habits: habitRows.map(Habit.fromJson).toList(),
@@ -234,6 +253,7 @@ class ExportEnvelope {
 
   final List<Task> tasks;
   final List<Subtask> subtasks;
+  final List<TaskList> taskLists;
   final List<Tag> tags;
   final List<TaskTag> taskTags;
   final List<Habit> habits;
@@ -248,6 +268,7 @@ class ExportEnvelope {
     'data': {
       'tasks': tasks.map((t) => t.toJson()).toList(),
       'subtasks': subtasks.map((s) => s.toJson()).toList(),
+      'taskLists': taskLists.map((l) => l.toJson()).toList(),
       'tags': tags.map((t) => t.toJson()).toList(),
       'taskTags': taskTags.map((t) => t.toJson()).toList(),
       'habits': habits.map((h) => h.toJson()).toList(),
@@ -281,6 +302,7 @@ class ExportService {
       deviceId: _db.deviceId,
       tasks: await _db.select(_db.tasks).get(),
       subtasks: await _db.select(_db.subtasks).get(),
+      taskLists: await _db.select(_db.taskLists).get(),
       tags: await _db.select(_db.tags).get(),
       taskTags: await _db.select(_db.taskTags).get(),
       habits: await _db.select(_db.habits).get(),
@@ -327,14 +349,38 @@ class ExportService {
   Future<void> applyMerged(Map<String, Object?> mergedJson) async {
     final merged = ExportEnvelope.fromJson(mergedJson);
     await _db.transaction(() async {
+      // Lists are parents of tasks but soft ones: apply them first, then
+      // remap each task's listUuid to this device's local id (or clear it).
+      final listIds = await _upsertByUuid<$TaskListsTable, TaskList>(
+        table: _db.taskLists,
+        rows: merged.taskLists,
+        uuidOf: (r) => r.uuid,
+        idOf: (r) => r.id,
+        whereUuid: (t, u) => t.uuid.equals(u),
+        resolve: (r) => r.toCompanion(true),
+        contentJson: (r) => _contentJson(r.toJson()),
+      );
       final taskIds = await _upsertByUuid<$TasksTable, Task>(
         table: _db.tasks,
         rows: merged.tasks,
         uuidOf: (r) => r.uuid,
         idOf: (r) => r.id,
         whereUuid: (t, u) => t.uuid.equals(u),
-        resolve: (r) => r.toCompanion(true),
-        contentJson: (r) => _contentJson(r.toJson()),
+        resolve: (r) {
+          final localListId = r.listUuid == null ? null : listIds[r.listUuid];
+          return r
+              .copyWith(
+                listId: Value(localListId),
+                listUuid: localListId == null
+                    ? const Value(null)
+                    : Value(r.listUuid),
+              )
+              .toCompanion(true);
+        },
+        // The local list id is device-private; listUuid is the stable identity.
+        contentJson: (r) => _contentJson(
+          Map<String, Object?>.from(r.toJson())..remove('listId'),
+        ),
       );
       final habitIds = await _upsertByUuid<$HabitsTable, Habit>(
         table: _db.habits,
@@ -493,6 +539,7 @@ class ExportService {
       await _db.delete(_db.taskTags).go();
       await _db.delete(_db.subtasks).go();
       await _db.delete(_db.tasks).go();
+      await _db.delete(_db.taskLists).go();
       await _db.delete(_db.habits).go();
       await _db.delete(_db.tags).go();
 
@@ -501,6 +548,7 @@ class ExportService {
       await _db.batch((b) {
         b.insertAll(_db.tags, e.tags);
         b.insertAll(_db.habits, e.habits);
+        b.insertAll(_db.taskLists, e.taskLists);
         b.insertAll(_db.tasks, e.tasks);
         b.insertAll(_db.subtasks, e.subtasks);
         b.insertAll(_db.taskTags, e.taskTags);

@@ -14,6 +14,7 @@ import 'package:nowpill/features/stats/widgets/streak_leaderboard.dart';
 import 'package:nowpill/features/stats/widgets/tag_donut.dart';
 import 'package:nowpill/features/stats/widgets/trend_chart.dart';
 import 'package:nowpill/features/stats/widgets/weekly_bars.dart';
+import 'package:nowpill/features/stats/widgets/weekly_review_card.dart';
 import 'package:nowpill/features/today/widgets/floating_pills.dart';
 
 import '../data/test_database.dart';
@@ -101,10 +102,12 @@ void main() {
     expect(find.text('Weekly summary'), findsOneWidget);
     expect(find.text('Streak leaderboard'), findsOneWidget);
     expect(find.text('Tasks by tag'), findsOneWidget);
+    expect(find.text('Weekly review'), findsOneWidget);
     expect(find.byType(TrendChart), findsOneWidget);
     expect(find.byType(WeeklyBars), findsOneWidget);
     expect(find.byType(StreakLeaderboard), findsOneWidget);
     expect(find.byType(TagDonut), findsOneWidget);
+    expect(find.byType(WeeklyReviewCard), findsOneWidget);
     expect(find.byType(FloatingPills), findsNothing);
 
     // Leaderboard: Meditate (streak 3) ranks above Read (streak 0).
@@ -123,7 +126,7 @@ void main() {
     // Regression: every entrance card must actually become visible (the
     // stagger once left the last card stuck at opacity 0). Check the Opacity
     // inside each keyed entrance, not M3E-internal ones.
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 5; i++) {
       final opacity = tester.widget<Opacity>(
         find
             .descendant(

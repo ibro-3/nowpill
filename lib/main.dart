@@ -45,7 +45,16 @@ class NowPillApp extends ConsumerStatefulWidget {
 }
 
 class _NowPillAppState extends ConsumerState<NowPillApp> {
-  late final GoRouter _router = buildRouter();
+  /// The router is attached only after settings have loaded (see [build]), so
+  /// the redirect can safely read the persisted onboarding flag.
+  late final GoRouter _router = buildRouter(
+    redirect: (context, state) {
+      if (state.matchedLocation == AppRoutes.onboarding) return null;
+      final seen =
+          ref.read(appSettingsProvider).value?.onboardingComplete ?? false;
+      return seen ? null : AppRoutes.onboarding;
+    },
+  );
 
   @override
   Widget build(BuildContext context) {

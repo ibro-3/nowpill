@@ -4,6 +4,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// A rolling "odometer" number for streak counts. When the value changes, the
 /// digits slide vertically with a spring, giving a satisfying tally effect.
@@ -77,37 +78,42 @@ class _StreakOdometerState extends State<StreakOdometer>
         final dir = _forward ? 1.0 : -1.0;
         final outgoingOffset = -dir * t;
         final incomingOffset = dir * (1 - t);
-        return ClipRect(
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              // Invisible sizer keeps the box stable.
-              Opacity(opacity: 0, child: Text('$_current', style: style)),
-              Positioned.fill(
-                child: FractionalTranslation(
-                  translation: Offset(0, outgoingOffset),
-                  child: Opacity(
-                    opacity: (1 - t).clamp(0.0, 1.0),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text('$_previous', style: style),
+        return Semantics(
+          label: AppLocalizations.of(context).a11yStreak(widget.value),
+          child: ExcludeSemantics(
+            child: ClipRect(
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  // Invisible sizer keeps the box stable.
+                  Opacity(opacity: 0, child: Text('$_current', style: style)),
+                  Positioned.fill(
+                    child: FractionalTranslation(
+                      translation: Offset(0, outgoingOffset),
+                      child: Opacity(
+                        opacity: (1 - t).clamp(0.0, 1.0),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text('$_previous', style: style),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Positioned.fill(
-                child: FractionalTranslation(
-                  translation: Offset(0, incomingOffset),
-                  child: Opacity(
-                    opacity: t.clamp(0.0, 1.0),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text('$_current', style: style),
+                  Positioned.fill(
+                    child: FractionalTranslation(
+                      translation: Offset(0, incomingOffset),
+                      child: Opacity(
+                        opacity: t.clamp(0.0, 1.0),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text('$_current', style: style),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

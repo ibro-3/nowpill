@@ -32,94 +32,101 @@ class WeeklyBars extends StatelessWidget {
       color: scheme.onSurfaceVariant,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _DeltaHint(
-          theme: theme,
-          thisWeek: thisWeekTotal,
-          lastWeek: lastWeekTotal,
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 150,
-          child: BarChart(
-            BarChartData(
-              maxY: maxY,
-              alignment: BarChartAlignment.spaceAround,
-              barTouchData: const BarTouchData(enabled: false),
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: maxY / 3,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: scheme.outlineVariant.withValues(alpha: 0.4),
-                  strokeWidth: 1,
+    return Semantics(
+      container: true,
+      label: AppLocalizations.of(context).a11yWeeklyBars,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DeltaHint(
+            theme: theme,
+            thisWeek: thisWeekTotal,
+            lastWeek: lastWeekTotal,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 150,
+            child: BarChart(
+              BarChartData(
+                maxY: maxY,
+                alignment: BarChartAlignment.spaceAround,
+                barTouchData: const BarTouchData(enabled: false),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 3,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    strokeWidth: 1,
+                  ),
                 ),
-              ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(),
-                rightTitles: const AxisTitles(),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 28,
-                    interval: maxY / 3,
-                    getTitlesWidget: (value, meta) => SideTitleWidget(
-                      meta: meta,
-                      child: Text(value.toInt().toString(), style: labelStyle),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(),
+                  rightTitles: const AxisTitles(),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      interval: maxY / 3,
+                      getTitlesWidget: (value, meta) => SideTitleWidget(
+                        meta: meta,
+                        child: Text(
+                          value.toInt().toString(),
+                          style: labelStyle,
+                        ),
+                      ),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= weeks.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final w = weeks[i].weekStart;
+                        return SideTitleWidget(
+                          meta: meta,
+                          child: Text('${w.month}/${w.day}', style: labelStyle),
+                        );
+                      },
                     ),
                   ),
                 ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 24,
-                    getTitlesWidget: (value, meta) {
-                      final i = value.toInt();
-                      if (i < 0 || i >= weeks.length) {
-                        return const SizedBox.shrink();
-                      }
-                      final w = weeks[i].weekStart;
-                      return SideTitleWidget(
-                        meta: meta,
-                        child: Text('${w.month}/${w.day}', style: labelStyle),
-                      );
-                    },
-                  ),
-                ),
+                barGroups: [
+                  for (var i = 0; i < weeks.length; i++)
+                    BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: weeks[i].total.toDouble(),
+                          width: 16,
+                          borderRadius: BorderRadius.circular(5),
+                          rodStackItems: [
+                            BarChartRodStackItem(
+                              0,
+                              weeks[i].habitCheckins.toDouble(),
+                              scheme.primary,
+                            ),
+                            BarChartRodStackItem(
+                              weeks[i].habitCheckins.toDouble(),
+                              weeks[i].total.toDouble(),
+                              scheme.tertiary,
+                            ),
+                          ],
+                          color: scheme.primary,
+                        ),
+                      ],
+                    ),
+                ],
               ),
-              barGroups: [
-                for (var i = 0; i < weeks.length; i++)
-                  BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: weeks[i].total.toDouble(),
-                        width: 16,
-                        borderRadius: BorderRadius.circular(5),
-                        rodStackItems: [
-                          BarChartRodStackItem(
-                            0,
-                            weeks[i].habitCheckins.toDouble(),
-                            scheme.primary,
-                          ),
-                          BarChartRodStackItem(
-                            weeks[i].habitCheckins.toDouble(),
-                            weeks[i].total.toDouble(),
-                            scheme.tertiary,
-                          ),
-                        ],
-                        color: scheme.primary,
-                      ),
-                    ],
-                  ),
-              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

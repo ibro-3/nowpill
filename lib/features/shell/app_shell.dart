@@ -161,17 +161,22 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return Scaffold(
       body: widget.navigationShell,
-      bottomNavigationBar: M3ENavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: _onDestinationSelected,
-        destinations: [
-          for (final d in destinations)
-            M3ENavigationBarDestination(
-              icon: Icon(d.icon),
-              selectedIcon: Icon(d.selectedIcon),
-              label: d.label,
-            ),
-        ],
+      // M3E's bar has a fixed intrinsic height; large system text needs room
+      // for the labels to wrap without clipping.
+      bottomNavigationBar: SizedBox(
+        height: 80 * MediaQuery.textScalerOf(context).scale(1.0),
+        child: M3ENavigationBar(
+          selectedIndex: index,
+          onDestinationSelected: _onDestinationSelected,
+          destinations: [
+            for (final d in destinations)
+              M3ENavigationBarDestination(
+                icon: Icon(d.icon),
+                selectedIcon: Icon(d.selectedIcon),
+                label: d.label,
+              ),
+          ],
+        ),
       ),
     );
   }

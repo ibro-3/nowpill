@@ -9,7 +9,7 @@ part 'tasks_dao.g.dart';
 ///
 /// Sync-aware (schema v3): updates stamp `updatedAt`, deletes record
 /// tombstones (including cascaded children) so other devices converge.
-@DriftAccessor(tables: [Tasks, Subtasks, TaskTags, Tags, Tombstones])
+@DriftAccessor(tables: [TaskLists, Tasks, Subtasks, TaskTags, Tags, Tombstones])
 class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   TasksDao(super.db);
 
@@ -62,10 +62,32 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
     return (select(tasks)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
-  Future<int> insertTask(TasksCompanion entry) => into(tasks).insert(entry);
+  /// Looks up the stable uuid for a task's list id. A missing/unknown list
+  /// produces a null uuid (inbox), never a dangling reference.
+  Future<String?> _listUuid(int? listId) async {
+    if (listId == null) return null;
+    final list = await (select(
+      taskLists,
+    )..where((l) => l.id.equals(listId))).getSingleOrNull();
+    return list?.uuid;
+  }
 
-  Future<bool> updateTask(Task entry) =>
-      update(tasks).replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
+  Future<int> insertTask(TasksCompanion entry) async {
+    final resolved = entry.copyWith(
+      listUuid: Value(
+        await _listUuid(entry.listId.present ? entry.listId.value : null),
+      ),
+    );
+    return into(tasks).insert(resolved);
+  }
+
+  Future<bool> updateTask(Task entry) async {
+    final resolved = entry.copyWith(
+      listUuid: Value(await _listUuid(entry.listId)),
+    );
+    return update(tasks)
+        .replace(resolved.copyWith(updatedAt: DateTime.now().toUtc()));
+  }
 
   Future<int> deleteTask(int id) async {
     return attachedDatabase.transaction(() async {
@@ -228,4 +250,55 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
 
   /// All tag links, reactive (for tag filtering).
   Stream<List<TaskTag>> watchAllTaskTags() => select(taskTags).watch();
+
+  // ---------------------------------------------------------------------------
+  // Task lists (schema v5)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<TaskList>> watchAllTaskLists() {
+    return (select(taskLists)..orderBy([
+          (l) => OrderingTerm(expression: l.sortOrder),
+          (l) => OrderingTerm(expression: l.name),
+        ]))
+        .watch();
+  }
+
+  Future<List<TaskList>> getAllTaskLists() => select(taskLists).get();
+
+  Future<int> insertTaskList(TaskListsCompanion entry) =>
+      into(taskLists).insert(entry);
+
+  Future<bool> updateTaskList(TaskList entry) =>
+      update(taskLists)
+          .replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
+
+  /// Deleting a list never deletes its tasks: the FK clears `listId`, and we
+  /// clear `listUuid` explicitly so the rows stay inbox-style after a sync.
+  Future<int> deleteTaskList(int id) async {
+    return attachedDatabase.transaction(() async {
+      final list = await (select(
+        taskLists,
+      )..where((l) => l.id.equals(id))).getSingleOrNull();
+      if (list == null) return 0;
+
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: list.uuid,
+          sourceTable: 'task_lists',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+
+      await (update(tasks)..where((t) => t.listUuid.equals(list.uuid))).write(
+        TasksCompanion(
+          listUuid: const Value(null),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+
+      return (delete(taskLists)..where((l) => l.id.equals(id))).go();
+    });
+  }
 }

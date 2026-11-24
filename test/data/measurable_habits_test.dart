@@ -73,7 +73,7 @@ void main() {
           .customSelect('PRAGMA user_version')
           .map((r) => r.data.values.first as int)
           .getSingle();
-      expect(version, 4);
+      expect(version, 5);
       await db.close();
     });
   });
@@ -145,7 +145,7 @@ void main() {
       await habits.checkIn(id, '2026-11-20', amount: 5);
       final json = await ExportService(db).exportToString();
       final decoded = jsonDecode(json) as Map<String, Object?>;
-      expect(decoded['schemaVersion'], 4);
+      expect(decoded['schemaVersion'], 5);
 
       final db2 = createTestDatabase();
       addTearDown(db2.close);

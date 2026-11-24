@@ -25,6 +25,31 @@ void main() {
     expect(settings.motionMode, AppMotionMode.expressive);
   });
 
+  test(
+    'onboarding starts incomplete and the dismissed flag persists',
+    () async {
+      final container = await loadContainer();
+      expect(
+        container.read(currentSettingsProvider).onboardingComplete,
+        isFalse,
+      );
+
+      container.read(appSettingsProvider.notifier).setOnboardingComplete(true);
+      expect(
+        container.read(currentSettingsProvider).onboardingComplete,
+        isTrue,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('settings.onboardingComplete'), isTrue);
+
+      final reloaded = ProviderContainer();
+      addTearDown(reloaded.dispose);
+      await reloaded.read(appSettingsProvider.future);
+      expect(reloaded.read(currentSettingsProvider).onboardingComplete, isTrue);
+    },
+  );
+
   test('default reminder persists and reloads', () async {
     final container = await loadContainer();
     container.read(appSettingsProvider.notifier).setDefaultReminderMinutes(540);

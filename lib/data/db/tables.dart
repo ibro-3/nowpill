@@ -8,6 +8,30 @@ import 'converters.dart';
 /// integer PKs remain the on-device keys; uuids identify rows across devices.
 const Uuid syncUuid = Uuid();
 
+/// User-defined lists (projects) for grouping tasks (schema v5).
+///
+/// A task's list is a soft reference: deleting a list clears the link but
+/// keeps its tasks. That makes the reference safe across devices where a list
+/// may not have arrived yet.
+class TaskLists extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Cross-device identity (schema v3). Preserved on merge.
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// Last modification time (UTC millis) for sync merge.
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  TextColumn get name => text().withLength(min: 1, max: 100).unique()();
+
+  /// ARGB color value.
+  IntColumn get color => integer()();
+
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+}
+
 /// Tasks (to-dos). Completing a recurring task spawns the next occurrence;
 /// history is preserved via [completedAt].
 class Tasks extends Table {
@@ -46,6 +70,17 @@ class Tasks extends Table {
 
   /// Manual ordering within lists.
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// Optional parent list (schema v5). Null = inbox / no list. Deleting the
+  /// list sets this to null but keeps the task (soft reference).
+  IntColumn get listId => integer().nullable().references(
+    TaskLists,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+
+  /// Parent list uuid (schema v5) — survives merges that remap local ids.
+  TextColumn get listUuid => text().nullable()();
 }
 
 /// Checklist items belonging to a task.

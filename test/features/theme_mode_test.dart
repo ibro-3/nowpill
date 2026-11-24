@@ -80,6 +80,7 @@ void main() {
       testWidgets('mode=${mode.name} on ${platform.name} OS resolves '
           '${expected.name}', (tester) async {
         SharedPreferences.setMockInitialValues({
+          'settings.onboardingComplete': true,
           'settings.themeMode': mode.name,
           'settings.dynamicColor': false,
         });
@@ -94,6 +95,7 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
       'settings.themeMode': 'system',
       'settings.dynamicColor': false,
     });
@@ -125,6 +127,7 @@ void main() {
 
   testWidgets('locked mode survives an OS brightness flip', (tester) async {
     SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
       'settings.themeMode': 'dark',
       'settings.dynamicColor': false,
     });

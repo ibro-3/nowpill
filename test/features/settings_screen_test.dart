@@ -98,7 +98,9 @@ void main() {
   late FakeNotificationService notifications;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     db = createTestDatabase();
     backup = FakeBackupService(ExportService(db));
     permission = FakePermissionService();

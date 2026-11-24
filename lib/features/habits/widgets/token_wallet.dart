@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
 import '../../../domain/streak_engine.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Displays the freeze-token wallet: a row of ❄ slots (filled = available)
 /// plus a progress hint toward the next token. Newly earned tokens pop in.
@@ -60,20 +61,25 @@ class _TokenWalletState extends State<TokenWallet>
       animation: _pop,
       builder: (context, _) {
         final pop = _pop.value.clamp(0.0, 1.0);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < maxTokens; i++)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: _TokenSlot(
-                  filled: i < widget.tokens,
-                  // The newest filled slot pops when a token is earned.
-                  scale: (i == widget.tokens - 1) ? 0.5 + 0.5 * pop : 1.0,
-                  theme: theme,
-                ),
-              ),
-          ],
+        return Semantics(
+          label: AppLocalizations.of(context).a11yTokens(widget.tokens),
+          child: ExcludeSemantics(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < maxTokens; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: _TokenSlot(
+                      filled: i < widget.tokens,
+                      // The newest filled slot pops when a token is earned.
+                      scale: (i == widget.tokens - 1) ? 0.5 + 0.5 * pop : 1.0,
+                      theme: theme,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );

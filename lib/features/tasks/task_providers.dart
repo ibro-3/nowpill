@@ -31,6 +31,20 @@ class TaskTagFilterNotifier extends _$TaskTagFilterNotifier {
   void set(int? tagId) => state = tagId;
 }
 
+/// Optional list filter (null = all lists, including the inbox).
+@Riverpod(keepAlive: true)
+class TaskListFilterNotifier extends _$TaskListFilterNotifier {
+  @override
+  int? build() => null;
+
+  void set(int? listId) => state = listId;
+}
+
+/// All task lists, reactive.
+final allTaskListsProvider = StreamProvider<List<TaskList>>((ref) {
+  return ref.watch(taskListRepositoryProvider).watchAll();
+});
+
 /// All tasks, reactive.
 final allTasksProvider = StreamProvider<List<Task>>((ref) {
   return ref.watch(taskRepositoryProvider).watchAll();
@@ -67,9 +81,14 @@ final filteredTasksProvider = Provider<List<Task>>((ref) {
   final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
   final filter = ref.watch(taskFilterProvider);
   final tagFilter = ref.watch(taskTagFilterProvider);
+  final listFilter = ref.watch(taskListFilterProvider);
   final now = DateTime.now();
 
   Iterable<Task> result = tasks;
+
+  if (listFilter != null) {
+    result = result.where((t) => t.listId == listFilter);
+  }
 
   if (tagFilter != null) {
     final links = ref.watch(allTaskTagsProvider).value ?? const <TaskTag>[];

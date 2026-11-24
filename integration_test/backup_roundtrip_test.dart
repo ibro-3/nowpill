@@ -10,6 +10,7 @@ import 'package:nowpill/data/db/app_database.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/data/repositories/tag_repository.dart';
+import 'package:nowpill/data/repositories/task_list_repository.dart';
 import 'package:nowpill/data/repositories/task_repository.dart';
 import 'package:nowpill/domain/date_utils.dart';
 import 'package:nowpill/domain/enums.dart';
@@ -38,7 +39,10 @@ void main() {
   late DiskFilePicker picker;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({'settings.motionMode': 'standard'});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+      'settings.motionMode': 'standard',
+    });
     db = AppDatabase.withExecutor(NativeDatabase.memory());
     dir = await Directory.systemTemp.createTemp('nowpill_backup_e2e_');
     picker = DiskFilePicker(dir);
@@ -76,6 +80,7 @@ void main() {
     final habits = HabitRepository(db);
     final tasks = TaskRepository(db);
     final tags = TagRepository(db);
+    final lists = TaskListRepository(db);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -101,10 +106,12 @@ void main() {
       formatDate(today.subtract(const Duration(days: 3))),
     );
 
+    final listId = await lists.create(name: 'Home', color: 0xFF5B8DEF);
     final taskId = await tasks.create(
       title: 'Water plants',
       dueAt: today,
       recurrence: const RecurrenceRule(unit: RecurrenceUnit.day),
+      listId: listId,
     );
     await tasks.addSubtask(taskId, 'Kitchen');
     final tagId = await tags.create(name: 'home', color: 0xFFFFB454);
@@ -125,12 +132,13 @@ void main() {
     expect(exported.existsSync(), isTrue);
     final envelope =
         jsonDecode(await exported.readAsString()) as Map<String, Object?>;
-    expect(envelope['schemaVersion'], 4);
+    expect(envelope['schemaVersion'], 5);
     final data = envelope['data'] as Map<String, Object?>;
     expect(data['habits'], hasLength(1));
     expect(data['checkins'], hasLength(3));
     expect(data['freezes'], hasLength(1));
     expect(data['tasks'], hasLength(1));
+    expect(data['taskLists'], hasLength(1));
     expect(data['subtasks'], hasLength(1));
     expect(data['tags'], hasLength(1));
     expect(data['taskTags'], hasLength(1));

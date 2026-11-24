@@ -28,6 +28,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
       'settings.motionMode': 'expressive',
     });
     db = AppDatabase.withExecutor(NativeDatabase.memory());

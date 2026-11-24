@@ -284,6 +284,7 @@ class _Header extends StatelessWidget {
           done: vm.done,
           total: vm.total,
           celebrate: vm.allDone,
+          size: 132 * MediaQuery.textScalerOf(context).scale(1.0),
         ),
       ],
     );

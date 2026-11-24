@@ -24,7 +24,9 @@ void main() {
   late AppDatabase db;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     db = AppDatabase.withExecutor(NativeDatabase.memory(), deviceId: 'testDev');
   });
 
@@ -105,6 +107,7 @@ void main() {
       await tester.runAsync(() => dir!.delete(recursive: true));
     });
     SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
       'flutter.settings.syncEnabled': true,
       'flutter.settings.syncFolderHandle': dir!.path,
     });

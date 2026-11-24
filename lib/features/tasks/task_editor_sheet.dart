@@ -39,6 +39,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
   TaskPriority _priority = TaskPriority.none;
   RecurrenceRule? _recurrence;
   DateTime? _reminderAt;
+  int? _listId;
   late Set<int> _tagIds;
   late List<_SubtaskDraft> _subtasks;
   bool _saving = false;
@@ -55,6 +56,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
     _priority = t?.priority ?? TaskPriority.none;
     _recurrence = t?.recurrenceRule;
     _reminderAt = t?.reminderAt;
+    _listId = t?.listId;
     _tagIds = {};
     _subtasks = [];
     if (t != null) {
@@ -164,6 +166,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
           priority: _priority,
           recurrenceRule: Value(_recurrence),
           reminderAt: Value(reminderUtc),
+          listId: Value(_listId),
         ),
       );
     } else {
@@ -174,6 +177,7 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
         priority: _priority,
         recurrence: _recurrence,
         reminderAt: reminderUtc,
+        listId: _listId,
       );
     }
 
@@ -248,6 +252,36 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
             label: l10n.notes,
             maxLines: 3,
             minLines: 1,
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel(l10n.taskLists, theme),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              M3EChip(
+                label: l10n.inbox,
+                type: M3EChipType.filter,
+                selected: _listId == null,
+                onPressed: () => setState(() => _listId = null),
+              ),
+              for (final list
+                  in ref.watch(allTaskListsProvider).value ??
+                      const <TaskList>[])
+                M3EChip(
+                  label: list.name,
+                  type: M3EChipType.filter,
+                  selected: _listId == list.id,
+                  onPressed: () => setState(() => _listId = list.id),
+                ),
+              M3EChip(
+                label: l10n.newList,
+                type: M3EChipType.assist,
+                leading: const Icon(M3EIcons.add, size: 18),
+                onPressed: _createList,
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.dueDate, theme),
@@ -372,6 +406,40 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
         ],
       ),
     );
+  }
+
+  Future<void> _createList() async {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    final name = await M3EDialog.show<String>(
+      context,
+      dialog: M3EDialog(
+        title: l10n.newList,
+        content: M3ETextField(
+          controller: controller,
+          label: l10n.listName,
+          autofocus: true,
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.of(context).pop(),
+            label: Text(l10n.cancel),
+          ),
+          M3EButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            label: Text(l10n.create),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    final id = await ref
+        .read(taskListRepositoryProvider)
+        .create(name: name.trim(), color: 0xFF2DD4A8);
+    if (mounted) setState(() => _listId = id);
   }
 
   Future<void> _createTag() async {

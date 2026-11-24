@@ -22,7 +22,9 @@ void main() {
   late Directory dir;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     db = AppDatabase.withExecutor(NativeDatabase.memory(), deviceId: 'devA');
     dir = Directory.systemTemp.createTempSync('nowpill_autobackup_ui_');
   });

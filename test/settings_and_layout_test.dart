@@ -9,7 +9,9 @@ import 'data/test_database.dart';
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
   });
 
   /// Boots the app with an isolated in-memory DB and registers teardown that

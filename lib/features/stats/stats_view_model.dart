@@ -1,5 +1,6 @@
 import '../../data/db/app_database.dart';
 import '../../domain/stats_engine.dart';
+import '../../domain/weekly_review.dart';
 
 /// Everything the Stats dashboard renders, derived reactively from tasks,
 /// habits, check-ins, and tag links.
@@ -13,6 +14,7 @@ class StatsViewModel {
     required this.totalTasksDone,
     required this.activeHabits,
     required this.bestStreakOverall,
+    required this.review,
   });
 
   static const StatsViewModel empty = StatsViewModel(
@@ -24,6 +26,14 @@ class StatsViewModel {
     totalTasksDone: 0,
     activeHabits: 0,
     bestStreakOverall: 0,
+    review: WeeklyReview(
+      lastWeekTotal: 0,
+      previousWeekTotal: 0,
+      tasksDoneLastWeek: 0,
+      bestStreak: 0,
+      atRisk: [],
+      dueAhead: 0,
+    ),
   );
 
   /// Last 30 days of completions (oldest first).
@@ -42,6 +52,9 @@ class StatsViewModel {
   final int totalTasksDone;
   final int activeHabits;
   final int bestStreakOverall;
+
+  /// Last week in review + what needs attention today.
+  final WeeklyReview review;
 
   /// Whether there is any data at all to chart.
   bool get hasData =>

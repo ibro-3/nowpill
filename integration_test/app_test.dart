@@ -30,7 +30,10 @@ void main() {
     // Standard (reduced) motion keeps the e2e deterministic: no perpetual bob
     // loops or spring overshoot, so the live binding advances cleanly. This
     // also exercises the reduce-motion code path end to end.
-    SharedPreferences.setMockInitialValues({'settings.motionMode': 'standard'});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+      'settings.motionMode': 'standard',
+    });
     db = AppDatabase.withExecutor(NativeDatabase.memory());
   });
 

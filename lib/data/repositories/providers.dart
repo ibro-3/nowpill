@@ -19,6 +19,7 @@ import '../widget/widget_bridge_service.dart';
 import '../widget/widget_snapshot_controller.dart';
 import 'habit_repository.dart';
 import 'tag_repository.dart';
+import 'task_list_repository.dart';
 import 'task_repository.dart';
 
 part 'providers.g.dart';
@@ -37,6 +38,11 @@ AppDatabase appDatabase(Ref ref) {
 @Riverpod(keepAlive: true)
 TaskRepository taskRepository(Ref ref) {
   return TaskRepository(ref.watch(appDatabaseProvider));
+}
+
+@Riverpod(keepAlive: true)
+TaskListRepository taskListRepository(Ref ref) {
+  return TaskListRepository(ref.watch(appDatabaseProvider));
 }
 
 @Riverpod(keepAlive: true)

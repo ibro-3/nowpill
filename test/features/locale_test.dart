@@ -42,7 +42,9 @@ void main() {
   }
 
   testWidgets('defaults to English', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     await boot(tester);
     expect(find.text('Today'), findsWidgets);
     expect(find.text('Habits'), findsWidgets);
@@ -52,7 +54,10 @@ void main() {
   testWidgets('persisted Spanish locale renders Spanish labels', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({'settings.localeCode': 'es'});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+      'settings.localeCode': 'es',
+    });
     await boot(tester);
     expect(find.text('Hoy'), findsWidgets);
     expect(find.text('Hábitos'), findsWidgets);
@@ -61,7 +66,9 @@ void main() {
   });
 
   testWidgets('switching the locale live rebuilds labels', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     await boot(tester);
     expect(find.text('Today'), findsWidgets);
 

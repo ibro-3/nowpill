@@ -26,7 +26,9 @@ import 'dart:convert';
 /// Device clocks are trusted; skew is a documented caveat, not corrected.
 
 /// Row tables in the envelope's `data` object, parents before children.
-const List<String> kSyncParentTables = ['tasks', 'habits', 'tags'];
+/// `taskLists` is a soft parent: a task may reference it by uuid, but a
+/// missing list never removes the task (the link is simply cleared).
+const List<String> kSyncParentTables = ['taskLists', 'tasks', 'habits', 'tags'];
 const List<String> kSyncChildTables = [
   'subtasks',
   'taskTags',
@@ -42,8 +44,8 @@ const Map<String, Map<String, String>> kSyncParentRefs = {
   'freezes': {'habitUuid': 'habits'},
 };
 
-/// Full current-schema (v4) key set per row table. Older envelopes (e.g. a
-/// pre-v4 device's file) omit nullable columns added later; rows are
+/// Full current-schema (v5) key set per row table. Older envelopes (e.g. a
+/// pre-v5 device's file) omit nullable columns added later; rows are
 /// normalized to these keys (missing → null) before merging so a missing key
 /// and an explicit null compare equal. Without this, a v4 device would see
 /// its own row as "changed" against an older copy every cycle and rewrite it
@@ -62,7 +64,10 @@ const Map<String, List<String>> kSyncRowKeys = {
     'reminderAt',
     'createdAt',
     'sortOrder',
+    'listId',
+    'listUuid',
   ],
+  'taskLists': ['id', 'uuid', 'updatedAt', 'name', 'color', 'sortOrder'],
   'habits': [
     'id',
     'uuid',
@@ -278,6 +283,34 @@ SyncMergeResult mergeEnvelopes({
     }
   }
 
+  // --- 4b. List-name dedupe (lists are unique-by-name locally). Tasks that
+  // referenced a losing list are remapped to the winner. ---
+  {
+    final byName = <String, List<_Candidate>>{};
+    for (final c in winners['taskLists']!.values) {
+      final name = c.row['name'] as String? ?? '';
+      (byName[name] ??= []).add(c);
+    }
+    for (final group in byName.values) {
+      if (group.length < 2) continue;
+      group.sort(_compareCandidates);
+      final winner = group.last;
+      for (final loser in group.take(group.length - 1)) {
+        final tasks = winners['tasks']!;
+        for (final entry in tasks.entries.toList()) {
+          if (entry.value.row['listUuid'] == loser.uuid) {
+            tasks[entry.key] = _Candidate({
+              ...entry.value.row,
+              'listUuid': winner.uuid,
+            }, entry.value.deviceId);
+          }
+        }
+        winners['taskLists']!.remove(loser.uuid);
+        duplicatesMerged++;
+      }
+    }
+  }
+
   // --- 5. Drop orphans (parent uuid did not survive). ---
   for (final table in kSyncChildTables) {
     final refs = kSyncParentRefs[table]!;
@@ -292,6 +325,23 @@ SyncMergeResult mergeEnvelopes({
       }
       return false;
     });
+  }
+
+  // --- 5b. Lists are soft references: a task whose list was deleted (or is
+  // still unknown locally) stays, with the link cleared to "inbox". ---
+  {
+    final tasks = winners['tasks']!;
+    final listUuids = winners['taskLists']!.keys.toSet();
+    for (final entry in tasks.entries.toList()) {
+      final listUuid = entry.value.row['listUuid'] as String?;
+      if (listUuid != null && !listUuids.contains(listUuid)) {
+        tasks[entry.key] = _Candidate({
+          ...entry.value.row,
+          'listId': null,
+          'listUuid': null,
+        }, entry.value.deviceId);
+      }
+    }
   }
 
   // --- 6. Natural-key dedupe: newest copy per logical key. ---
@@ -324,7 +374,7 @@ SyncMergeResult mergeEnvelopes({
 
   return SyncMergeResult(
     envelope: {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'exportedAt': now.toUtc().millisecondsSinceEpoch,
       'deviceId': deviceId,
       'data': data,

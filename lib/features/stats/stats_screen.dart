@@ -13,6 +13,7 @@ import 'widgets/streak_leaderboard.dart';
 import 'widgets/tag_donut.dart';
 import 'widgets/trend_chart.dart';
 import 'widgets/weekly_bars.dart';
+import 'widgets/weekly_review_card.dart';
 
 /// The Stats tab: 30-day trend, weekly summary, streak leaderboard, and tag
 /// donut — all derived reactively from the local database.
@@ -90,6 +91,16 @@ class StatsScreen extends ConsumerWidget {
                 theme: theme,
                 title: l10n.statsTasksByTag,
                 child: TagDonut(slices: vm.tagSlices),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _Entrance(
+              key: const ValueKey('stats-entrance-4'),
+              index: 4,
+              child: _StatsCard(
+                theme: theme,
+                title: l10n.statsWeeklyReview,
+                child: WeeklyReviewCard(review: vm.review),
               ),
             ),
           ],

@@ -549,5 +549,81 @@
   "searchTags": "Tags",
   "heatmapMonth": "Month",
   "heatmapYear": "Year",
-  "yearHeatmapTitle": "Last 12 months"
+  "yearHeatmapTitle": "Last 12 months",
+  "taskLists": "Lists",
+  "inbox": "Inbox",
+  "newList": "New list",
+  "listName": "List name",
+  "manageLists": "Manage lists",
+  "renameList": "Rename list",
+  "deleteListTitle": "Delete list?",
+  "deleteListBody": "Tasks in this list move to Inbox. Nothing is deleted.",
+  "listCreated": "List created.",
+  "listRenamed": "List renamed.",
+  "listDeleted": "List deleted.",
+  "onboardingWelcomeTitle": "Make today count",
+  "onboardingWelcomeBody": "NowPill is a local-first habit tracker and to-do list. No account, no cloud, no tracking — your data stays on your device.",
+  "onboardingHabitsTitle": "Start with a few habits",
+  "onboardingHabitsBody": "Pick any that fit. You can change or remove them later.",
+  "onboardingReadyTitle": "You're ready",
+  "onboardingReadyBody": "Check off a habit, add a task, or just explore. Streaks, freezes, and stats build up as you go.",
+  "onboardingNext": "Next",
+  "onboardingBack": "Back",
+  "onboardingStart": "Start tracking",
+  "onboardingSkip": "Skip",
+  "onboardingReplay": "Replay intro",
+  "starterWater": "Drink water",
+  "starterMove": "Move for 10 minutes",
+  "starterRead": "Read a few pages",
+  "onboardingSeeded": "Starter habits added.",
+  "statsWeeklyReview": "Weekly review",
+  "reviewDone": "check-ins last week",
+  "reviewTasks": "tasks done last week",
+  "reviewBest": "Best streak",
+  "reviewAtRisk": "At risk",
+  "reviewAllSafe": "All habits safe",
+  "reviewAhead": "due in the week ahead",
+  "reviewDelta": "{delta} vs previous week",
+  "@reviewDelta": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yHeatmapDone": "Done",
+  "a11yHeatmapPartial": "Partial progress",
+  "a11yHeatmapFrozen": "Frozen",
+  "a11yHeatmapMissed": "Missed",
+  "a11yHeatmapPending": "Not done yet",
+  "a11yRingProgress": "{done} of {total} done today",
+  "@a11yRingProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yStreak": "{count} day streak",
+  "@a11yStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yTokens": "{count} freeze tokens",
+  "@a11yTokens": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yWeeklyBars": "Weekly check-ins and tasks done",
+  "a11yTrend": "Daily activity over the last 30 days",
+  "a11yDonut": "Tasks by tag"
 }

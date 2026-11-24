@@ -8,6 +8,8 @@ import '../../../domain/date_utils.dart';
 import '../../../domain/habit_schedule.dart';
 import '../../../domain/heatmap.dart';
 import '../../../domain/streak_engine.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import 'heatmap_semantics.dart';
 
 export '../../../domain/heatmap.dart' show HeatmapDayState;
 
@@ -268,12 +270,21 @@ class _HeatmapCell extends StatelessWidget {
       ),
     );
 
-    if (!backfillable) return cell;
-    return GestureDetector(
-      key: ValueKey('heatmap-${formatDate(day)}'),
+    final l10n = AppLocalizations.of(context);
+    final label = '${formatDate(day)}, ${heatmapStateLabel(l10n, state)}';
+    if (!backfillable) {
+      return Semantics(container: true, label: label, child: cell);
+    }
+    return Semantics(
+      button: true,
+      label: label,
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: MouseRegion(cursor: SystemMouseCursors.click, child: cell),
+      child: GestureDetector(
+        key: ValueKey('heatmap-${formatDate(day)}'),
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: MouseRegion(cursor: SystemMouseCursors.click, child: cell),
+      ),
     );
   }
 }

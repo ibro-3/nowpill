@@ -14,13 +14,15 @@ part 'app_database.g.dart';
 
 /// The NowPill local database. Offline-first; all feature data lives here.
 ///
-/// Schema version 4 (v0.3.0: v3 adds cross-device sync identity — per-row
+/// Schema version 5 (v0.5.0: v3 adds cross-device sync identity — per-row
 /// `uuid` + `updatedAt`, parent uuid references, [Tombstones]; v4 adds
-/// measurable habits — `Habits.targetAmount` + `HabitCheckins.amount`).
+/// measurable habits — `Habits.targetAmount` + `HabitCheckins.amount`; v5 adds
+/// task lists — [TaskLists], `Tasks.listId` + `Tasks.listUuid`).
 /// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
 /// task_tags, checkins, freezes) work.
 @DriftDatabase(
   tables: [
+    TaskLists,
     Tasks,
     Subtasks,
     Tags,
@@ -44,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   final String deviceId;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,11 +69,44 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(habits, habits.targetAmount);
         await m.addColumn(habitCheckins, habitCheckins.amount);
       }
+      if (from < 5) {
+        await _migrateToV5(m);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// v0.5.0 task lists. Both columns are nullable, so existing tasks stay in
+  /// the inbox; the FK uses SET NULL when a list is deleted. The existence
+  /// guards also make upgrades from hand-built partial test schemas safe.
+  Future<void> _migrateToV5(Migrator m) async {
+    if (!await _tableExists('task_lists')) {
+      await m.createTable(taskLists);
+    }
+    if (await _tableExists('tasks')) {
+      if (!await _columnExists('tasks', 'list_id')) {
+        await m.addColumn(tasks, tasks.listId);
+      }
+      if (!await _columnExists('tasks', 'list_uuid')) {
+        await m.addColumn(tasks, tasks.listUuid);
+      }
+    }
+  }
+
+  Future<bool> _tableExists(String name) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(name)],
+    ).get();
+    return rows.isNotEmpty;
+  }
+
+  Future<bool> _columnExists(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info("$table")').get();
+    return rows.any((r) => r.read<String>('name') == column);
+  }
 
   /// v0.3.0 sync identity. Every row gains a uuid + updatedAt; child rows gain
   /// parent uuid references; deletes are tracked in [Tombstones]. Existing

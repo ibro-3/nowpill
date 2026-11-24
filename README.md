@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.4.0** (see `CHANGELOG.md`).
+Current release: **v0.5.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -40,7 +40,18 @@ Current release: **v0.4.0** (see `CHANGELOG.md`).
   one-tap Check pill for the next undone habit, and a “Today's habits” list with
   per-habit check pills (Android AppWidget; check-ins work with the app closed;
   iOS WidgetKit/AppIntents sources included, build needs macOS).
-- **Backup & sync** — versioned JSON export/import (schema v4, imports v1–v3)
+- **First-run onboarding** — a short 3-step intro with optional starter habits
+  (drink water, move, read); skip it any time, all choices editable later.
+- **Task lists** — group tasks into lists (projects) with per-list filters and
+  inline create/rename/delete; deleting a list never deletes its tasks. Lists
+  travel with folder sync and backups (schema v5).
+- **Weekly review** — a Stats card recapping last week's check-ins, tasks,
+  comparison to the week before, best streak, habits at risk, and tasks due in
+  the week ahead.
+- **Accessibility** — screen-reader labels on heatmap days, progress ring,
+  streak/token widgets, and charts; tap-target and 2× text-scale regression
+  tests for the primary tabs.
+- **Backup & sync** — versioned JSON export/import (schema v5, imports v1–v4)
   with a confirm-replace-all flow; **automatic daily backups** (last 7 kept,
   explicit restore); **optional folder sync** through a user-chosen folder
   (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW
@@ -131,9 +142,9 @@ past day automatically refunds any freeze it would have consumed.
 ## Notes
 
 - App ID is `app.nowpill` (Android, iOS, Linux).
-- Data is stored locally. Optional folder sync (Android + desktop) keeps devices
-  in step through a folder you choose — no server. Web folder sync and a hosted
-  sync service are planned for a later release.
+- Data is stored locally. Optional folder sync (Android, desktop, and Chromium
+  web) keeps devices in step through a folder you choose — no server. A hosted
+  sync service is not offered.
 - Store submission materials live in `store/` (listing copy, privacy policy +
   Play data-safety answers, phone screenshots).
 - The iOS home-screen widget ships as WidgetKit sources + integration steps in

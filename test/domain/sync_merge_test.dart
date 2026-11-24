@@ -17,6 +17,7 @@ void main() {
       'deviceId': device,
       'data': {
         'tasks': <Object>[],
+        'taskLists': <Object>[],
         'habits': <Object>[],
         'tags': <Object>[],
         'subtasks': <Object>[],

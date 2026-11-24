@@ -48,6 +48,7 @@ class TaskRepository {
     RecurrenceRule? recurrence,
     DateTime? reminderAt,
     int sortOrder = 0,
+    int? listId,
   }) {
     return _tasks.insertTask(
       TasksCompanion.insert(
@@ -59,6 +60,7 @@ class TaskRepository {
         reminderAt: Value(reminderAt),
         createdAt: DateTime.now().toUtc(),
         sortOrder: Value(sortOrder),
+        listId: Value(listId),
       ),
     );
   }
@@ -104,6 +106,7 @@ class TaskRepository {
           reminderAt: Value(task.reminderAt),
           createdAt: completedAt,
           sortOrder: Value(task.sortOrder),
+          listId: Value(task.listId),
         ),
       );
     });

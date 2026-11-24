@@ -5,6 +5,7 @@ import '../../domain/date_utils.dart';
 import '../../domain/schedule.dart';
 import '../../domain/stats_engine.dart';
 import '../../domain/streak_engine.dart';
+import '../../domain/weekly_review.dart';
 import '../habits/habit_providers.dart';
 import '../tasks/task_providers.dart';
 import 'stats_view_model.dart';
@@ -78,6 +79,24 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
     );
   }
 
+  final weeks = weeklySummary(
+    today: now,
+    checkinsByDay: checkinsByDay,
+    tasksDoneByDay: tasksDoneByDay,
+  );
+  final todayKey = formatDate(now);
+  final checkedTodayHabitIds = {
+    for (final c in checkins)
+      if (c.date == todayKey) c.habitId,
+  };
+  final review = buildWeeklyReview(
+    today: now,
+    weeks: weeks,
+    leaderboard: entries,
+    checkedTodayHabitIds: checkedTodayHabitIds,
+    dueDates: tasks.where((t) => t.completedAt == null).map((t) => t.dueAt),
+  );
+
   final tagsById = <int, ({String name, int color})>{
     for (final tag in tags) tag.id: (name: tag.name, color: tag.color),
   };
@@ -88,11 +107,7 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       checkinsByDay: checkinsByDay,
       tasksDoneByDay: tasksDoneByDay,
     ),
-    weeks: weeklySummary(
-      today: now,
-      checkinsByDay: checkinsByDay,
-      tasksDoneByDay: tasksDoneByDay,
-    ),
+    weeks: weeks,
     leaderboard: rankLeaderboard(entries),
     tagSlices: tagDistribution(
       tagsById: tagsById,
@@ -102,5 +117,6 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
     totalTasksDone: totalTasksDone,
     activeHabits: habits.length,
     bestStreakOverall: bestOverall,
+    review: review,
   );
 });

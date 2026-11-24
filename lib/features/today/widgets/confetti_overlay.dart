@@ -94,17 +94,19 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
     if (tokens.reduced || widget.playToken == 0) {
       return const SizedBox.shrink();
     }
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _fall,
-        builder: (context, _) {
-          final t = _fall.value.clamp(0.0, 1.0);
-          if (t >= 1) return const SizedBox.shrink();
-          return CustomPaint(
-            painter: _ConfettiPainter(pieces: _pieces, t: t),
-            size: Size.infinite,
-          );
-        },
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _fall,
+          builder: (context, _) {
+            final t = _fall.value.clamp(0.0, 1.0);
+            if (t >= 1) return const SizedBox.shrink();
+            return CustomPaint(
+              painter: _ConfettiPainter(pieces: _pieces, t: t),
+              size: Size.infinite,
+            );
+          },
+        ),
       ),
     );
   }

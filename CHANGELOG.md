@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.5.0 — 2026-11-24
+
+First run, project organization, and a quieter accessibility pass. Still
+local-first — no account, no server, no tracking.
+
+### Features
+- **First-run onboarding** — a three-step intro (what the app is, optional
+  starter habits, ready to go) shown once per device. Pick from Drink water,
+  Move for 10 minutes, and Read a few pages; skip seeds nothing. The flag is
+  local, so restoring a backup on a fresh device still shows the intro.
+- **Task lists** — group tasks into named, colored lists and filter by them
+  from the Tasks tab. Create and rename inline; deleting a list moves its tasks
+  to Inbox instead of deleting them. Recurring tasks stay in their list.
+- **Weekly review** — a new Stats card recapping the last complete week
+  (check-ins, tasks, delta vs. the week before), best streak, habits whose
+  streak is at risk today, and open tasks due in the next seven days.
+
+### Under the hood
+- Schema v5 (`TaskLists` + `Tasks.listId/listUuid`) with a guarded v4→v5
+  migration; export envelope v5 imports v1–v4 backups (old tasks land in the
+  inbox). Folder sync carries lists with LWW merge, name dedupe, and soft
+  references — a missing list never drops its tasks.
+- Accessibility: screen-reader labels for month/year heatmap days, the progress
+  ring, streak odometer, token wallet, and all three stats charts; decorative
+  confetti excluded from semantics; large-text sizing for the progress ring,
+  filter strips, and bottom navigation.
+- 429 unit/widget tests plus Linux e2e; new coverage for the v5 migration,
+  list soft-delete/export/merge, onboarding seeding, the weekly-review engine,
+  and tap-target/2× text-scale guidelines.
+
 ## v0.4.0 — 2026-11-23
 
 Daily-driver delight: ask in plain language, find anything, see the whole year,

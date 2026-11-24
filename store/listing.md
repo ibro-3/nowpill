@@ -52,6 +52,7 @@ PRIVATE BY DESIGN
 MAKE IT YOURS
 • Material You dynamic color, light/dark/system themes.
 • Expressive or reduced motion (honors your accessibility setting).
+• Screen-reader labels and large-text-friendly layouts.
 • English and Spanish.
 
 ## Category
@@ -70,8 +71,8 @@ Full policy + Play data-safety answers: `store/privacy-policy.md`.
 
 ## Screenshots
 Phone captures (1080×2400) from the Android emulator live in `store/screenshots/`
-for the Play listing: the core screens plus v0.4 feature highlights (quick-add
-preview, search, year heatmap, and the launcher widgets). Desktop captures from
+for the Play listing: the core screens plus v0.5 feature highlights (first-run
+intro, task lists, weekly review, and the launcher widgets). Desktop captures from
 the Phase 17 visual pass live in `doc/screenshots/` (today-light, today-dark,
 stats-dark, habits-dark, settings-dark) and serve as feature-graphic source
 material.

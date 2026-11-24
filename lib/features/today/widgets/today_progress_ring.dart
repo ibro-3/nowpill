@@ -104,47 +104,52 @@ class _TodayProgressRingState extends State<TodayProgressRing>
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_sweep, _burst]),
-        builder: (context, _) {
-          // Unclamped on purpose: the expressive spring overshoots past 1.0
-          // during the celebration before settling.
-          final sweep = tokens.reduced ? widget.progress : _sweep.value;
-          final burst = tokens.reduced ? 0.0 : _burst.value.clamp(0.0, 1.0);
-          return CustomPaint(
-            painter: _RingPainter(
-              progress: sweep,
-              burst: burst,
-              burstMorph: _burstMorph,
-              trackColor: theme.colorScheme.surfaceContainerHigh,
-              ringColor: widget.celebrate
-                  ? theme.colorScheme.tertiary
-                  : theme.colorScheme.primary,
-              burstColor: theme.colorScheme.tertiaryContainer,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${widget.done}/${widget.total}',
-                    style: theme.typography.emphasized.headlineSmall.copyWith(
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  Text(
-                    widget.celebrate
-                        ? AppLocalizations.of(context).statsAllDone
-                        : AppLocalizations.of(context).ringDoneToday,
-                    style: theme.typography.baseline.labelSmall.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+      child: Semantics(
+        container: true,
+        label: AppLocalizations.of(context)
+            .a11yRingProgress(widget.done, widget.total),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_sweep, _burst]),
+          builder: (context, _) {
+            // Unclamped on purpose: the expressive spring overshoots past 1.0
+            // during the celebration before settling.
+            final sweep = tokens.reduced ? widget.progress : _sweep.value;
+            final burst = tokens.reduced ? 0.0 : _burst.value.clamp(0.0, 1.0);
+            return CustomPaint(
+              painter: _RingPainter(
+                progress: sweep,
+                burst: burst,
+                burstMorph: _burstMorph,
+                trackColor: theme.colorScheme.surfaceContainerHigh,
+                ringColor: widget.celebrate
+                    ? theme.colorScheme.tertiary
+                    : theme.colorScheme.primary,
+                burstColor: theme.colorScheme.tertiaryContainer,
               ),
-            ),
-          );
-        },
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${widget.done}/${widget.total}',
+                      style: theme.typography.emphasized.headlineSmall.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      widget.celebrate
+                          ? AppLocalizations.of(context).statsAllDone
+                          : AppLocalizations.of(context).ringDoneToday,
+                      style: theme.typography.baseline.labelSmall.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ const _kWeekStartsOnMonday = 'settings.weekStartsOnMonday';
 const _kLocaleCode = 'settings.localeCode';
 const _kSyncEnabled = 'settings.syncEnabled';
 const _kSyncFolderHandle = 'settings.syncFolderHandle';
+const _kOnboardingComplete = 'settings.onboardingComplete';
 
 /// Loads and persists [AppSettings].
 ///
@@ -36,6 +37,7 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
       localeCode: prefs.getString(_kLocaleCode),
       syncEnabled: prefs.getBool(_kSyncEnabled) ?? false,
       syncFolderHandle: prefs.getString(_kSyncFolderHandle),
+      onboardingComplete: prefs.getBool(_kOnboardingComplete) ?? false,
     );
   }
 
@@ -89,6 +91,12 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     (p, s) => s.syncFolderHandle == null
         ? p.remove(_kSyncFolderHandle)
         : p.setString(_kSyncFolderHandle, s.syncFolderHandle!),
+  );
+
+  /// Dismisses first-run onboarding (or re-opens it with false).
+  void setOnboardingComplete(bool complete) => _update(
+    (s) => s.copyWith(onboardingComplete: complete),
+    (p, s) => p.setBool(_kOnboardingComplete, s.onboardingComplete),
   );
 
   void _update(

@@ -126,6 +126,7 @@ void refreshDatabaseStreams(AppDatabase db) {
   try {
     db.notifyUpdates({
       TableUpdate.onTable(db.tasks, kind: UpdateKind.update),
+      TableUpdate.onTable(db.taskLists, kind: UpdateKind.update),
       TableUpdate.onTable(db.subtasks, kind: UpdateKind.update),
       TableUpdate.onTable(db.tags, kind: UpdateKind.update),
       TableUpdate.onTable(db.taskTags, kind: UpdateKind.update),
