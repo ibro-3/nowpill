@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/habits/archived_habits_screen.dart';
 import '../../features/habits/habits_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/search/search_screen.dart';
@@ -20,6 +21,7 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String search = '/search';
   static const String onboarding = '/onboarding';
+  static const String archivedHabits = '/habits/archived';
 }
 
 /// Builds the app router: a [StatefulShellRoute] with one branch per tab
@@ -79,6 +81,10 @@ GoRouter buildRouter({GoRouterRedirect? redirect}) {
       GoRoute(
         path: AppRoutes.search,
         builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.archivedHabits,
+        builder: (context, state) => const ArchivedHabitsScreen(),
       ),
       // Top-level: the first-run flow must not be trapped inside a shell tab.
       GoRoute(

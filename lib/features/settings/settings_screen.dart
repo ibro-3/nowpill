@@ -735,7 +735,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: theme.typography.emphasized.titleMedium,
                       ),
                       Text(
-                        l10n.aboutVersion('0.8.0'),
+                        l10n.aboutVersion('0.9.0'),
                         style: theme.typography.baseline.bodySmall.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

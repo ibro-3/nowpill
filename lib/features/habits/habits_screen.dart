@@ -33,7 +33,11 @@ class HabitsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: M3EAppBar.top(
         titleText: l10n.navHabits,
-        actions: const [SearchAction(), SettingsAction()],
+        actions: const [
+          ArchivedHabitsAction(),
+          SearchAction(),
+          SettingsAction(),
+        ],
       ),
       floatingActionButton: M3EFab(
         icon: const Icon(M3EIcons.add),

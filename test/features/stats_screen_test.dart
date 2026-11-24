@@ -184,9 +184,61 @@ void main() {
     );
 
     await pumpScreen(tester);
-    expect(find.text('Journal'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(StreakLeaderboard),
+        matching: find.text('Journal'),
+      ),
+      findsOneWidget,
+    );
     // Weekly habits render "wk" units, not "d".
     expect(find.text('wk'), findsWidgets);
+    await cleanup(tester);
+  });
+
+  testWidgets('range toggle changes the trend window', (tester) async {
+    final habits = HabitRepository(db);
+    final id = await habits.create(name: 'Walk', color: 0xFF4CB944);
+    await habits.checkIn(id, formatDate(DateTime.now()));
+
+    await pumpScreen(tester);
+    expect(find.text('Last 30 days'), findsOneWidget);
+
+    await tester.tap(find.text('90 days'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Last 90 days'), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('completion and routine cards rank active habits', (
+    tester,
+  ) async {
+    final habits = HabitRepository(db);
+    final routineId = await habits.createRoutine('Morning', 0xFF2DD4A8);
+    final now = DateTime.now();
+    final habitId = await habits.create(
+      name: 'Journal',
+      color: 0xFF9B6DFF,
+      createdAt: DateTime(now.year, now.month, now.day - 9).toUtc(),
+    );
+    await habits.setHabitRoutine(habitId, routineId);
+    for (var i = 0; i < 4; i++) {
+      await habits.checkIn(
+        habitId,
+        formatDate(DateTime(now.year, now.month, now.day - i)),
+      );
+    }
+
+    await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Habit completion'), 200);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Habit completion'), findsOneWidget);
+    expect(find.text('By routine'), findsOneWidget);
+    expect(find.text('4 of 10 days'), findsOneWidget);
+    expect(find.text('Habits: 1'), findsOneWidget);
+    expect(find.text('Morning'), findsWidgets);
     await cleanup(tester);
   });
 }

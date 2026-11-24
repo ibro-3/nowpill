@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.9.0 — 2026-11-24
+
+History & insights. No schema or export changes — data format stays v7.
+
+### Features
+- **Habit insights** — each habit's detail page now shows completion rate over
+  a 30- or 90-day window, a progress bar, and the weekday with the strongest
+  completion record. Weekly-target habits use met-weeks (pro-rated when a
+  vacation shortens a week) and report their most active weekday; quit habits
+  show clean-day rate and relapse count instead.
+- **Stats insights** — a shared 30/90-day range controls the trend, a new
+  habit-completion ranking (tap through to the habit), and a weighted
+  routine-comparison card.
+- **Archived habits** — the Habits tab opens an Archived habits screen where
+  archived habits can be restored or permanently deleted. Archiving still
+  keeps history; deleting still cascades.
+
+### Under the hood
+- New pure `insights_engine` computes completion windows from day sets.
+  Vacation-paused and explicitly frozen days are neutral (excluded from the
+  denominator); partial measurable check-ins never count as completions.
+- New `habitInsightProvider`, `archivedHabitsProvider`, and session-only
+  `statsRangeProvider`; no repository or database changes.
+
 ## v0.8.0 — 2026-11-24
 
 Installable builds. No app features or schema changes; data format stays v7.

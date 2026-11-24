@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/insights_engine.dart';
 import '../../domain/schedule.dart';
 import '../../domain/streak_engine.dart';
 import '../../domain/vacation.dart' as vacation_domain;
@@ -31,6 +32,15 @@ final activeHabitsProvider = StreamProvider<List<Habit>>((ref) {
 /// All habits including archived, reactive.
 final allHabitsProvider = StreamProvider<List<Habit>>((ref) {
   return ref.watch(habitRepositoryProvider).watchAll();
+});
+
+/// Archived habits only, most recent first, reactive.
+final archivedHabitsProvider = Provider<List<Habit>>((ref) {
+  final archived = (ref.watch(allHabitsProvider).value ?? const <Habit>[])
+      .where((habit) => habit.archivedAt != null)
+      .toList();
+  archived.sort((a, b) => b.archivedAt!.compareTo(a.archivedAt!));
+  return archived;
 });
 
 /// A single habit, reactive.
@@ -220,3 +230,45 @@ final habitScheduleProvider = Provider.family<HabitSchedule, int>((
     targetPerWeek: habit.targetPerWeek,
   );
 });
+
+/// Completion insight for one habit over a trailing window. Vacation and
+/// freeze days are resolved per habit through [pausedDaysProvider].
+final habitInsightProvider =
+    Provider.family<HabitInsight, ({int habitId, InsightRange range})>((
+      ref,
+      key,
+    ) {
+      final habit = ref.watch(habitProvider(key.habitId)).value;
+      if (habit == null) return HabitInsight.empty;
+
+      final checkins =
+          ref.watch(habitCheckinsProvider(key.habitId)).value ?? const [];
+      final freezes =
+          ref.watch(habitFreezesProvider(key.habitId)).value ?? const [];
+      final relapses =
+          ref.watch(habitRelapsesProvider(key.habitId)).value ?? const [];
+      final paused = ref.watch(
+        pausedDaysProvider((
+          start: habit.createdAt.toLocal(),
+          habitUuid: habit.uuid,
+          routineUuid: habit.routineUuid,
+        )),
+      );
+
+      return buildHabitInsight(
+        schedule: ref.watch(habitScheduleProvider(key.habitId)),
+        kind: habit.kind,
+        startDate: habit.createdAt.toLocal(),
+        today: DateTime.now(),
+        checkins: checkins.map((c) => c.date).toSet(),
+        pausedDates: paused,
+        frozenDates: freezes.map((f) => f.date).toSet(),
+        relapseDates: relapses.map((r) => r.date).toSet(),
+        targetAmount: habit.targetAmount,
+        amounts: {
+          for (final c in checkins)
+            if (c.amount != null) c.date: c.amount!,
+        },
+        range: key.range,
+      );
+    });

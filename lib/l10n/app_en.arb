@@ -735,5 +735,98 @@
       }
     }
   },
-  "a11yExpandPaused": "Show habits paused for vacation"
+  "a11yExpandPaused": "Show habits paused for vacation",
+  "statsLastNDays": "Last {days} days",
+  "@statsLastNDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "statsRange30": "30 days",
+  "statsRange90": "90 days",
+  "statsHabitCompletion": "Habit completion",
+  "statsRoutineComparison": "By routine",
+  "statsCompletionEmpty": "No habit history yet.",
+  "insightDays": "{completed} of {tracked} days",
+  "@insightDays": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "tracked": {
+        "type": "int"
+      }
+    }
+  },
+  "insightWeeks": "{completed} of {tracked} weeks",
+  "@insightWeeks": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "tracked": {
+        "type": "int"
+      }
+    }
+  },
+  "insightCleanDays": "{completed} of {tracked} clean days",
+  "@insightCleanDays": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "tracked": {
+        "type": "int"
+      }
+    }
+  },
+  "insightRelapses": "Relapses: {count}",
+  "@insightRelapses": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightBestDay": "Best day: {day}",
+  "@insightBestDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "insightMostActiveDay": "Most active: {day}",
+  "@insightMostActiveDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "insightTitle": "Insights",
+  "insightNeutralHint": "Paused and frozen days are not counted.",
+  "insightNoHistory": "Not enough history yet",
+  "insightHabitCount": "Habits: {count}",
+  "@insightHabitCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedHabits": "Archived habits",
+  "archivedHabitsEmpty": "No archived habits. Archive a habit from its detail page to keep its history here.",
+  "restoreHabit": "Restore",
+  "habitRestored": "Habit restored",
+  "archivedOn": "Archived {date}",
+  "@archivedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

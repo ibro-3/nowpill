@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
+import '../../domain/insights_engine.dart';
 import '../../domain/streak_engine.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'habit_editor_sheet.dart';
@@ -12,6 +13,7 @@ import 'habit_icons.dart';
 import 'habit_providers.dart';
 import 'relapse_sheet.dart';
 import 'widgets/habit_heatmap.dart';
+import 'widgets/habit_insights_card.dart';
 import 'widgets/token_wallet.dart';
 import 'widgets/year_heatmap.dart';
 
@@ -35,6 +37,7 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
 class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   late DateTime _month;
   _HeatmapRange _range = _HeatmapRange.month;
+  InsightRange _insightRange = InsightRange.last30Days;
 
   @override
   void initState() {
@@ -364,6 +367,18 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   ),
                 ),
               ],
+              const SizedBox(height: 20),
+              HabitInsightsCard(
+                insight: ref.watch(
+                  habitInsightProvider((
+                    habitId: widget.habitId,
+                    range: _insightRange,
+                  )),
+                ),
+                range: _insightRange,
+                onRangeChanged: (value) =>
+                    setState(() => _insightRange = value),
+              ),
               const SizedBox(height: 20),
               M3ESegmentedButton<_HeatmapRange>(
                 selected: {_range},

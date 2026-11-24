@@ -1,6 +1,24 @@
 import '../../data/db/app_database.dart';
+import '../../domain/insights_engine.dart';
 import '../../domain/stats_engine.dart';
 import '../../domain/weekly_review.dart';
+
+/// One active habit's completion ranking on the Stats tab.
+class HabitCompletionEntry {
+  const HabitCompletionEntry({
+    required this.habitId,
+    required this.name,
+    required this.iconKey,
+    required this.color,
+    required this.insight,
+  });
+
+  final int habitId;
+  final String name;
+  final String iconKey;
+  final int color;
+  final HabitInsight insight;
+}
 
 /// Everything the Stats dashboard renders, derived reactively from tasks,
 /// habits, check-ins, and tag links.
@@ -15,6 +33,9 @@ class StatsViewModel {
     required this.activeHabits,
     required this.bestStreakOverall,
     required this.review,
+    required this.range,
+    required this.habitCompletion,
+    required this.routineCompletion,
   });
 
   static const StatsViewModel empty = StatsViewModel(
@@ -26,6 +47,9 @@ class StatsViewModel {
     totalTasksDone: 0,
     activeHabits: 0,
     bestStreakOverall: 0,
+    range: InsightRange.last30Days,
+    habitCompletion: [],
+    routineCompletion: [],
     review: WeeklyReview(
       lastWeekTotal: 0,
       previousWeekTotal: 0,
@@ -55,6 +79,15 @@ class StatsViewModel {
 
   /// Last week in review + what needs attention today.
   final WeeklyReview review;
+
+  /// Trailing window shared by the trend, habit, and routine cards.
+  final InsightRange range;
+
+  /// Active habits ranked by completion rate (no-history habits last).
+  final List<HabitCompletionEntry> habitCompletion;
+
+  /// Weighted average completion per routine (null key = Unrouted).
+  final List<RoutineInsight> routineCompletion;
 
   /// Whether there is any data at all to chart.
   bool get hasData =>

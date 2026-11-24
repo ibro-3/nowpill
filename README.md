@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.8.0** (see `CHANGELOG.md`).
+Current release: **v0.9.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -30,8 +30,12 @@ Current release: **v0.8.0** (see `CHANGELOG.md`).
   tokens (earned automatically, auto-consumed to bridge a missed day, refunded on
   backfill), **manual freeze mode** (opt-in per habit: choose when to spend a
   token), **measurable habits** (numeric daily goal; only 100% counts toward the
-  streak, partial progress shown via a Today stepper), archive & delete.
-- **Stats** — 30-day trend, weekly summary, streak leaderboard, tag donut.
+  streak, partial progress shown via a Today stepper), archive & delete from a
+  dedicated **Archived habits** manager (restore or permanently delete).
+- **Insights** — per-habit completion rate over 30 or 90 days, best weekday,
+  and clean-day rate for quit habits; Stats adds habit-completion and
+  routine-comparison rankings. Vacation-paused and frozen days are neutral.
+- **Stats** — 30/90-day trend, weekly summary, streak leaderboard, tag donut.
 - **Reminders** — exact alarms on Android (graceful inexact fallback), iOS, and
   Linux (in-app); **web reminders fire in-tab** with a permission + test-fire
   flow. Survive reboot via a boot receiver. **Done / Snooze actions** on the

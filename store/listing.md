@@ -39,7 +39,9 @@ STAY ON TRACK
   task without opening the app.
 
 SEE YOUR PROGRESS
-• 30-day trend, weekly summary, streak leaderboard, and tag breakdown.
+• 30/90-day trend, weekly summary, streak leaderboard, and tag breakdown.
+• Per-habit completion rates and best weekdays, plus routine comparisons.
+• Archived habits stay browsable — restore them or delete them for good.
 
 PRIVATE BY DESIGN
 • Everything stays on your device. No account, no cloud, no tracking.

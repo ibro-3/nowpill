@@ -5,10 +5,13 @@ import 'package:motor/motor.dart';
 
 import '../../core/motion/app_motion.dart';
 import '../../core/motion/motion_scheme_provider.dart';
+import '../../domain/insights_engine.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
 import '../today/widgets/floating_pills.dart';
 import 'stats_providers.dart';
+import 'widgets/habit_completion_list.dart';
+import 'widgets/routine_comparison.dart';
 import 'widgets/streak_leaderboard.dart';
 import 'widgets/tag_donut.dart';
 import 'widgets/trend_chart.dart';
@@ -34,6 +37,23 @@ class StatsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
+          M3ESegmentedButton<InsightRange>(
+            key: const ValueKey('stats-range'),
+            selected: {vm.range},
+            onSelectionChanged: (selection) =>
+                ref.read(statsRangeProvider.notifier).set(selection.first),
+            segments: [
+              M3ESegment(
+                value: InsightRange.last30Days,
+                label: l10n.statsRange30,
+              ),
+              M3ESegment(
+                value: InsightRange.last90Days,
+                label: l10n.statsRange90,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           if (!vm.hasData)
             Padding(
               padding: const EdgeInsets.only(top: 32),
@@ -55,7 +75,7 @@ class StatsScreen extends ConsumerWidget {
               index: 0,
               child: _StatsCard(
                 theme: theme,
-                title: l10n.statsLast30Days,
+                title: l10n.statsLastNDays(vm.range.days),
                 child: TrendChart(trend: vm.trend),
               ),
             ),
@@ -103,6 +123,28 @@ class StatsScreen extends ConsumerWidget {
                 child: WeeklyReviewCard(review: vm.review),
               ),
             ),
+            const SizedBox(height: 16),
+            _Entrance(
+              key: const ValueKey('stats-entrance-5'),
+              index: 5,
+              child: _StatsCard(
+                theme: theme,
+                title: l10n.statsHabitCompletion,
+                child: HabitCompletionList(entries: vm.habitCompletion),
+              ),
+            ),
+            if (vm.routineCompletion.any((entry) => entry.key != null)) ...[
+              const SizedBox(height: 16),
+              _Entrance(
+                key: const ValueKey('stats-entrance-6'),
+                index: 6,
+                child: _StatsCard(
+                  theme: theme,
+                  title: l10n.statsRoutineComparison,
+                  child: RoutineComparison(entries: vm.routineCompletion),
+                ),
+              ),
+            ],
           ],
         ],
       ),

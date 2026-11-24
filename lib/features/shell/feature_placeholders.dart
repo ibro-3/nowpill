@@ -21,6 +21,22 @@ class SettingsAction extends StatelessWidget {
   }
 }
 
+/// App-bar action that opens the archived-habit manager.
+class ArchivedHabitsAction extends StatelessWidget {
+  const ArchivedHabitsAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return M3EIconButton(
+      key: const ValueKey('archived-habits-action'),
+      variant: M3EIconButtonVariant.standard,
+      icon: const Icon(M3EIcons.archive),
+      tooltip: AppLocalizations.of(context).archivedHabits,
+      onPressed: () => context.push(AppRoutes.archivedHabits),
+    );
+  }
+}
+
 /// App-bar action that opens global search (v0.4). Sits beside [SettingsAction]
 /// on every primary tab.
 class SearchAction extends StatelessWidget {
