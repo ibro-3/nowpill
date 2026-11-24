@@ -16,10 +16,7 @@ final Map<(M3EShapeKind, M3EShapeKind), Morph> _morphCache = {};
 /// To animate in reverse, pass the pair in reverse order rather than running
 /// the same morph backwards — the cache keeps both directions separate.
 Morph shapeMorph(M3EShapeKind from, M3EShapeKind to) =>
-    _morphCache.putIfAbsent(
-      (from, to),
-      () => Morph(from.polygon, to.polygon),
-    );
+    _morphCache.putIfAbsent((from, to), () => Morph(from.polygon, to.polygon));
 
 /// Paints an expressive shape morph fitted to the available box.
 ///

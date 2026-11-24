@@ -141,10 +141,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           M3EShapeKind.cookie9Sided,
                           M3EShapeKind.softBurst,
                         )
-                      : shapeMorph(
-                          M3EShapeKind.softBurst,
-                          M3EShapeKind.flower,
-                        );
+                      : shapeMorph(M3EShapeKind.softBurst, M3EShapeKind.flower);
                   final local = firstHalf ? step : step - 1;
                   return CustomPaint(
                     painter: MorphShapePainter(

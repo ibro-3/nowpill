@@ -259,9 +259,7 @@ class _HeatmapCellState extends State<_HeatmapCell>
     super.dispose();
   }
 
-  ({Color fill, Color border, Widget? child}) _palette(
-    HeatmapDayState state,
-  ) {
+  ({Color fill, Color border, Widget? child}) _palette(HeatmapDayState state) {
     final theme = M3ETheme.of(context);
     switch (state) {
       case HeatmapDayState.done:
@@ -294,11 +292,7 @@ class _HeatmapCellState extends State<_HeatmapCell>
         return (
           fill: theme.colorScheme.errorContainer.withValues(alpha: 0.4),
           border: theme.colorScheme.error.withValues(alpha: 0.5),
-          child: Icon(
-            M3EIcons.close,
-            size: 12,
-            color: theme.colorScheme.error,
-          ),
+          child: Icon(M3EIcons.close, size: 12, color: theme.colorScheme.error),
         );
       case HeatmapDayState.todayPending:
         return (

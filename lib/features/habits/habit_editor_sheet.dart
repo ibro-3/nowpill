@@ -564,11 +564,7 @@ class _IconChoice extends StatelessWidget {
             childBuilder: (t) => Icon(
               icon,
               size: 22 * (0.96 + 0.04 * t),
-              color: Color.lerp(
-                theme.colorScheme.onSurfaceVariant,
-                color,
-                t,
-              ),
+              color: Color.lerp(theme.colorScheme.onSurfaceVariant, color, t),
             ),
           ),
         ),
@@ -608,11 +604,7 @@ class _ColorChoice extends StatelessWidget {
             ),
           ),
           child: selected
-              ? Icon(
-                  M3EIcons.check,
-                  size: 18,
-                  color: theme.colorScheme.surface,
-                )
+              ? Icon(M3EIcons.check, size: 18, color: theme.colorScheme.surface)
               : null,
         ),
       ),

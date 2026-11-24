@@ -11,11 +11,7 @@ import 'motion_scheme_provider.dart';
 /// enters the arena, so wrapping a button keeps its tap behavior intact. Use it
 /// sparingly: prominent controls and selection chips, not every list row.
 class SpringPress extends StatefulWidget {
-  const SpringPress({
-    required this.child,
-    this.pressedScale = 0.94,
-    super.key,
-  });
+  const SpringPress({required this.child, this.pressedScale = 0.94, super.key});
 
   final Widget child;
 

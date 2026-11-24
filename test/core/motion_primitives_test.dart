@@ -63,10 +63,12 @@ void main() {
     await tester.pump();
 
     Opacity opacityAt(int index) => tester.widget<Opacity>(
-      find.descendant(
-        of: find.byKey(const ValueKey('badge')),
-        matching: find.byType(Opacity),
-      ).at(index),
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('badge')),
+            matching: find.byType(Opacity),
+          )
+          .at(index),
     );
 
     expect(opacityAt(1).opacity, 0);
@@ -149,10 +151,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
 
     final incoming = tester.widget<Opacity>(
-      find.descendant(
-        of: find.byKey(const ValueKey('reduced-badge')),
-        matching: find.byType(Opacity),
-      ).at(1),
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('reduced-badge')),
+            matching: find.byType(Opacity),
+          )
+          .at(1),
     );
     expect(incoming.opacity, greaterThan(0.99));
     expect(tester.takeException(), isNull);
