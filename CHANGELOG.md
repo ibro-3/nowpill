@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.9.2 — 2026-11-24
+
+Motion craft release. No data, schema, or export changes — format stays v7.
+
+### Features
+- **Check-pill polish** — press squish, a two-spring shape/color morph, and a
+  crossfading icon: shape bounces on the spatial spring while fill and border
+  stay on a non-overshooting effects spring.
+- **Completion shapes** — habit badges morph cookie → cookie-nine when a day
+  is checked in (both on Today and in the Habits list); the editor's icon
+  picker morphs circle → cookie on selection.
+- **Celebration** — the progress ring's overshoot is now a scale pop instead
+  of an arc beyond 360°, and its bloom runs a two-stage shape morph
+  (soft burst → flower → burst).
+- **Empty states & onboarding** — Tasks and Habits empty states now use the
+  bobbing floating-pill illustration; onboarding step dots and hero shape
+  spring between steps.
+
+### Under the hood
+- New shared `shape_morph.dart` (cached `Morph` pairs, `MorphShapePainter`,
+  `MorphingShape`) and `spring_press.dart` primitives in `core/motion`.
+- `FloatingPills` uses a single ping-pong `SequenceMotionController` instead
+  of a chained `whenComplete` loop.
+- Heatmap cells now spring their fill, border, and pop on backfill instead of
+  a fixed 200ms `AnimatedContainer`.
+- `MotionScope` retargets descendants on any token change, not only the
+  reduced-motion flag. Springs remain centralized in `AppMotion`.
+
 ## v0.9.0 — 2026-11-24
 
 History & insights. No schema or export changes — data format stays v7.

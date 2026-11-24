@@ -20,8 +20,9 @@ class FloatingPills extends StatefulWidget {
 
 class _FloatingPillsState extends State<FloatingPills>
     with SingleTickerProviderStateMixin {
-  late final SingleMotionController _bob;
-  bool _looping = false;
+  late final SequenceMotionController<int, double> _bob;
+  MotionTokens? _applied;
+  bool _pending = false;
 
   static const _satellites = <(M3EShapeKind, double, double, double)>[
     // (shape, dx, dy, size) relative to the illustration center.
@@ -34,33 +35,34 @@ class _FloatingPillsState extends State<FloatingPills>
   @override
   void initState() {
     super.initState();
-    _bob = SingleMotionController(
+    _bob = SequenceMotionController<int, double>(
       motion: MotionTokens.expressive.spatialSlow,
       vsync: this,
+      converter: const SingleMotionConverter(),
       initialValue: 0,
     );
   }
 
-  void _startLoop() {
-    if (_looping || !mounted) return;
-    _looping = true;
-    _bob.animateTo(1).whenComplete(() {
-      if (!mounted) {
-        _looping = false;
-        return;
-      }
-      _bob.animateTo(0).whenComplete(() {
-        _looping = false;
-        if (mounted) {
-          SchedulerBinding.instance.addPostFrameCallback((_) => _startLoop());
-        }
-      });
-    });
+  /// Starts a physics-driven ping-pong loop. A sequence controller keeps the
+  /// velocity through each phase and needs no `whenComplete` re-arming chain.
+  void _apply(MotionTokens tokens) {
+    if (!mounted) return;
+    if (tokens.reduced) {
+      _bob.value = 0;
+      return;
+    }
+    _bob.motion = tokens.spatialSlow;
+    _bob.playSequence(
+      MotionSequence.steps(
+        [0.0, 1.0],
+        motion: tokens.spatialSlow,
+        loop: LoopMode.pingPong,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _looping = false;
     _bob.dispose();
     super.dispose();
   }
@@ -69,9 +71,15 @@ class _FloatingPillsState extends State<FloatingPills>
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final tokens = MotionScope.of(context);
-    _bob.motion = tokens.spatialSlow;
-    if (!tokens.reduced) {
-      SchedulerBinding.instance.addPostFrameCallback((_) => _startLoop());
+    if (tokens != _applied) {
+      _applied = tokens;
+      if (!_pending) {
+        _pending = true;
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          _pending = false;
+          _apply(tokens);
+        });
+      }
     }
 
     return Center(

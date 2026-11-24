@@ -203,7 +203,7 @@ class _HabitHeatmapState extends State<HabitHeatmap>
   }
 }
 
-class _HeatmapCell extends StatelessWidget {
+class _HeatmapCell extends StatefulWidget {
   const _HeatmapCell({
     required this.day,
     required this.inMonth,
@@ -223,93 +223,163 @@ class _HeatmapCell extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = M3ETheme.of(context);
-    final scale = 0.6 + 0.4 * entrance;
-    final opacity = entrance.clamp(0.0, 1.0);
+  State<_HeatmapCell> createState() => _HeatmapCellState();
+}
 
-    Color fill;
-    Color border;
-    Widget? child;
+class _HeatmapCellState extends State<_HeatmapCell>
+    with SingleTickerProviderStateMixin {
+  late final SingleMotionController _pop;
+  late HeatmapDayState _from;
+
+  @override
+  void initState() {
+    super.initState();
+    _from = widget.state;
+    _pop = SingleMotionController(
+      motion: MotionTokens.expressive.effectsFast,
+      vsync: this,
+      initialValue: 1,
+    );
+  }
+
+  @override
+  void didUpdateWidget(_HeatmapCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      _from = oldWidget.state;
+      _pop
+        ..value = 0
+        ..animateTo(1);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    super.dispose();
+  }
+
+  ({Color fill, Color border, Widget? child}) _palette(
+    HeatmapDayState state,
+  ) {
+    final theme = M3ETheme.of(context);
     switch (state) {
       case HeatmapDayState.done:
-        fill = color;
-        border = color;
-        child = Icon(
-          M3EIcons.check,
-          size: 14,
-          color: theme.colorScheme.onPrimary,
+        return (
+          fill: widget.color,
+          border: widget.color,
+          child: Icon(
+            M3EIcons.check,
+            size: 14,
+            color: theme.colorScheme.onPrimary,
+          ),
         );
       case HeatmapDayState.partial:
-        fill = color.withValues(alpha: 0.35);
-        border = color.withValues(alpha: 0.7);
-        child = null;
+        return (
+          fill: widget.color.withValues(alpha: 0.35),
+          border: widget.color.withValues(alpha: 0.7),
+          child: null,
+        );
       case HeatmapDayState.frozen:
-        fill = theme.colorScheme.tertiaryContainer;
-        border = theme.colorScheme.tertiary;
-        child = Icon(
-          M3EIcons.ac_unit,
-          size: 14,
-          color: theme.colorScheme.onTertiaryContainer,
+        return (
+          fill: theme.colorScheme.tertiaryContainer,
+          border: theme.colorScheme.tertiary,
+          child: Icon(
+            M3EIcons.ac_unit,
+            size: 14,
+            color: theme.colorScheme.onTertiaryContainer,
+          ),
         );
       case HeatmapDayState.missed:
-        fill = theme.colorScheme.errorContainer.withValues(alpha: 0.4);
-        border = theme.colorScheme.error.withValues(alpha: 0.5);
-        child = Icon(M3EIcons.close, size: 12, color: theme.colorScheme.error);
+        return (
+          fill: theme.colorScheme.errorContainer.withValues(alpha: 0.4),
+          border: theme.colorScheme.error.withValues(alpha: 0.5),
+          child: Icon(
+            M3EIcons.close,
+            size: 12,
+            color: theme.colorScheme.error,
+          ),
+        );
       case HeatmapDayState.todayPending:
-        fill = theme.colorScheme.surfaceContainerHigh;
-        border = color;
-        child = null;
+        return (
+          fill: theme.colorScheme.surfaceContainerHigh,
+          border: widget.color,
+          child: null,
+        );
       case HeatmapDayState.unscheduled:
-        fill = theme.colorScheme.surfaceContainerLow;
-        border = theme.colorScheme.outlineVariant;
-        child = null;
+        return (
+          fill: theme.colorScheme.surfaceContainerLow,
+          border: theme.colorScheme.outlineVariant,
+          child: null,
+        );
       case HeatmapDayState.inactive:
-        fill = theme.colorScheme.surfaceContainerLowest;
-        border = const Color(0x00000000);
-        child = null;
+        return (
+          fill: theme.colorScheme.surfaceContainerLowest,
+          border: const Color(0x00000000),
+          child: null,
+        );
       case HeatmapDayState.relapsed:
-        fill = theme.colorScheme.errorContainer;
-        border = theme.colorScheme.error;
-        child = Icon(
-          M3EIcons.close,
-          size: 14,
-          color: theme.colorScheme.onErrorContainer,
+        return (
+          fill: theme.colorScheme.errorContainer,
+          border: theme.colorScheme.error,
+          child: Icon(
+            M3EIcons.close,
+            size: 14,
+            color: theme.colorScheme.onErrorContainer,
+          ),
         );
       case HeatmapDayState.paused:
-        fill = theme.colorScheme.surfaceContainerHigh;
-        border = theme.colorScheme.outline.withValues(alpha: 0.7);
-        child = null;
+        return (
+          fill: theme.colorScheme.surfaceContainerHigh,
+          border: theme.colorScheme.outline.withValues(alpha: 0.7),
+          child: null,
+        );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = MotionScope.of(context);
+    _pop.motion = tokens.effectsFast;
+
+    final t = _pop.value.clamp(0.0, 1.0);
+    final from = _palette(_from);
+    final to = _palette(widget.state);
+    final fill = Color.lerp(from.fill, to.fill, t)!;
+    final border = Color.lerp(from.border, to.border, t)!;
+    // One springy pop on state change, multiplied by the entrance stagger.
+    final pop = 1 + 0.10 * (4 * t * (1 - t));
+    final scale = (0.6 + 0.4 * widget.entrance) * pop;
+    final opacity = widget.entrance.clamp(0.0, 1.0);
 
     final cell = Transform.scale(
       scale: scale,
       child: Opacity(
-        opacity: inMonth ? opacity : opacity * 0.25,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        opacity: widget.inMonth ? opacity : opacity * 0.25,
+        child: Container(
           decoration: BoxDecoration(
             color: fill,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: border, width: 1.2),
           ),
-          child: Center(child: child),
+          child: Center(child: to.child),
         ),
       ),
     );
 
     final l10n = AppLocalizations.of(context);
-    final label = '${formatDate(day)}, ${heatmapStateLabel(l10n, state)}';
-    if (!backfillable) {
+    final label =
+        '${formatDate(widget.day)}, ${heatmapStateLabel(l10n, widget.state)}';
+    if (!widget.backfillable) {
       return Semantics(container: true, label: label, child: cell);
     }
     return Semantics(
       button: true,
       label: label,
-      onTap: onTap,
+      onTap: widget.onTap,
       child: GestureDetector(
-        key: ValueKey('heatmap-${formatDate(day)}'),
-        onTap: onTap,
+        key: ValueKey('heatmap-${formatDate(widget.day)}'),
+        onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: MouseRegion(cursor: SystemMouseCursors.click, child: cell),
       ),

@@ -66,5 +66,5 @@ class _MotionScopeInherited extends InheritedWidget {
 
   @override
   bool updateShouldNotify(_MotionScopeInherited oldWidget) =>
-      tokens.reduced != oldWidget.tokens.reduced;
+      tokens != oldWidget.tokens;
 }

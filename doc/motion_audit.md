@@ -130,3 +130,31 @@ prep: **still clean** — no ad-hoc `AnimationController`/`CurvedAnimation`/
 The `computeTodayViewModel` extraction (Phase 15) is pure and adds no per-frame
 work. All existing animated widgets still read `MotionScope.of(context)` and
 retarget on scheme change; the interrupt/retarget tests continue to pass.
+
+## v0.9.2 re-audit (shape morphism + spring polish)
+
+**Result: still token-clean.** No `Curves.*`, ad-hoc `AnimationController`, or
+fixed-duration implicit animations remain in feature code. The heatmap's last
+`AnimatedContainer(200ms)` was replaced with an `effectsFast` spring.
+
+New/updated surfaces:
+
+| Widget | Token(s) | Reduced-motion behavior |
+| --- | --- | --- |
+| `CheckPill` | `spatialFast` (shape), `effectsFast` (fill/border) | standard springs; icon crossfade settles |
+| `SpringPress` | `spatialFast` | standard spring squish |
+| `MorphingShape` | `spatialDefault` + `effectsDefault` | standard springs, no idle morph |
+| `TodayProgressRing` | `spatialSlow` | static arc + no burst (unchanged) |
+| `HabitHeatmap` cell | `effectsFast` | standard spring fill/border + pop |
+| `FloatingPills` | `spatialSlow` (ping-pong sequence) | static illustration |
+| Stats `_Entrance` | `spatialDefault` | static card (unchanged) |
+| Onboarding step/hero | `spatialDefault` | standard springs |
+
+`Morph` objects are cached per ordered shape pair in `core/motion/shape_morph.dart`
+so a list of habit badges does not re-run polygon matching per row. Overshoot is
+always rendered as a small transform scale, never by feeding `progress > 1`
+into a morph path (which would extrapolate its geometry). `MotionScope` now
+notifies on any token change rather than only the `reduced` flag.
+
+No new dependencies; the M3E pin remains 1.2.3 and all APIs used are public and
+already present in the pinned package.

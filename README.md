@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.9.0** (see `CHANGELOG.md`).
+Current release: **v0.9.2** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -73,7 +73,8 @@ Current release: **v0.9.0** (see `CHANGELOG.md`).
 - **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
-  color, and a reduce-motion mode (honors the OS accessibility setting).
+  color, spring-driven shape morphs on completion/selection, and a
+  reduce-motion mode (honors the OS accessibility setting).
 
 ## Platforms
 
@@ -176,7 +177,8 @@ gitignored). Without it, release builds fall back to debug signing so CI and
 ```
 lib/
   core/       theme (M3E tokens, Nunito, dynamic color), motion (AppMotion,
-              MotionScope), router (go_router StatefulShellRoute), settings
+              MotionScope, shared shape-morph and press springs), router
+              (go_router StatefulShellRoute), settings
   domain/     pure Dart engines: streak replay, recurrence, schedules,
               reminder planner, stats, sync merge — all unit-tested, no
               Flutter imports

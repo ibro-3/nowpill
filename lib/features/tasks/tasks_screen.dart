@@ -6,6 +6,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
+import '../today/widgets/floating_pills.dart';
 import 'task_editor_sheet.dart';
 import 'task_filter.dart';
 import 'task_providers.dart';
@@ -17,7 +18,6 @@ class TasksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(taskFilterProvider);
     final tasks = ref.watch(filteredTasksProvider);
@@ -148,7 +148,7 @@ class TasksScreen extends ConsumerWidget {
             ),
           Expanded(
             child: tasks.isEmpty
-                ? _EmptyState(filter: filter, theme: theme)
+                ? _EmptyState(filter: filter)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: tasks.length,
@@ -331,10 +331,9 @@ class _ListNameDialogState extends State<_ListNameDialog> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.filter, required this.theme});
+  const _EmptyState({required this.filter});
 
   final TaskFilter filter;
-  final M3EThemeData theme;
 
   @override
   Widget build(BuildContext context) {
@@ -345,34 +344,6 @@ class _EmptyState extends StatelessWidget {
       TaskFilter.all => (M3EIcons.checklist, l10n.tasksEmptyAll),
       TaskFilter.done => (M3EIcons.check_circle, l10n.tasksEmptyDone),
     };
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            M3EShapeContainer(
-              kind: M3EShapeKind.cookie9Sided,
-              width: 80,
-              height: 80,
-              color: theme.colorScheme.surfaceContainerHigh,
-              child: Icon(
-                icon,
-                size: 34,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.typography.baseline.bodyLarge.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return FloatingPills(icon: icon, message: message);
   }
 }

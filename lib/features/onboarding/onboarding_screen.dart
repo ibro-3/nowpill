@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:motor/motor.dart';
 
+import '../../core/motion/motion_scheme_provider.dart';
+import '../../core/motion/shape_morph.dart';
 import '../../core/router/app_router.dart';
 import '../../core/settings/app_settings_provider.dart';
 import '../../data/repositories/providers.dart';
@@ -77,6 +80,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
+    final tokens = MotionScope.of(context);
 
     final (title, body, icon) = switch (_step) {
       0 => (
@@ -106,26 +110,61 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   for (var i = 0; i < 3; i++)
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: i == _step ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: i == _step
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                    SingleMotionBuilder(
+                      value: i == _step ? 24.0 : 8.0,
+                      motion: tokens.spatialDefault,
+                      builder: (context, width, child) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: width,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: i == _step
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                 ],
               ),
               const Spacer(),
-              M3EShapeContainer(
-                kind: M3EShapeKind.cookie9Sided,
-                width: 120,
-                height: 120,
-                color: theme.colorScheme.primaryContainer,
-                child: Icon(icon, size: 52, color: theme.colorScheme.primary),
+              SingleMotionBuilder(
+                value: _step.toDouble(),
+                motion: tokens.spatialDefault,
+                builder: (context, step, child) {
+                  // cookie → soft burst → flower as the story advances. The
+                  // second morph starts where the first ends, so the swap at
+                  // the midpoint is invisible.
+                  final firstHalf = step <= 1;
+                  final morph = firstHalf
+                      ? shapeMorph(
+                          M3EShapeKind.cookie9Sided,
+                          M3EShapeKind.softBurst,
+                        )
+                      : shapeMorph(
+                          M3EShapeKind.softBurst,
+                          M3EShapeKind.flower,
+                        );
+                  final local = firstHalf ? step : step - 1;
+                  return CustomPaint(
+                    painter: MorphShapePainter(
+                      morph: morph,
+                      progress: local.clamp(0.0, 1.0),
+                      fill: theme.colorScheme.primaryContainer,
+                    ),
+                    child: SizedBox(
+                      width: 120,
+                      height: 120,
+                      child: Center(
+                        child: Icon(
+                          icon,
+                          size: 52,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 32),
               Text(

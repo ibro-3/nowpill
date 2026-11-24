@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion/shape_morph.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -639,12 +640,18 @@ class _TodayHabitTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          M3EShapeContainer(
-            kind: M3EShapeKind.cookie6Sided,
-            width: 38,
-            height: 38,
+          MorphingShape(
+            from: M3EShapeKind.cookie6Sided,
+            to: M3EShapeKind.cookie9Sided,
+            active: item.checkedToday,
+            size: 38,
             color: color.withValues(alpha: 0.18),
-            child: Icon(habitIconForKey(habit.iconKey), size: 19, color: color),
+            activeColor: color.withValues(alpha: 0.28),
+            childBuilder: (t) => Icon(
+              habitIconForKey(habit.iconKey),
+              size: 19 * (0.96 + 0.04 * t),
+              color: color,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

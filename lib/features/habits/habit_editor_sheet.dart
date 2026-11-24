@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion/shape_morph.dart';
+import '../../core/motion/spring_press.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -549,19 +551,25 @@ class _IconChoice extends StatelessWidget {
     final theme = M3ETheme.of(context);
     return Tooltip(
       message: label,
-      child: GestureDetector(
-        onTap: onTap,
-        child: M3EShapeContainer(
-          kind: selected ? M3EShapeKind.cookie6Sided : M3EShapeKind.circle,
-          width: 44,
-          height: 44,
-          color: selected
-              ? color.withValues(alpha: 0.2)
-              : theme.colorScheme.surfaceContainerHigh,
-          child: Icon(
-            icon,
-            size: 22,
-            color: selected ? color : theme.colorScheme.onSurfaceVariant,
+      child: SpringPress(
+        child: GestureDetector(
+          onTap: onTap,
+          child: MorphingShape(
+            from: M3EShapeKind.circle,
+            to: M3EShapeKind.cookie6Sided,
+            active: selected,
+            size: 44,
+            color: theme.colorScheme.surfaceContainerHigh,
+            activeColor: color.withValues(alpha: 0.2),
+            childBuilder: (t) => Icon(
+              icon,
+              size: 22 * (0.96 + 0.04 * t),
+              color: Color.lerp(
+                theme.colorScheme.onSurfaceVariant,
+                color,
+                t,
+              ),
+            ),
           ),
         ),
       ),
@@ -583,22 +591,30 @@ class _ColorChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: selected ? theme.colorScheme.onSurface : Colors.transparent,
-            width: 2.5,
+    return SpringPress(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.onSurface
+                  : Colors.transparent,
+              width: 2.5,
+            ),
           ),
+          child: selected
+              ? Icon(
+                  M3EIcons.check,
+                  size: 18,
+                  color: theme.colorScheme.surface,
+                )
+              : null,
         ),
-        child: selected
-            ? Icon(M3EIcons.check, size: 18, color: theme.colorScheme.surface)
-            : null,
       ),
     );
   }

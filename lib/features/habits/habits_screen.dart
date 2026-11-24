@@ -7,6 +7,7 @@ import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
+import '../today/widgets/floating_pills.dart';
 import 'habit_detail_screen.dart';
 import 'habit_editor_sheet.dart';
 import 'habit_providers.dart';
@@ -45,7 +46,7 @@ class HabitsScreen extends ConsumerWidget {
         onPressed: () => showHabitEditor(context),
       ),
       body: habits.isEmpty
-          ? _EmptyState(theme: theme)
+          ? const _EmptyState()
           : Column(
               children: [
                 if (routines.isNotEmpty)
@@ -215,40 +216,13 @@ class HabitsScreen extends ConsumerWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.theme});
-
-  final M3EThemeData theme;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            M3EShapeContainer(
-              kind: M3EShapeKind.cookie9Sided,
-              width: 80,
-              height: 80,
-              color: theme.colorScheme.surfaceContainerHigh,
-              child: Icon(
-                M3EIcons.repeat,
-                size: 34,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context).habitsEmpty,
-              textAlign: TextAlign.center,
-              style: theme.typography.baseline.bodyLarge.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return FloatingPills(
+      icon: M3EIcons.repeat,
+      message: AppLocalizations.of(context).habitsEmpty,
     );
   }
 }
