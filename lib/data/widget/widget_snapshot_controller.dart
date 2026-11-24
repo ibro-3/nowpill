@@ -40,6 +40,9 @@ class WidgetSnapshotController {
     _subs.add(_habits.watchAll().listen((_) => _scheduleRefresh()));
     _subs.add(_habits.watchAllCheckins().listen((_) => _scheduleRefresh()));
     _subs.add(_tasks.watchAll().listen((_) => _scheduleRefresh()));
+    _subs.add(_habits.watchVacationPeriods().listen((_) => _scheduleRefresh()));
+    _subs.add(_habits.watchVacationScopes().listen((_) => _scheduleRefresh()));
+    _subs.add(_habits.watchRoutines().listen((_) => _scheduleRefresh()));
     _scheduleRefresh();
   }
 
@@ -62,20 +65,49 @@ class WidgetSnapshotController {
     final checkins = await _habits.getAllCheckins();
     final tasks = await _tasks.getAll();
     final periods = await _habits.getAllVacationPeriods();
+    final scopes = await _habits.getVacationScopes();
+    final domainPeriods = periods
+        .map(
+          (p) => vacation_domain.VacationPeriod(
+            start: p.startDate,
+            end: p.endDate,
+            uuid: p.uuid,
+            allHabits: p.allHabits,
+          ),
+        )
+        .toList();
+    final domainScopes = scopes
+        .map(
+          (s) => vacation_domain.VacationScope(
+            periodUuid: s.periodUuid,
+            targetKind: s.targetKind,
+            targetUuid: s.targetUuid,
+          ),
+        )
+        .toList();
 
     final active = habits.where((h) => h.archivedAt == null).toList();
-    final paused = vacation_domain.expandPausedDates(
-      periods.map(
-        (p) =>
-            vacation_domain.VacationPeriod(start: p.startDate, end: p.endDate),
-      ),
-    );
+    final pausedByHabit = <int, Set<String>>{};
+    for (final habit in active) {
+      pausedByHabit[habit.id] = vacation_domain.resolvePausedDates(
+        periods: domainPeriods,
+        scopes: domainScopes,
+        habitUuid: habit.uuid,
+        routineUuid: habit.routineUuid,
+        windowStart: habit.createdAt.toLocal(),
+        windowEnd: now,
+      );
+    }
+    final todayKey = formatDate(now);
     final vm = computeTodayViewModel(
       tasks: tasks,
       habits: active,
       checkins: checkins,
       now: now,
-      pausedDates: paused,
+      pausedHabitIds: {
+        for (final entry in pausedByHabit.entries)
+          if (entry.value.contains(todayKey)) entry.key,
+      },
     );
 
     // Current streak per active habit (pure replay), for the headline streak.
@@ -92,6 +124,11 @@ class WidgetSnapshotController {
     for (final f in freezes) {
       (freezesByHabit[f.habitId] ??= <String>{}).add(f.date);
     }
+    final relapses = await _habits.getAllRelapses();
+    final relapsesByHabit = <int, Set<String>>{};
+    for (final r in relapses) {
+      (relapsesByHabit[r.habitId] ??= <String>{}).add(r.date);
+    }
     final streaks = <String, int>{};
     for (final habit in active) {
       final result = replayStreak(
@@ -107,6 +144,9 @@ class WidgetSnapshotController {
         manualFreezes: freezesByHabit[habit.id] ?? const <String>{},
         targetAmount: habit.targetAmount,
         amounts: amountsByHabit[habit.id] ?? const <String, double>{},
+        kind: habit.kind,
+        relapses: relapsesByHabit[habit.id] ?? const <String>{},
+        pausedDates: pausedByHabit[habit.id] ?? const <String>{},
       );
       streaks[habit.name] = result.currentStreak;
     }

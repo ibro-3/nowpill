@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.7.0 — 2026-11-24
+
+Routines and scoped vacation. The streak engine is unchanged: only *which*
+habits a period pauses is resolved differently. Still local-first.
+
+### Features
+- **Routines** — named habit groups (Morning, Evening, …) with colors and
+  ordering. The Habits tab gains routine filter chips and section headers;
+  an ungrouped "Unrouted" bucket keeps every habit visible. Deleting a routine
+  only ungroups its habits.
+- **Scoped vacation** — a vacation can pause all habits (the v6 default) or
+  just selected routines/habits. Paused days stay neutral, never notify, and
+  appear under a collapsed "Paused for vacation" disclosure on Today. A
+  routine-scoped vacation follows habits added to that routine later.
+- **Stats** — fully paused weeks are skipped in the weekly review comparison;
+  paused habits are never "at risk".
+
+### Under the hood
+- Schema v7: `Routines`, `VacationScopes`, habit routine links, and an explicit
+  `VacationPeriods.allHabits` flag so deleting the last scoped routine can
+  never widen a vacation. Guarded v6→v7 migration; v6 backups import as
+  all-habits vacations.
+- Export envelope v7 carries routines and scopes; folder sync merges them with
+  routine-name dedupe, polymorphic target orphan cleanup, natural-key scope
+  dedupe, and tombstones.
+- Pure `resolvePausedDates` resolves one habit's paused days per habit; the
+  streak engine, reminders, widget snapshot, and stats all consume it.
+- 490 unit/widget tests plus Linux e2e.
+
 ## v0.6.1 — 2026-11-24
 
 Vacation correctness patch. No schema or backup-format change (both stay v6).

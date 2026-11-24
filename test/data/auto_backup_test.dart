@@ -38,7 +38,7 @@ void main() {
     expect(file, isNotNull);
     expect(file!.path, endsWith('nowpill-auto-2026-11-23.json'));
     final decoded = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
-    expect(decoded['schemaVersion'], 6);
+    expect(decoded['schemaVersion'], 7);
     expect((decoded['data'] as Map)['habits'], hasLength(1));
   });
 

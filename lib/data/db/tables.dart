@@ -150,6 +150,25 @@ class TaskTags extends Table {
   Set<Column> get primaryKey => {taskId, tagId};
 }
 
+/// Named groups of habits (schema v7). Routines are cosmetic + filtering;
+/// they also scope planned vacations. Like task lists, names are unique.
+class Routines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  TextColumn get name => text().withLength(min: 1, max: 100).unique()();
+
+  /// ARGB color value.
+  IntColumn get color => integer()();
+
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+}
+
 /// Habits with schedules, streaks, and freeze tokens (derived by the domain
 /// engine from check-in history).
 class Habits extends Table {
@@ -194,6 +213,17 @@ class Habits extends Table {
   /// Build (default) or quit. Quit habits derive streaks from the absence of
   /// relapses and do not use tokens. Added in schema v6.
   IntColumn get kind => intEnum<HabitKind>().withDefault(const Constant(0))();
+
+  /// Optional routine membership (schema v7). Deleting a routine clears the
+  /// link and never deletes the habit — the same soft rule as task lists.
+  IntColumn get routineId => integer().nullable().references(
+    Routines,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+
+  /// Stable routine identity across merges (schema v7).
+  TextColumn get routineUuid => text().nullable()();
 
   /// Optional numeric daily goal (schema v4, measurable habits). When set, a
   /// check-in only counts toward the streak at 100% of this amount; partial
@@ -304,9 +334,9 @@ class HabitRelapses extends Table {
   ];
 }
 
-/// Planned vacation ranges (schema v6). App-wide for now: every habit is
-/// paused on these days. v0.7 adds per-routine/habit scopes without changing
-/// the streak engine. Ranges are inclusive and stored as local day strings.
+/// Planned vacation ranges (schema v6, scoped in v7). [allHabits] is true for
+/// v6 rows and means "pause everything"; when false the [VacationScopes] rows
+/// decide which habits are paused. Ranges are inclusive local day strings.
 class VacationPeriods extends Table {
   IntColumn get id => integer().autoIncrement()();
 
@@ -319,6 +349,32 @@ class VacationPeriods extends Table {
   TextColumn get startDate => text().withLength(min: 10, max: 10)();
 
   TextColumn get endDate => text().withLength(min: 10, max: 10)();
+
+  /// Pause all habits. Defaults true so v6 rows keep their meaning.
+  BoolColumn get allHabits => boolean().withDefault(const Constant(true))();
+}
+
+/// A routine/habit target of a scoped vacation period (schema v7). All
+/// identities are uuids so merges need no local-id remapping.
+class VacationScopes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  TextColumn get periodUuid => text()();
+
+  IntColumn get targetKind => intEnum<VacationTargetKind>()();
+
+  TextColumn get targetUuid => text()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {periodUuid, targetKind, targetUuid},
+  ];
 }
 
 /// Deletion markers for sync (schema v3). When a row is deleted locally its

@@ -59,7 +59,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       // Tapping a clean day logs a relapse; tapping it again removes the
       // entry. Paused days are neutral and cannot be toggled.
       if (ref
-          .read(pausedDaysProvider(habit.createdAt.toLocal()))
+          .read(
+            pausedDaysProvider((
+              start: habit.createdAt.toLocal(),
+              habitUuid: habit.uuid,
+              routineUuid: habit.routineUuid,
+            )),
+          )
           .contains(key)) {
         return;
       }
@@ -220,7 +226,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         ref.watch(habitCheckinsProvider(widget.habitId)).value ?? const [];
     final relapses =
         ref.watch(habitRelapsesProvider(widget.habitId)).value ?? const [];
-    final paused = ref.watch(pausedDaysProvider(habit.createdAt.toLocal()));
+    final paused = ref.watch(
+      pausedDaysProvider((
+        start: habit.createdAt.toLocal(),
+        habitUuid: habit.uuid,
+        routineUuid: habit.routineUuid,
+      )),
+    );
     final schedule = ref.watch(habitScheduleProvider(widget.habitId));
     final isQuit = habit.kind == HabitKind.quit;
     final color = Color(habit.color);

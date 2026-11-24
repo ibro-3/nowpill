@@ -125,7 +125,7 @@ void main() {
   }
 
   Future<void> pumpScreen(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(420, 2100);
+    tester.view.physicalSize = const Size(420, 2800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(wrap(const SettingsScreen()));
@@ -177,6 +177,7 @@ void main() {
 
   testWidgets('export reports success via snackbar', (tester) async {
     await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Export'), 300);
     await tester.tap(find.text('Export'));
     await settle(tester);
     expect(backup.exportCalls, 1);
@@ -196,6 +197,7 @@ void main() {
     await TaskRepository(db).create(title: 'LiveTask');
 
     await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Import'), 300);
     await tester.tap(find.text('Import'));
     await settle(tester);
 
@@ -220,6 +222,7 @@ void main() {
     await TaskRepository(db).create(title: 'AlsoKeep');
 
     await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Import'), 300);
     await tester.tap(find.text('Import'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('import-cancel')));
@@ -235,6 +238,7 @@ void main() {
     backup.pickedJson = 'this is not a valid backup';
 
     await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Import'), 300);
     await tester.tap(find.text('Import'));
     await settle(tester);
 

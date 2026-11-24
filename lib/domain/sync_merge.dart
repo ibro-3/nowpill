@@ -33,6 +33,7 @@ const List<String> kSyncParentTables = [
   'tasks',
   'habits',
   'tags',
+  'routines',
   'vacations',
 ];
 const List<String> kSyncChildTables = [
@@ -41,6 +42,7 @@ const List<String> kSyncChildTables = [
   'checkins',
   'freezes',
   'relapses',
+  'vacationScopes',
 ];
 
 /// Parent-uuid field → parent table, per child table.
@@ -50,10 +52,13 @@ const Map<String, Map<String, String>> kSyncParentRefs = {
   'checkins': {'habitUuid': 'habits'},
   'freezes': {'habitUuid': 'habits'},
   'relapses': {'habitUuid': 'habits'},
+  // The scope target is polymorphic (routine or habit) and is handled by a
+  // dedicated step after name dedupe, not by this static parent map.
+  'vacationScopes': {'periodUuid': 'vacations'},
 };
 
-/// Full current-schema (v6) key set per row table. Older envelopes (e.g. a
-/// pre-v6 device's file) omit nullable columns added later; rows are
+/// Full current-schema (v7) key set per row table. Older envelopes (e.g. a
+/// pre-v7 device's file) omit nullable columns added later; rows are
 /// normalized to these keys (missing → null) before merging so a missing key
 /// and an explicit null compare equal. Without this, a v4 device would see
 /// its own row as "changed" against an older copy every cycle and rewrite it
@@ -90,6 +95,8 @@ const Map<String, List<String>> kSyncRowKeys = {
     'reminderTime',
     'freezeMode',
     'kind',
+    'routineId',
+    'routineUuid',
     'targetAmount',
     'createdAt',
     'archivedAt',
@@ -135,7 +142,16 @@ const Map<String, List<String>> kSyncRowKeys = {
     'date',
     'note',
   ],
-  'vacations': ['id', 'uuid', 'updatedAt', 'startDate', 'endDate'],
+  'routines': ['id', 'uuid', 'updatedAt', 'name', 'color', 'sortOrder'],
+  'vacations': ['id', 'uuid', 'updatedAt', 'startDate', 'endDate', 'allHabits'],
+  'vacationScopes': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'periodUuid',
+    'targetKind',
+    'targetUuid',
+  ],
   'tombstones': ['uuid', 'sourceTable', 'deletedAt', 'deviceId'],
 };
 
@@ -330,6 +346,45 @@ SyncMergeResult mergeEnvelopes({
     }
   }
 
+  // --- 4c. Routine-name dedupe (unique locally). Habits' routineUuid and
+  // routine-scoped vacation targets that referenced a loser follow the winner.
+  {
+    final byName = <String, List<_Candidate>>{};
+    for (final c in winners['routines']!.values) {
+      final name = c.row['name'] as String? ?? '';
+      (byName[name] ??= []).add(c);
+    }
+    for (final group in byName.values) {
+      if (group.length < 2) continue;
+      group.sort(_compareCandidates);
+      final winner = group.last;
+      for (final loser in group.take(group.length - 1)) {
+        final habits = winners['habits']!;
+        for (final entry in habits.entries.toList()) {
+          if (entry.value.row['routineUuid'] == loser.uuid) {
+            habits[entry.key] = _Candidate({
+              ...entry.value.row,
+              'routineUuid': winner.uuid,
+              'routineId': null, // remapped to a local id on apply
+            }, entry.value.deviceId);
+          }
+        }
+        final scopes = winners['vacationScopes']!;
+        for (final entry in scopes.entries.toList()) {
+          if (entry.value.row['targetKind'] == 0 &&
+              entry.value.row['targetUuid'] == loser.uuid) {
+            scopes[entry.key] = _Candidate({
+              ...entry.value.row,
+              'targetUuid': winner.uuid,
+            }, entry.value.deviceId);
+          }
+        }
+        winners['routines']!.remove(loser.uuid);
+        duplicatesMerged++;
+      }
+    }
+  }
+
   // --- 5. Drop orphans (parent uuid did not survive). ---
   for (final table in kSyncChildTables) {
     final refs = kSyncParentRefs[table]!;
@@ -363,6 +418,43 @@ SyncMergeResult mergeEnvelopes({
     }
   }
 
+  // --- 5c. Habits are soft-linked to routines: an unknown/deleted routine
+  // clears the link instead of dropping the habit. ---
+  {
+    final habits = winners['habits']!;
+    final routineUuids = winners['routines']!.keys.toSet();
+    for (final entry in habits.entries.toList()) {
+      final routineUuid = entry.value.row['routineUuid'] as String?;
+      if (routineUuid != null && !routineUuids.contains(routineUuid)) {
+        habits[entry.key] = _Candidate({
+          ...entry.value.row,
+          'routineId': null,
+          'routineUuid': null,
+        }, entry.value.deviceId);
+      }
+    }
+  }
+
+  // --- 5d. Scope targets are polymorphic, so the generic parent map cannot
+  // express them. A scope whose target is gone is dropped (it can never widen
+  // a vacation); a period with no surviving scopes stays all-habits. ---
+  {
+    final targets = {
+      0: winners['routines']!.keys.toSet(),
+      1: winners['habits']!.keys.toSet(),
+    };
+    winners['vacationScopes']!.removeWhere((uuid, candidate) {
+      final kind = candidate.row['targetKind'] as int?;
+      final targetUuid = candidate.row['targetUuid'] as String?;
+      final valid =
+          kind != null &&
+          targetUuid != null &&
+          (targets[kind]?.contains(targetUuid) ?? false);
+      if (!valid) orphansDropped++;
+      return !valid;
+    });
+  }
+
   // --- 6. Natural-key dedupe: newest copy per logical key. ---
   void dedupe(String table, List<String> keyFields) {
     final byKey = <String, List<_Candidate>>{};
@@ -384,6 +476,7 @@ SyncMergeResult mergeEnvelopes({
   dedupe('freezes', ['habitUuid', 'date']);
   dedupe('relapses', ['habitUuid', 'date']);
   dedupe('taskTags', ['taskUuid', 'tagUuid']);
+  dedupe('vacationScopes', ['periodUuid', 'targetKind', 'targetUuid']);
 
   // --- 7. Assemble the merged envelope. ---
   final data = <String, Object?>{
@@ -394,7 +487,7 @@ SyncMergeResult mergeEnvelopes({
 
   return SyncMergeResult(
     envelope: {
-      'schemaVersion': 6,
+      'schemaVersion': 7,
       'exportedAt': now.toUtc().millisecondsSinceEpoch,
       'deviceId': deviceId,
       'data': data,

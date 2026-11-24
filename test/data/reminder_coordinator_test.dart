@@ -5,7 +5,9 @@ import 'package:nowpill/data/notifications/reminder_coordinator.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/task_repository.dart';
 import 'package:nowpill/domain/date_utils.dart';
+import 'package:nowpill/domain/enums.dart';
 import 'package:nowpill/domain/reminder_planner.dart';
+import 'package:nowpill/domain/vacation.dart' as vacation_domain;
 
 import 'test_database.dart';
 
@@ -126,6 +128,43 @@ void main() {
       1,
       2,
     ]);
+  });
+
+  test('a scoped vacation only silences its targets', () async {
+    final habits = HabitRepository(db);
+    final gym = await habits.create(
+      name: 'Gym',
+      color: 0xFF2DD4A8,
+      reminderTime: DateTime(2026, 11, 23, 9),
+    );
+    await habits.create(
+      name: 'Read',
+      color: 0xFFFFB454,
+      reminderTime: DateTime(2026, 11, 23, 9),
+    );
+    await habits.createVacation('2026-11-24', '2026-11-26', allHabits: false);
+    final period = (await habits.getAllVacationPeriods()).single;
+    final gymRow = (await habits.getAll()).firstWhere((h) => h.id == gym);
+    await habits.replaceVacationScopes(period.uuid, [
+      vacation_domain.VacationScope(
+        periodUuid: period.uuid,
+        targetKind: VacationTargetKind.habit,
+        targetUuid: gymRow.uuid,
+      ),
+    ]);
+
+    await coordinator.rescheduleAll();
+    final gymDays = notifications.scheduled
+        .where((s) => s.$3 == 'Gym')
+        .map((s) => s.$2.day)
+        .toList();
+    final readDays = notifications.scheduled
+        .where((s) => s.$3 == 'Read')
+        .map((s) => s.$2.day)
+        .toList();
+    expect(gymDays, [23, 27, 28, 29, 30, 1, 2]);
+    expect(readDays.first, 23);
+    expect(readDays, contains(24));
   });
 
   test('schedules a future task reminder, skips completed', () async {

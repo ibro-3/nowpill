@@ -698,5 +698,42 @@
   "vacationManage": "Manage",
   "todayPaused": "Paused",
   "a11yHeatmapRelapsed": "Relapse",
-  "a11yHeatmapPaused": "Paused (vacation)"
+  "a11yHeatmapPaused": "Paused (vacation)",
+  "settingsRoutines": "Routines",
+  "routinesDescription": "Group habits into routines. Routines also let a vacation pause just part of your day.",
+  "routineNew": "New routine",
+  "routineEdit": "Edit routine",
+  "routineName": "Routine name",
+  "routineDelete": "Delete routine",
+  "routineDeleteBody": "Habits in this routine stay, but become Unrouted.",
+  "routineSaved": "Routine saved.",
+  "routineDeleted": "Routine deleted.",
+  "routineInvalid": "Enter a routine name.",
+  "routineAlreadyExists": "A routine with that name already exists.",
+  "unrouted": "Unrouted",
+  "routine": "Routine",
+  "routinePickerHint": "Choose the routine this habit belongs to.",
+  "vacationScopeTitle": "Pause which habits?",
+  "vacationAllHabits": "All habits",
+  "vacationScoped": "Selected routines and habits",
+  "vacationScopeHint": "Pick at least one routine or habit.",
+  "vacationEdit": "Edit vacation",
+  "vacationSummaryAll": "Pausing all habits",
+  "vacationSummarySome": "Pausing {names}",
+  "@vacationSummarySome": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPausedCount": "Paused for vacation ({count})",
+  "@todayPausedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yExpandPaused": "Show habits paused for vacation"
 }

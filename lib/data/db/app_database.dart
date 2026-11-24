@@ -14,12 +14,13 @@ part 'app_database.g.dart';
 
 /// The NowPill local database. Offline-first; all feature data lives here.
 ///
-/// Schema version 6 (v0.6.0: v3 adds cross-device sync identity — per-row
+/// Schema version 7 (v0.7.0: v3 adds cross-device sync identity — per-row
 /// `uuid` + `updatedAt`, parent uuid references, [Tombstones]; v4 adds
 /// measurable habits — `Habits.targetAmount` + `HabitCheckins.amount`; v5 adds
 /// task lists — [TaskLists], `Tasks.listId` + `Tasks.listUuid`; v6 adds quit
 /// habits — [HabitRelapses], `Habits.kind` — and planned vacation
-/// [VacationPeriods]).
+/// [VacationPeriods]; v7 adds [Routines], habit routine links, scoped
+/// vacations [VacationScopes], and `VacationPeriods.allHabits`).
 /// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
 /// task_tags, checkins, freezes) work.
 @DriftDatabase(
@@ -29,11 +30,13 @@ part 'app_database.g.dart';
     Subtasks,
     Tags,
     TaskTags,
+    Routines,
     Habits,
     HabitCheckins,
     HabitFreezes,
     HabitRelapses,
     VacationPeriods,
+    VacationScopes,
     Tombstones,
   ],
   daos: [TasksDao, HabitsDao, TagsDao],
@@ -50,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   final String deviceId;
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,6 +81,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await _migrateToV6(m);
+      }
+      if (from < 7) {
+        await _migrateToV7(m);
       }
     },
     beforeOpen: (details) async {
@@ -114,6 +120,29 @@ class AppDatabase extends _$AppDatabase {
     if (await _tableExists('habits') &&
         !await _columnExists('habits', 'kind')) {
       await m.addColumn(habits, habits.kind);
+    }
+  }
+
+  /// v0.7.0 routines + scoped vacation. Existing vacations get allHabits=true
+  /// (their v6 meaning); existing habits are Unrouted.
+  Future<void> _migrateToV7(Migrator m) async {
+    if (!await _tableExists('routines')) {
+      await m.createTable(routines);
+    }
+    if (!await _tableExists('vacation_scopes')) {
+      await m.createTable(vacationScopes);
+    }
+    if (await _tableExists('habits')) {
+      if (!await _columnExists('habits', 'routine_id')) {
+        await m.addColumn(habits, habits.routineId);
+      }
+      if (!await _columnExists('habits', 'routine_uuid')) {
+        await m.addColumn(habits, habits.routineUuid);
+      }
+    }
+    if (await _tableExists('vacation_periods') &&
+        !await _columnExists('vacation_periods', 'all_habits')) {
+      await m.addColumn(vacationPeriods, vacationPeriods.allHabits);
     }
   }
 

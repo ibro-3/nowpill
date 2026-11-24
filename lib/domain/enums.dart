@@ -33,6 +33,10 @@ enum HabitKind {
   quit,
 }
 
+/// What a scoped vacation period targets (schema v7). Integer-indexed in the
+/// DB — stable ordering, do not reorder.
+enum VacationTargetKind { routine, habit }
+
 /// The unit of a recurrence rule.
 enum RecurrenceUnit { day, week, month }
 

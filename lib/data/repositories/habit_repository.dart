@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/enums.dart';
+import '../../domain/vacation.dart' as vacation_domain;
 import '../db/app_database.dart';
 import '../db/daos/habits_dao.dart';
 
@@ -29,6 +30,9 @@ class HabitRepository {
   Stream<List<HabitRelapse>> watchAllRelapses() => _habits.watchAllRelapses();
   Stream<List<VacationPeriod>> watchVacationPeriods() =>
       _habits.watchVacationPeriods();
+  Stream<List<Routine>> watchRoutines() => _habits.watchRoutines();
+  Stream<List<VacationScope>> watchVacationScopes() =>
+      _habits.watchVacationScopes();
 
   // ---------------------------------------------------------------------------
   // CRUD
@@ -216,21 +220,74 @@ class HabitRepository {
       _habits.removeRelapse(habitId, date);
 
   // ---------------------------------------------------------------------------
-  // Planned vacation (schema v6)
+  // Routines (schema v7)
+  // ---------------------------------------------------------------------------
+
+  Future<List<Routine>> getAllRoutines() => _habits.getAllRoutines();
+
+  Future<int> createRoutine(String name, int color, {int sortOrder = 0}) =>
+      _habits.insertRoutine(
+        RoutinesCompanion.insert(
+          name: name,
+          color: color,
+          sortOrder: Value(sortOrder),
+        ),
+      );
+
+  Future<bool> updateRoutine(Routine routine) => _habits.updateRoutine(routine);
+
+  /// Deleting a routine ungroups its habits; it never deletes them.
+  Future<int> deleteRoutine(int id) => _habits.deleteRoutine(id);
+
+  Future<bool> setHabitRoutine(int habitId, int? routineId) async {
+    Routine? routine;
+    if (routineId != null) {
+      routine = await (_db.select(
+        _db.routines,
+      )..where((r) => r.id.equals(routineId))).getSingleOrNull();
+      if (routine == null) return false;
+    }
+    return _habits.setHabitRoutine(habitId, routine);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Planned vacation (schema v6, scoped in v7)
   // ---------------------------------------------------------------------------
 
   Future<List<VacationPeriod>> getAllVacationPeriods() =>
       _habits.getAllVacationPeriods();
 
-  /// Adds an inclusive date range. Rejects inverted ranges.
-  Future<int> createVacation(String start, String end) {
+  /// Adds an inclusive date range. Rejects inverted ranges. [allHabits] false
+  /// scopes the period to explicit targets (set via [replaceVacationScopes]).
+  Future<int> createVacation(
+    String start,
+    String end, {
+    bool allHabits = true,
+    String? uuid,
+  }) {
     if (start.compareTo(end) > 0) {
       throw ArgumentError.value(end, 'end', 'must not be before start');
     }
     return _habits.insertVacationPeriod(
-      VacationPeriodsCompanion.insert(startDate: start, endDate: end),
+      VacationPeriodsCompanion.insert(
+        startDate: start,
+        endDate: end,
+        allHabits: Value(allHabits),
+        uuid: uuid == null ? const Value.absent() : Value(uuid),
+      ),
     );
   }
+
+  Future<bool> updateVacation(VacationPeriod period) =>
+      _habits.updateVacationPeriod(period);
+
+  Future<List<VacationScope>> getVacationScopes() =>
+      _habits.getAllVacationScopes();
+
+  Future<void> replaceVacationScopes(
+    String periodUuid,
+    List<vacation_domain.VacationScope> targets,
+  ) => _habits.replaceVacationScopes(periodUuid, targets);
 
   Future<int> deleteVacation(int id) => _habits.deleteVacationPeriod(id);
 }

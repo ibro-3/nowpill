@@ -1,23 +1,86 @@
 import 'date_utils.dart';
+import 'enums.dart';
 
-/// A planned time off inside which habits are paused (schema v6).
+/// A planned time off inside which habits are paused (schema v6, scoped in v7).
 ///
 /// Dates are `yyyy-MM-dd` local-day strings, identical to check-ins, so they
 /// are timezone-proof and sort lexicographically. [end] is inclusive.
+/// [allHabits] is true for v6 rows and for "pause everything"; when false only
+/// the targets listed in [VacationScope] apply.
 class VacationPeriod {
   const VacationPeriod({
     required this.start,
     required this.end,
     this.uuid = '',
     this.updatedAt = 0,
+    this.allHabits = true,
   });
 
   final String start;
   final String end;
   final String uuid;
   final int updatedAt;
+  final bool allHabits;
 
   bool get isValid => start.compareTo(end) <= 0;
+}
+
+/// A routine or habit targeted by a scoped vacation period (schema v7).
+/// All identities are stable uuids so merges never need local-id remapping.
+class VacationScope {
+  const VacationScope({
+    required this.periodUuid,
+    required this.targetKind,
+    required this.targetUuid,
+    this.uuid = '',
+    this.updatedAt = 0,
+  });
+
+  final String periodUuid;
+  final VacationTargetKind targetKind;
+  final String targetUuid;
+  final String uuid;
+  final int updatedAt;
+}
+
+/// Resolves the paused day keys for **one** habit over an inclusive window.
+///
+/// A period applies when it is all-habits or when one of its scopes matches
+/// the habit directly or via its current routine. Scopes with unknown uuids
+/// simply never match, so deleting a routine or habit can never widen a
+/// vacation. An all-habits=false period with no matching scopes pauses
+/// nothing.
+Set<String> resolvePausedDates({
+  required Iterable<VacationPeriod> periods,
+  required Iterable<VacationScope> scopes,
+  required String habitUuid,
+  String? routineUuid,
+  required DateTime windowStart,
+  required DateTime windowEnd,
+}) {
+  final from = formatDate(windowStart);
+  final to = formatDate(windowEnd);
+  final applicable = <VacationPeriod>[];
+
+  for (final period in periods) {
+    if (!period.isValid) continue;
+    if (period.allHabits) {
+      applicable.add(period);
+      continue;
+    }
+    for (final scope in scopes) {
+      if (scope.periodUuid != period.uuid) continue;
+      final matches = scope.targetKind == VacationTargetKind.habit
+          ? scope.targetUuid == habitUuid
+          : routineUuid != null && scope.targetUuid == routineUuid;
+      if (matches) {
+        applicable.add(period);
+        break;
+      }
+    }
+  }
+
+  return expandPausedDates(applicable, from: from, to: to);
 }
 
 /// Expands [periods] into a set of paused day keys.

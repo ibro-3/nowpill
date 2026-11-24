@@ -21,8 +21,11 @@ import '../../data/sync/sync_coordinator.dart';
 import '../../data/sync/sync_folder.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/enums.dart';
 import '../../features/habits/habit_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'routines_card.dart';
+import 'vacation_editor_sheet.dart';
 
 /// App preferences: appearance, motion, reminders, notifications, data
 /// backup/restore, and about.
@@ -37,8 +40,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _busy = false;
   NotificationPermissionStatus? _permission;
   bool? _canExact;
-  DateTime? _vacationStart;
-  DateTime? _vacationEnd;
 
   @override
   void initState() {
@@ -139,41 +140,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _pickVacationDate({required bool start}) async {
-    final now = DateTime.now();
-    final initial = (start ? _vacationStart : _vacationEnd) ?? now;
-    final picked = await M3EDatePicker.show(
-      context,
-      initialDate: initial,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 2),
-    );
-    if (picked == null) return;
-    setState(() {
-      if (start) {
-        _vacationStart = picked;
+  /// Human-readable scope summary for a vacation card.
+  String _scopeSummary(VacationPeriod period, List<VacationScope> scopes) {
+    final routines = ref.read(allRoutinesProvider).value ?? const <Routine>[];
+    final habits = ref.read(activeHabitsProvider).value ?? const <Habit>[];
+    final names = <String>[];
+    for (final scope in scopes) {
+      if (scope.periodUuid != period.uuid) continue;
+      if (scope.targetKind == VacationTargetKind.routine) {
+        final routine = routines.cast<Routine?>().firstWhere(
+          (r) => r?.uuid == scope.targetUuid,
+          orElse: () => null,
+        );
+        if (routine != null) names.add(routine.name);
       } else {
-        _vacationEnd = picked;
+        final habit = habits.cast<Habit?>().firstWhere(
+          (h) => h?.uuid == scope.targetUuid,
+          orElse: () => null,
+        );
+        if (habit != null) names.add(habit.name);
       }
-    });
-  }
-
-  Future<void> _saveVacation() async {
-    if (_vacationStart == null || _vacationEnd == null) return;
-    final l10n = AppLocalizations.of(context);
-    final from = formatDate(_vacationStart!);
-    final to = formatDate(_vacationEnd!);
-    if (from.compareTo(to) > 0) {
-      M3ESnackbar.show(context, message: l10n.vacationInvalid);
-      return;
     }
-    await ref.read(habitRepositoryProvider).createVacation(from, to);
-    if (!mounted) return;
-    setState(() {
-      _vacationStart = null;
-      _vacationEnd = null;
-    });
-    M3ESnackbar.show(context, message: l10n.vacationSaved);
+    return names.isEmpty
+        ? AppLocalizations.of(context).unrouted
+        : names.join(', ');
   }
 
   Future<void> _pickDefaultReminder() async {
@@ -311,6 +301,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final vacations =
         ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
+    final scopes =
+        ref.watch(vacationScopesProvider).value ?? const <VacationScope>[];
 
     return Scaffold(
       appBar: M3EAppBar.top(
@@ -502,6 +494,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          _SectionHeader(title: l10n.settingsRoutines, theme: theme),
+          const SizedBox(height: 8),
+          RoutinesCard(theme: theme),
+          const SizedBox(height: 24),
           _SectionHeader(title: l10n.settingsVacation, theme: theme),
           const SizedBox(height: 8),
           _SettingsCard(
@@ -516,6 +512,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (vacations.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      l10n.vacationEmpty,
+                      style: theme.typography.baseline.bodyMedium,
+                    ),
+                  ),
                 for (final period in vacations)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -528,13 +532,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            l10n.vacationPeriod(
-                              formatDate(parseDate(period.startDate)),
-                              formatDate(parseDate(period.endDate)),
-                            ),
-                            style: theme.typography.baseline.bodyMedium,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.vacationPeriod(
+                                  formatDate(parseDate(period.startDate)),
+                                  formatDate(parseDate(period.endDate)),
+                                ),
+                                style: theme.typography.baseline.bodyMedium,
+                              ),
+                              Text(
+                                period.allHabits
+                                    ? l10n.vacationSummaryAll
+                                    : l10n.vacationSummarySome(
+                                        _scopeSummary(period, scopes),
+                                      ),
+                                style: theme.typography.baseline.bodySmall
+                                    .copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
                           ),
+                        ),
+                        M3EIconButton(
+                          variant: M3EIconButtonVariant.standard,
+                          icon: const Icon(M3EIcons.edit),
+                          tooltip: l10n.vacationEdit,
+                          key: ValueKey('vacation-edit-${period.id}'),
+                          onPressed: () async {
+                            final saved = await showVacationEditor(
+                              context,
+                              period: period,
+                              scopes: scopes
+                                  .where((s) => s.periodUuid == period.uuid)
+                                  .toList(),
+                            );
+                            if (saved == true && context.mounted) {
+                              M3ESnackbar.show(
+                                context,
+                                message: l10n.vacationSaved,
+                              );
+                            }
+                          },
                         ),
                         M3EIconButton(
                           variant: M3EIconButtonVariant.standard,
@@ -549,42 +590,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: M3EButton.icon(
-                        onPressed: () => _pickVacationDate(start: true),
-                        style: M3EButtonStyle.tonal,
-                        icon: const Icon(M3EIcons.calendar_today),
-                        label: Text(
-                          _vacationStart == null
-                              ? l10n.vacationStart
-                              : formatDate(_vacationStart!),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: M3EButton.icon(
-                        onPressed: () => _pickVacationDate(start: false),
-                        style: M3EButtonStyle.tonal,
-                        icon: const Icon(M3EIcons.calendar_today),
-                        label: Text(
-                          _vacationEnd == null
-                              ? l10n.vacationEnd
-                              : formatDate(_vacationEnd!),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: M3EButton(
+                  child: M3EButton.icon(
                     key: const ValueKey('vacation-save'),
-                    onPressed: _saveVacation,
+                    style: M3EButtonStyle.tonal,
+                    icon: const Icon(M3EIcons.add),
                     label: Text(l10n.vacationAdd),
+                    onPressed: () async {
+                      final saved = await showVacationEditor(context);
+                      if (saved == true && context.mounted) {
+                        M3ESnackbar.show(context, message: l10n.vacationSaved);
+                      }
+                    },
                   ),
                 ),
               ],
@@ -717,7 +735,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: theme.typography.emphasized.titleMedium,
                       ),
                       Text(
-                        l10n.aboutVersion('0.6.1'),
+                        l10n.aboutVersion('0.7.0'),
                         style: theme.typography.baseline.bodySmall.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

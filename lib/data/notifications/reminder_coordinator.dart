@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' show TableUpdate, UpdateKind;
 
-import '../../domain/date_utils.dart';
 import '../../domain/reminder_planner.dart';
 import '../../domain/schedule.dart';
 import '../../domain/vacation.dart' as vacation_domain;
@@ -48,6 +47,10 @@ class ReminderCoordinator {
     _subs.add(
       _habits.watchVacationPeriods().listen((_) => _scheduleReschedule()),
     );
+    _subs.add(
+      _habits.watchVacationScopes().listen((_) => _scheduleReschedule()),
+    );
+    _subs.add(_habits.watchRoutines().listen((_) => _scheduleReschedule()));
     // Initial sync once the first stream events arrive.
     _scheduleReschedule();
   }
@@ -72,6 +75,18 @@ class ReminderCoordinator {
           (p) => vacation_domain.VacationPeriod(
             start: p.startDate,
             end: p.endDate,
+            uuid: p.uuid,
+            allHabits: p.allHabits,
+          ),
+        )
+        .toList();
+    final scopes = await _habits.getVacationScopes();
+    final domainScopes = scopes
+        .map(
+          (s) => vacation_domain.VacationScope(
+            periodUuid: s.periodUuid,
+            targetKind: s.targetKind,
+            targetUuid: s.targetUuid,
           ),
         )
         .toList();
@@ -97,10 +112,13 @@ class ReminderCoordinator {
         reminderTime: habit.reminderTime,
         now: now,
         checkedDays: checkedByHabit[habit.id] ?? const <String>{},
-        pausedDays: vacation_domain.expandPausedDates(
-          domainPeriods,
-          from: formatDate(now),
-          to: formatDate(horizonEnd),
+        pausedDays: vacation_domain.resolvePausedDates(
+          periods: domainPeriods,
+          scopes: domainScopes,
+          habitUuid: habit.uuid,
+          routineUuid: habit.routineUuid,
+          windowStart: now,
+          windowEnd: horizonEnd,
         ),
         count: kHabitReminderHorizon,
         habitId: habit.id,
@@ -157,6 +175,8 @@ void refreshDatabaseStreams(AppDatabase db) {
       TableUpdate.onTable(db.habitFreezes, kind: UpdateKind.update),
       TableUpdate.onTable(db.habitRelapses, kind: UpdateKind.update),
       TableUpdate.onTable(db.vacationPeriods, kind: UpdateKind.update),
+      TableUpdate.onTable(db.vacationScopes, kind: UpdateKind.update),
+      TableUpdate.onTable(db.routines, kind: UpdateKind.update),
     });
   } catch (_) {
     // Guarded: a refresh failure must not break resume.

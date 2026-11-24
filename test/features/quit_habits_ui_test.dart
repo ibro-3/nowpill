@@ -7,6 +7,7 @@ import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/domain/date_utils.dart';
 import 'package:nowpill/domain/enums.dart';
+import 'package:nowpill/domain/vacation.dart' as domain_vacation;
 import 'package:nowpill/features/habits/habit_detail_screen.dart';
 import 'package:nowpill/features/habits/habits_screen.dart';
 import 'package:nowpill/features/today/today_screen.dart';
@@ -124,18 +125,27 @@ void main() {
       kind: HabitKind.quit,
       createdAt: DateTime.now(),
     );
+    final gymId = await repo.create(name: 'Gym', color: 0xFF2DD4A8);
+    final gym = (await repo.getById(gymId))!;
     await repo.createVacation(
       formatDate(DateTime.now()),
       formatDate(DateTime.now().add(const Duration(days: 2))),
+      allHabits: false,
     );
+    final period = (await repo.getAllVacationPeriods()).single;
+    await repo.replaceVacationScopes(period.uuid, [
+      domain_vacation.VacationScope(
+        periodUuid: period.uuid,
+        targetKind: VacationTargetKind.habit,
+        targetUuid: gym.uuid,
+      ),
+    ]);
 
     await pumpScreen(tester, const TodayScreen(), height: 1400);
 
     expect(find.text('Quit a habit'), findsOneWidget);
-    expect(
-      find.text('On vacation — nothing is due. Enjoy your time off!'),
-      findsOneWidget,
-    );
+    expect(find.text('Pausing Gym'), findsOneWidget);
+    expect(find.text('Paused for vacation (1)'), findsOneWidget);
 
     await cleanup(tester);
   });

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
@@ -7,8 +8,20 @@ import '../../domain/schedule.dart';
 import '../../domain/streak_engine.dart';
 import '../../domain/vacation.dart' as vacation_domain;
 
+part 'habit_providers.g.dart';
+
 // Drift-typed providers are hand-written (riverpod_generator cannot resolve
 // Drift part-file row classes). See doc/m3e_spike_decision.md.
+
+/// Session-only routine filter on the Habits tab: null = all, -1 = Unrouted,
+/// otherwise a routine id.
+@Riverpod(keepAlive: true)
+class RoutineFilterNotifier extends _$RoutineFilterNotifier {
+  @override
+  int? build() => null;
+
+  void set(int? value) => state = value;
+}
 
 /// Active (non-archived) habits, reactive.
 final activeHabitsProvider = StreamProvider<List<Habit>>((ref) {
@@ -51,27 +64,81 @@ final allRelapsesProvider = StreamProvider<List<HabitRelapse>>((ref) {
   return ref.watch(habitRepositoryProvider).watchAllRelapses();
 });
 
-/// Planned vacation ranges, reactive. Currently app-wide.
+/// Planned vacation ranges, reactive (now scoped in v7).
 final vacationPeriodsProvider = StreamProvider<List<VacationPeriod>>((ref) {
   return ref.watch(habitRepositoryProvider).watchVacationPeriods();
 });
 
-/// The set of paused day keys for a habit's lifetime, reactive.
-final pausedDaysProvider = Provider.family<Set<String>, DateTime>((ref, start) {
+/// Routine targets of scoped vacations, reactive.
+final vacationScopesProvider = StreamProvider<List<VacationScope>>((ref) {
+  return ref.watch(habitRepositoryProvider).watchVacationScopes();
+});
+
+/// All routines, reactive (also used by the habit editor's picker).
+final allRoutinesProvider = StreamProvider<List<Routine>>((ref) {
+  return ref.watch(habitRepositoryProvider).watchRoutines();
+});
+
+/// Identity of one habit's pause resolution window.
+typedef PausedDaysKey = ({
+  DateTime start,
+  String habitUuid,
+  String? routineUuid,
+});
+
+/// The set of paused day keys for one habit's lifetime, reactive. Resolution
+/// is per habit: scoping changes never touch the streak engine.
+final pausedDaysProvider = Provider.family<Set<String>, PausedDaysKey>((
+  ref,
+  key,
+) {
   final periods =
       ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
-  return vacation_domain.expandPausedDates(
-    periods.map(
+  final scopes =
+      ref.watch(vacationScopesProvider).value ?? const <VacationScope>[];
+  return vacation_domain.resolvePausedDates(
+    periods: periods.map(
       (p) => vacation_domain.VacationPeriod(
         start: p.startDate,
         end: p.endDate,
         uuid: p.uuid,
         updatedAt: p.updatedAt.millisecondsSinceEpoch,
+        allHabits: p.allHabits,
       ),
     ),
-    from: formatDate(start),
-    to: formatDate(DateTime.now()),
+    scopes: scopes.map(
+      (s) => vacation_domain.VacationScope(
+        periodUuid: s.periodUuid,
+        targetKind: s.targetKind,
+        targetUuid: s.targetUuid,
+        uuid: s.uuid,
+        updatedAt: s.updatedAt.millisecondsSinceEpoch,
+      ),
+    ),
+    habitUuid: key.habitUuid,
+    routineUuid: key.routineUuid,
+    windowStart: key.start,
+    windowEnd: DateTime.now(),
   );
+});
+
+/// Habit ids paused **today**. Used by Today, Stats, and reminders.
+final pausedTodayHabitIdsProvider = Provider<Set<int>>((ref) {
+  final habits = ref.watch(activeHabitsProvider).value ?? const <Habit>[];
+  final now = DateTime.now();
+  return {
+    for (final habit in habits)
+      if (ref
+          .watch(
+            pausedDaysProvider((
+              start: habit.createdAt.toLocal(),
+              habitUuid: habit.uuid,
+              routineUuid: habit.routineUuid,
+            )),
+          )
+          .contains(formatDate(now)))
+        habit.id,
+  };
 });
 
 /// Relapse events for a quit habit, reactive.
@@ -94,7 +161,13 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
   final relapses =
       ref.watch(habitRelapsesProvider(habitId)).value ?? const <HabitRelapse>[];
   final start = habit.createdAt.toLocal();
-  final paused = ref.watch(pausedDaysProvider(start));
+  final paused = ref.watch(
+    pausedDaysProvider((
+      start: start,
+      habitUuid: habit.uuid,
+      routineUuid: habit.routineUuid,
+    )),
+  );
   final schedule = scheduleFromFields(
     type: habit.scheduleType,
     weekdays: habit.weekdays,

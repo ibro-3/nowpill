@@ -9,6 +9,7 @@ import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'habit_icons.dart';
+import 'habit_providers.dart';
 
 /// Opens the habit editor sheet. Pass [habit] to edit, or null to create.
 Future<void> showHabitEditor(BuildContext context, {Habit? habit}) {
@@ -44,6 +45,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   late FreezeMode _freezeMode;
   late HabitKind _kind;
   DateTime? _quitDate;
+  int? _routineId;
   bool _saving = false;
 
   bool get _isEdit => widget.habit != null;
@@ -73,6 +75,52 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     _quitDate = _kind == HabitKind.quit
         ? (h?.createdAt.toLocal() ?? DateTime.now())
         : null;
+    _routineId = h?.routineId;
+  }
+
+  Future<void> _createRoutine() async {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    final name = await M3EDialog.show<String>(
+      context,
+      dialog: M3EDialog(
+        title: l10n.routineNew,
+        content: M3ETextField(
+          controller: controller,
+          label: l10n.routineName,
+          autofocus: true,
+        ),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            label: Text(l10n.cancel),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          M3EButton(
+            key: const ValueKey('routine-save'),
+            label: Text(l10n.save),
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty) return;
+    final repo = ref.read(habitRepositoryProvider);
+    final existing = await repo.getAllRoutines();
+    if (existing.any((r) => r.name.toLowerCase() == name.toLowerCase())) {
+      final match = existing.firstWhere(
+        (r) => r.name.toLowerCase() == name.toLowerCase(),
+      );
+      setState(() => _routineId = match.id);
+      return;
+    }
+    final id = await repo.createRoutine(
+      name,
+      kHabitColors.first,
+      sortOrder: existing.isEmpty ? 0 : existing.last.sortOrder + 1,
+    );
+    if (mounted) setState(() => _routineId = id);
   }
 
   @override
@@ -151,7 +199,9 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         : null;
     final createdAt = isQuit && _quitDate != null ? _quitDate!.toUtc() : null;
 
+    int habitId;
     if (_isEdit) {
+      habitId = widget.habit!.id;
       await repo.update(
         widget.habit!.copyWith(
           name: name,
@@ -169,7 +219,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         ),
       );
     } else {
-      await repo.create(
+      habitId = await repo.create(
         name: name,
         color: _color,
         notes: notes,
@@ -184,6 +234,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         createdAt: createdAt,
       );
     }
+    await repo.setHabitRoutine(habitId, _routineId);
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -227,6 +278,49 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             _kind == HabitKind.quit ? l10n.kindQuitDesc : l10n.kindBuildDesc,
             style: theme.typography.baseline.bodySmall.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel(l10n.routine, theme),
+          const SizedBox(height: 8),
+          Text(
+            l10n.routinePickerHint,
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                M3EChip(
+                  label: l10n.unrouted,
+                  type: M3EChipType.filter,
+                  selected: _routineId == null,
+                  onPressed: () => setState(() => _routineId = null),
+                ),
+                const SizedBox(width: 8),
+                for (final routine
+                    in ref.watch(allRoutinesProvider).value ??
+                        const <Routine>[])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: M3EChip(
+                      label: routine.name,
+                      type: M3EChipType.filter,
+                      selected: _routineId == routine.id,
+                      onPressed: () => setState(() => _routineId = routine.id),
+                    ),
+                  ),
+                M3EChip(
+                  label: l10n.routineNew,
+                  type: M3EChipType.assist,
+                  leading: const Icon(M3EIcons.add, size: 18),
+                  onPressed: _createRoutine,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),

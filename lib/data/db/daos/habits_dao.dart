@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import '../../../domain/enums.dart';
+import '../../../domain/vacation.dart' as vacation_domain;
 import '../app_database.dart';
 import '../tables.dart';
 
@@ -11,11 +13,13 @@ part 'habits_dao.g.dart';
 /// tombstones (including cascaded check-ins/freezes) so devices converge.
 @DriftAccessor(
   tables: [
+    Routines,
     Habits,
     HabitCheckins,
     HabitFreezes,
     HabitRelapses,
     VacationPeriods,
+    VacationScopes,
     Tombstones,
   ],
 )
@@ -79,6 +83,13 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
       final relapses = await (select(
         habitRelapses,
       )..where((r) => r.habitId.equals(id))).get();
+      final scopes =
+          await (select(vacationScopes)..where(
+                (s) =>
+                    s.targetKind.equals(VacationTargetKind.habit.index) &
+                    s.targetUuid.equals(habit.uuid),
+              ))
+              .get();
       await batch((b) {
         b.insertAll(tombstones, [
           TombstonesCompanion.insert(
@@ -108,8 +119,21 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
               deletedAt: now,
               deviceId: deviceId,
             ),
+          for (final s in scopes)
+            TombstonesCompanion.insert(
+              uuid: s.uuid,
+              sourceTable: 'vacation_scopes',
+              deletedAt: now,
+              deviceId: deviceId,
+            ),
         ], mode: InsertMode.insertOrReplace);
       });
+      await (delete(vacationScopes)..where(
+            (s) =>
+                s.targetKind.equals(VacationTargetKind.habit.index) &
+                s.targetUuid.equals(habit.uuid),
+          ))
+          .go();
       return (delete(habits)..where((h) => h.id.equals(id))).go();
     });
   }
@@ -409,23 +433,191 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
       update(vacationPeriods)
           .replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
 
-  /// Deleting a planned vacation records a tombstone so other devices drop it.
+  /// Deleting a planned vacation tombstones its scopes too.
   Future<int> deleteVacationPeriod(int id) async {
     return attachedDatabase.transaction(() async {
       final row = await (select(
         vacationPeriods,
       )..where((p) => p.id.equals(id))).getSingleOrNull();
       if (row == null) return 0;
-      await into(tombstones).insert(
-        TombstonesCompanion.insert(
-          uuid: row.uuid,
-          sourceTable: 'vacation_periods',
-          deletedAt: DateTime.now().toUtc(),
-          deviceId: attachedDatabase.deviceId,
-        ),
-        mode: InsertMode.insertOrReplace,
-      );
+      final now = DateTime.now().toUtc();
+      final scopes = await (select(
+        vacationScopes,
+      )..where((s) => s.periodUuid.equals(row.uuid))).get();
+      await batch((b) {
+        b.insertAll(tombstones, [
+          TombstonesCompanion.insert(
+            uuid: row.uuid,
+            sourceTable: 'vacation_periods',
+            deletedAt: now,
+            deviceId: attachedDatabase.deviceId,
+          ),
+          for (final s in scopes)
+            TombstonesCompanion.insert(
+              uuid: s.uuid,
+              sourceTable: 'vacation_scopes',
+              deletedAt: now,
+              deviceId: attachedDatabase.deviceId,
+            ),
+        ], mode: InsertMode.insertOrReplace);
+      });
+      await (delete(
+        vacationScopes,
+      )..where((s) => s.periodUuid.equals(row.uuid))).go();
       return (delete(vacationPeriods)..where((p) => p.id.equals(id))).go();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Routines (schema v7)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<Routine>> watchRoutines() {
+    return (select(routines)..orderBy([
+          (r) => OrderingTerm(expression: r.sortOrder),
+          (r) => OrderingTerm(expression: r.name),
+        ]))
+        .watch();
+  }
+
+  Future<List<Routine>> getAllRoutines() => select(routines).get();
+
+  Future<int> insertRoutine(RoutinesCompanion entry) =>
+      into(routines).insert(entry);
+
+  Future<bool> updateRoutine(Routine entry) =>
+      update(routines)
+          .replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
+
+  /// Deleting a routine never deletes habits: the FK clears `routine_id`, and
+  /// we explicitly clear `routine_uuid` + drop scopes targeting the routine.
+  Future<int> deleteRoutine(int id) async {
+    return attachedDatabase.transaction(() async {
+      final routine = await (select(
+        routines,
+      )..where((r) => r.id.equals(id))).getSingleOrNull();
+      if (routine == null) return 0;
+      final now = DateTime.now().toUtc();
+      final scopes =
+          await (select(vacationScopes)..where(
+                (s) =>
+                    s.targetKind.equals(VacationTargetKind.routine.index) &
+                    s.targetUuid.equals(routine.uuid),
+              ))
+              .get();
+      await batch((b) {
+        b.insertAll(tombstones, [
+          TombstonesCompanion.insert(
+            uuid: routine.uuid,
+            sourceTable: 'routines',
+            deletedAt: now,
+            deviceId: attachedDatabase.deviceId,
+          ),
+          for (final s in scopes)
+            TombstonesCompanion.insert(
+              uuid: s.uuid,
+              sourceTable: 'vacation_scopes',
+              deletedAt: now,
+              deviceId: attachedDatabase.deviceId,
+            ),
+        ], mode: InsertMode.insertOrReplace);
+      });
+      await (update(
+        habits,
+      )..where((h) => h.routineUuid.equals(routine.uuid))).write(
+        HabitsCompanion(routineUuid: const Value(null), updatedAt: Value(now)),
+      );
+      await (delete(vacationScopes)..where(
+            (s) =>
+                s.targetKind.equals(VacationTargetKind.routine.index) &
+                s.targetUuid.equals(routine.uuid),
+          ))
+          .go();
+      return (delete(routines)..where((r) => r.id.equals(id))).go();
+    });
+  }
+
+  /// Assigns a habit to a routine (or clears it with null). Both local ids
+  /// are device-private; `routineUuid` is the sync identity.
+  Future<bool> setHabitRoutine(int habitId, Routine? routine) async {
+    final habit = await getHabit(habitId);
+    if (habit == null) return false;
+    return update(habits).replace(
+      habit.copyWith(
+        routineId: Value(routine?.id),
+        routineUuid: Value(routine?.uuid),
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Vacation scopes (schema v7)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<VacationScope>> watchVacationScopes() =>
+      select(vacationScopes).watch();
+
+  Future<List<VacationScope>> getAllVacationScopes() =>
+      select(vacationScopes).get();
+
+  /// Replaces all scopes for a period. Removed rows are tombstoned so remote
+  /// devices cannot resurrect them on the next merge.
+  Future<void> replaceVacationScopes(
+    String periodUuid,
+    List<vacation_domain.VacationScope> targets,
+  ) async {
+    await attachedDatabase.transaction(() async {
+      final existing = await (select(
+        vacationScopes,
+      )..where((s) => s.periodUuid.equals(periodUuid))).get();
+      final wanted = targets
+          .map((t) => '${t.targetKind.index}:${t.targetUuid}')
+          .toSet();
+      final removed = existing.where(
+        (s) => !wanted.contains('${s.targetKind.index}:${s.targetUuid}'),
+      );
+      final now = DateTime.now().toUtc();
+      if (removed.isNotEmpty) {
+        await batch((b) {
+          b.insertAll(tombstones, [
+            for (final s in removed)
+              TombstonesCompanion.insert(
+                uuid: s.uuid,
+                sourceTable: 'vacation_scopes',
+                deletedAt: now,
+                deviceId: attachedDatabase.deviceId,
+              ),
+          ], mode: InsertMode.insertOrReplace);
+        });
+        await (delete(
+          vacationScopes,
+        )..where((s) => s.id.isIn(removed.map((s) => s.id)))).go();
+      }
+      for (final target in targets) {
+        final exists = existing.any(
+          (s) =>
+              s.targetKind == target.targetKind &&
+              s.targetUuid == target.targetUuid,
+        );
+        if (exists) continue;
+        await into(vacationScopes).insert(
+          VacationScopesCompanion.insert(
+            periodUuid: periodUuid,
+            targetKind: target.targetKind,
+            targetUuid: target.targetUuid,
+            uuid: Value(target.uuid.isEmpty ? syncUuid.v4() : target.uuid),
+            updatedAt: Value(
+              target.updatedAt == 0
+                  ? now
+                  : DateTime.fromMillisecondsSinceEpoch(
+                      target.updatedAt,
+                      isUtc: true,
+                    ),
+            ),
+          ),
+        );
+      }
     });
   }
 }

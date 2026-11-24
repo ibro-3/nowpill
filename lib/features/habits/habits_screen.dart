@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -21,6 +22,13 @@ class HabitsScreen extends ConsumerWidget {
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
     final habits = ref.watch(activeHabitsProvider).value ?? const [];
+    final routines = ref.watch(allRoutinesProvider).value ?? const <Routine>[];
+    final filter = ref.watch(routineFilterProvider);
+    final visible = habits.where((habit) {
+      if (filter == null) return true;
+      if (filter == -1) return habit.routineId == null;
+      return habit.routineId == filter;
+    }).toList();
 
     return Scaffold(
       appBar: M3EAppBar.top(
@@ -34,26 +42,135 @@ class HabitsScreen extends ConsumerWidget {
       ),
       body: habits.isEmpty
           ? _EmptyState(theme: theme)
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-              itemCount: habits.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, i) {
-                final habit = habits[i];
-                return HabitCard(
-                  key: ValueKey('habit-${habit.id}'),
-                  habit: habit,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => HabitDetailScreen(habitId: habit.id),
+          : Column(
+              children: [
+                if (routines.isNotEmpty)
+                  SizedBox(
+                    height: 56,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        _chip(
+                          l10n.all,
+                          filter == null,
+                          () => ref
+                              .read(routineFilterProvider.notifier)
+                              .set(null),
+                        ),
+                        for (final routine in routines)
+                          _chip(
+                            routine.name,
+                            filter == routine.id,
+                            () => ref
+                                .read(routineFilterProvider.notifier)
+                                .set(filter == routine.id ? null : routine.id),
+                          ),
+                        _chip(
+                          l10n.unrouted,
+                          filter == -1,
+                          () => ref
+                              .read(routineFilterProvider.notifier)
+                              .set(filter == -1 ? null : -1),
+                        ),
+                      ],
                     ),
                   ),
-                  onCheckIn: () => _toggleToday(ref, habit.id),
-                  onLogRelapse: () => _logRelapse(context, ref, habit.id),
-                );
-              },
+                Expanded(
+                  child: visible.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(
+                              l10n.habitsEmptyActive,
+                              style: theme.typography.baseline.bodyMedium,
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                          children: [
+                            if (routines.isEmpty)
+                              ..._cards(context, ref, visible),
+                            for (final routine in routines)
+                              if (filter == null ||
+                                  filter == routine.id &&
+                                      visible.any(
+                                        (h) => h.routineId == routine.id,
+                                      ))
+                                _RoutineSection(
+                                  key: ValueKey(
+                                    'routine-section-${routine.id}',
+                                  ),
+                                  name: routine.name,
+                                  color: Color(routine.color),
+                                  theme: theme,
+                                  children: _cards(
+                                    context,
+                                    ref,
+                                    visible
+                                        .where((h) => h.routineId == routine.id)
+                                        .toList(),
+                                  ),
+                                ),
+                            if (routines.isNotEmpty &&
+                                (filter == null || filter == -1))
+                              if (visible.any((h) => h.routineId == null))
+                                _RoutineSection(
+                                  key: const ValueKey(
+                                    'routine-section-unrouted',
+                                  ),
+                                  name: l10n.unrouted,
+                                  color: theme.colorScheme.outline,
+                                  theme: theme,
+                                  children: _cards(
+                                    context,
+                                    ref,
+                                    visible
+                                        .where((h) => h.routineId == null)
+                                        .toList(),
+                                  ),
+                                ),
+                          ],
+                        ),
+                ),
+              ],
             ),
     );
+  }
+
+  Widget _chip(String label, bool selected, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Center(
+        child: M3EChip(
+          label: label,
+          type: M3EChipType.filter,
+          selected: selected,
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _cards(BuildContext context, WidgetRef ref, List<Habit> habits) {
+    return [
+      for (final habit in habits)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: HabitCard(
+            key: ValueKey('habit-${habit.id}'),
+            habit: habit,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => HabitDetailScreen(habitId: habit.id),
+              ),
+            ),
+            onCheckIn: () => _toggleToday(ref, habit.id),
+            onLogRelapse: () => _logRelapse(context, ref, habit.id),
+          ),
+        ),
+    ];
   }
 
   Future<void> _logRelapse(
@@ -127,6 +244,49 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _RoutineSection extends StatelessWidget {
+  const _RoutineSection({
+    required this.name,
+    required this.color,
+    required this.theme,
+    required this.children,
+    super.key,
+  });
+
+  final String name;
+  final Color color;
+  final M3EThemeData theme;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(M3EIcons.circle, size: 14, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name,
+                  style: theme.typography.emphasized.titleSmall.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...children,
+        ],
       ),
     );
   }

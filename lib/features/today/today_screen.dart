@@ -39,6 +39,38 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   int _confettiToken = 0;
   bool _wasAllDone = false;
+  bool _showPaused = false;
+
+  /// Banner copy reflects the period's scope (v0.7).
+  String _vacationBannerMessage(
+    VacationPeriod? period,
+    List<VacationScope> scopes,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    if (period == null || period.allHabits) return l10n.vacationBanner;
+    final routines = ref.read(allRoutinesProvider).value ?? const <Routine>[];
+    final habits = ref.read(activeHabitsProvider).value ?? const <Habit>[];
+    final names = <String>[];
+    for (final scope in scopes) {
+      if (scope.periodUuid != period.uuid) continue;
+      if (scope.targetKind == VacationTargetKind.routine) {
+        final routine = routines.cast<Routine?>().firstWhere(
+          (r) => r?.uuid == scope.targetUuid,
+          orElse: () => null,
+        );
+        if (routine != null) names.add(routine.name);
+      } else {
+        final habit = habits.cast<Habit?>().firstWhere(
+          (h) => h?.uuid == scope.targetUuid,
+          orElse: () => null,
+        );
+        if (habit != null) names.add(habit.name);
+      }
+    }
+    return names.isEmpty
+        ? l10n.vacationBanner
+        : l10n.vacationSummarySome(names.join(', '));
+  }
 
   Future<void> _logRelapse(int habitId) async {
     final note = await showRelapseDialog(context);
@@ -121,16 +153,25 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final vm = ref.watch(todayViewModelProvider);
     final periods =
         ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
+    final scopes =
+        ref.watch(vacationScopesProvider).value ?? const <VacationScope>[];
     final todayKey = formatDate(DateTime.now());
-    final onVacation = periods.any(
+    final activePeriod = periods.cast<VacationPeriod?>().firstWhere(
       (p) =>
+          p != null &&
           p.startDate.compareTo(todayKey) <= 0 &&
           todayKey.compareTo(p.endDate) <= 0,
+      orElse: () => null,
     );
-    final quitHabits =
-        (ref.watch(activeHabitsProvider).value ?? const <Habit>[])
-            .where((h) => h.kind == HabitKind.quit)
-            .toList();
+    final onVacation = activePeriod != null;
+    final allHabits = ref.watch(activeHabitsProvider).value ?? const <Habit>[];
+    final pausedIds = ref.watch(pausedTodayHabitIdsProvider);
+    final pausedHabits = allHabits
+        .where((h) => pausedIds.contains(h.id))
+        .toList();
+    final quitHabits = allHabits
+        .where((h) => h.kind == HabitKind.quit && !pausedIds.contains(h.id))
+        .toList();
 
     // Fire the celebration once per transition into the all-done state.
     if (vm.allDone && !_wasAllDone) {
@@ -156,7 +197,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     _Header(vm: vm, theme: theme, now: now),
                     const SizedBox(height: 20),
                     if (onVacation) ...[
-                      _VacationBanner(theme: theme),
+                      _VacationBanner(
+                        theme: theme,
+                        message: _vacationBannerMessage(activePeriod, scopes),
+                      ),
                       const SizedBox(height: 16),
                     ],
                     if (vm.total == 0 && quitHabits.isEmpty)
@@ -236,6 +280,44 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                             ),
                           ),
                         const SizedBox(height: 12),
+                      ],
+                      if (pausedHabits.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Semantics(
+                          button: true,
+                          label: l10n.a11yExpandPaused,
+                          child: ListTile(
+                            key: const ValueKey('today-paused-disclosure'),
+                            leading: Icon(
+                              M3EIcons.beach_access,
+                              color: theme.colorScheme.primary,
+                            ),
+                            title: Text(
+                              l10n.todayPausedCount(pausedHabits.length),
+                            ),
+                            trailing: Icon(
+                              _showPaused
+                                  ? M3EIcons.expand_less
+                                  : M3EIcons.expand_more,
+                            ),
+                            onTap: () =>
+                                setState(() => _showPaused = !_showPaused),
+                          ),
+                        ),
+                        if (_showPaused)
+                          for (final habit in pausedHabits)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                key: ValueKey('today-paused-${habit.id}'),
+                                leading: Icon(
+                                  habitIconForKey(habit.iconKey),
+                                  color: Color(habit.color),
+                                ),
+                                title: Text(habit.name),
+                                subtitle: Text(l10n.todayPaused),
+                              ),
+                            ),
                       ],
                       if (vm.dueTodayTasks.isNotEmpty) ...[
                         _SectionHeader(
@@ -390,15 +472,16 @@ class _Header extends StatelessWidget {
 }
 
 class _VacationBanner extends StatelessWidget {
-  const _VacationBanner({required this.theme});
+  const _VacationBanner({required this.theme, required this.message});
 
   final M3EThemeData theme;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: AppLocalizations.of(context).vacationBanner,
+      label: message,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -423,7 +506,7 @@ class _VacationBanner extends StatelessWidget {
             const SizedBox(width: 12),
             Flexible(
               child: Text(
-                AppLocalizations.of(context).vacationBanner,
+                message,
                 style: theme.typography.emphasized.titleMedium.copyWith(
                   color: theme.colorScheme.onPrimaryContainer,
                 ),

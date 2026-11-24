@@ -49,8 +49,13 @@ WeeklyReview buildWeeklyReview({
   required Iterable<DateTime?> dueDates,
   Set<int> excludedHabitIds = const {},
 }) {
+  // Fully paused weeks are neutral: they are not scored as inactivity in the
+  // last-week comparison (v0.7).
   final completeWeeks = weeks.length >= 2
-      ? weeks.sublist(0, weeks.length - 1)
+      ? weeks
+            .sublist(0, weeks.length - 1)
+            .where((w) => !w.isFullyPaused)
+            .toList()
       : const <WeekSummary>[];
   final lastWeek = completeWeeks.isEmpty ? null : completeWeeks.last;
   final previousWeek = completeWeeks.length < 2

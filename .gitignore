@@ -73,3 +73,6 @@ android/app/build/
 # Local environment overrides (e.g. CHROME_EXECUTABLE)
 .env
 .envrc
+
+# Dart DevTools local extension settings
+devtools_options.yaml

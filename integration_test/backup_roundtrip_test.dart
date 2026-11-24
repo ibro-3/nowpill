@@ -15,6 +15,7 @@ import 'package:nowpill/data/repositories/task_repository.dart';
 import 'package:nowpill/domain/date_utils.dart';
 import 'package:nowpill/domain/enums.dart';
 import 'package:nowpill/domain/recurrence_rule.dart';
+import 'package:nowpill/domain/vacation.dart' as vacation_domain;
 import 'package:nowpill/features/shell/feature_placeholders.dart';
 import 'package:nowpill/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,6 +120,24 @@ void main() {
       formatDate(today.add(const Duration(days: 5))),
       formatDate(today.add(const Duration(days: 8))),
     );
+    final routineId = await habits.createRoutine('Morning', 0xFF2DD4A8);
+    await habits.setHabitRoutine(habitId, routineId);
+    final routine = (await habits.getAllRoutines()).single;
+    final scopedPeriodId = await habits.createVacation(
+      formatDate(today.add(const Duration(days: 10))),
+      formatDate(today.add(const Duration(days: 12))),
+      allHabits: false,
+    );
+    final scopedPeriod = (await habits.getAllVacationPeriods()).firstWhere(
+      (p) => p.id == scopedPeriodId,
+    );
+    await habits.replaceVacationScopes(scopedPeriod.uuid, [
+      vacation_domain.VacationScope(
+        periodUuid: scopedPeriod.uuid,
+        targetKind: VacationTargetKind.routine,
+        targetUuid: routine.uuid,
+      ),
+    ]);
 
     final listId = await lists.create(name: 'Home', color: 0xFF5B8DEF);
     final taskId = await tasks.create(
@@ -146,13 +165,15 @@ void main() {
     expect(exported.existsSync(), isTrue);
     final envelope =
         jsonDecode(await exported.readAsString()) as Map<String, Object?>;
-    expect(envelope['schemaVersion'], 6);
+    expect(envelope['schemaVersion'], 7);
     final data = envelope['data'] as Map<String, Object?>;
     expect(data['habits'], hasLength(2));
     expect(data['checkins'], hasLength(3));
     expect(data['freezes'], hasLength(1));
     expect(data['relapses'], hasLength(1));
-    expect(data['vacations'], hasLength(1));
+    expect(data['vacations'], hasLength(2));
+    expect(data['routines'], hasLength(1));
+    expect(data['vacationScopes'], hasLength(1));
     expect(data['tasks'], hasLength(1));
     expect(data['taskLists'], hasLength(1));
     expect(data['subtasks'], hasLength(1));
@@ -171,6 +192,7 @@ void main() {
     await tasks.create(title: 'Scratch task', dueAt: today);
     await habits.delete(habitId); // Cascades check-ins + freezes.
     await habits.delete(quitId); // Cascades the relapse.
+    await habits.deleteRoutine(routineId); // Ungroups, never deletes.
     expect(await tasks.getAll(), hasLength(2)); // original + scratch
     expect(await habits.getAll(), isEmpty);
 
@@ -198,7 +220,15 @@ void main() {
     final freezes = await habits.getAllFreezes();
     expect(freezes, hasLength(1));
     expect(await habits.getAllRelapses(), hasLength(1));
-    expect(await habits.getAllVacationPeriods(), hasLength(1));
+    expect(await habits.getAllVacationPeriods(), hasLength(2));
+    expect((await habits.getAllRoutines()).single.name, 'Morning');
+    final restoredScoped = (await habits.getAllVacationPeriods()).firstWhere(
+      (p) => !p.allHabits,
+    );
+    expect(
+      (await habits.getVacationScopes()).single.periodUuid,
+      restoredScoped.uuid,
+    );
     expect(
       freezes.single.date,
       formatDate(today.subtract(const Duration(days: 3))),

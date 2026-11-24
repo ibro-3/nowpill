@@ -100,12 +100,19 @@ class WeekSummary {
     required this.weekStart,
     required this.habitCheckins,
     required this.tasksDone,
+    this.pausedDays = 0,
   });
 
   /// The Monday of the week.
   final DateTime weekStart;
   final int habitCheckins;
   final int tasksDone;
+
+  /// Days inside a planned vacation (schema v7). A fully paused week is
+  ///excluded from the weekly review so time off is not scored as inactivity.
+  final int pausedDays;
+
+  bool get isFullyPaused => pausedDays >= 7;
 
   int get total => habitCheckins + tasksDone;
 }
@@ -116,6 +123,7 @@ List<WeekSummary> weeklySummary({
   required DateTime today,
   required Map<String, int> checkinsByDay,
   required Map<String, int> tasksDoneByDay,
+  Set<String> pausedDates = const {},
   int weeks = 8,
 }) {
   final currentWeek = startOfWeek(today);
@@ -128,13 +136,20 @@ List<WeekSummary> weeklySummary({
     );
     var checkins = 0;
     var tasks = 0;
+    var paused = 0;
     for (var d = 0; d < 7; d++) {
       final key = formatDate(DateTime(week.year, week.month, week.day + d));
       checkins += checkinsByDay[key] ?? 0;
       tasks += tasksDoneByDay[key] ?? 0;
+      if (pausedDates.contains(key)) paused++;
     }
     result.add(
-      WeekSummary(weekStart: week, habitCheckins: checkins, tasksDone: tasks),
+      WeekSummary(
+        weekStart: week,
+        habitCheckins: checkins,
+        tasksDone: tasks,
+        pausedDays: paused,
+      ),
     );
   }
   return result;

@@ -6,7 +6,6 @@ import '../../domain/enums.dart';
 import '../../domain/schedule.dart';
 import '../../domain/stats_engine.dart';
 import '../../domain/streak_engine.dart';
-import '../../domain/vacation.dart' as vacation_domain;
 import '../../domain/weekly_review.dart';
 import '../habits/habit_providers.dart';
 import '../tasks/task_providers.dart';
@@ -26,8 +25,6 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       ref.watch(allRelapsesProvider).value ?? const <HabitRelapse>[];
   final tags = ref.watch(allTagsProvider).value ?? const <Tag>[];
   final links = ref.watch(allTaskTagsProvider).value ?? const <TaskTag>[];
-  final periods =
-      ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
 
   final now = DateTime.now();
 
@@ -62,6 +59,7 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
 
   final entries = <LeaderboardEntry>[];
   final quitHabitIds = <int>{};
+  final allPausedDates = <String>{};
   var bestOverall = 0;
   for (final habit in habits) {
     if (habit.kind == HabitKind.quit) quitHabitIds.add(habit.id);
@@ -69,6 +67,13 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       type: habit.scheduleType,
       weekdays: habit.weekdays,
       targetPerWeek: habit.targetPerWeek,
+    );
+    final pausedForHabit = ref.watch(
+      pausedDaysProvider((
+        start: habit.createdAt.toLocal(),
+        habitUuid: habit.uuid,
+        routineUuid: habit.routineUuid,
+      )),
     );
     final streak = replayStreak(
       schedule: schedule,
@@ -79,8 +84,9 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       amounts: amountsByHabit[habit.id] ?? const <String, double>{},
       kind: habit.kind,
       relapses: relapsesByHabit[habit.id] ?? const <String>{},
-      pausedDates: ref.watch(pausedDaysProvider(habit.createdAt.toLocal())),
+      pausedDates: pausedForHabit,
     );
+    allPausedDates.addAll(pausedForHabit);
     if (streak.bestStreak > bestOverall) bestOverall = streak.bestStreak;
     entries.add(
       LeaderboardEntry(
@@ -99,28 +105,22 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
     today: now,
     checkinsByDay: checkinsByDay,
     tasksDoneByDay: tasksDoneByDay,
+    pausedDates: allPausedDates,
   );
   final todayKey = formatDate(now);
   final checkedTodayHabitIds = {
     for (final c in checkins)
       if (c.date == todayKey) c.habitId,
   };
-  // A vacation day is neutral: habits are not "at risk" for skipping it.
-  final pausedToday = vacation_domain.isDayPaused(
-    now,
-    periods.map(
-      (p) => vacation_domain.VacationPeriod(start: p.startDate, end: p.endDate),
-    ),
-  );
+  // A vacation day is neutral: paused habits are not "at risk" for skipping it.
+  final pausedTodayIds = ref.watch(pausedTodayHabitIdsProvider);
   final review = buildWeeklyReview(
     today: now,
     weeks: weeks,
     leaderboard: entries,
     checkedTodayHabitIds: checkedTodayHabitIds,
     dueDates: tasks.where((t) => t.completedAt == null).map((t) => t.dueAt),
-    excludedHabitIds: pausedToday
-        ? {...quitHabitIds, ...habits.map((h) => h.id)}
-        : quitHabitIds,
+    excludedHabitIds: {...quitHabitIds, ...pausedTodayIds},
   );
 
   final tagsById = <int, ({String name, int color})>{

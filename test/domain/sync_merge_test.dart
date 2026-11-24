@@ -26,6 +26,8 @@ void main() {
         'freezes': <Object>[],
         'relapses': <Object>[],
         'vacations': <Object>[],
+        'routines': <Object>[],
+        'vacationScopes': <Object>[],
         'tombstones': <Object>[],
         ...data,
       },
@@ -514,7 +516,7 @@ void main() {
         now: now,
       );
       expect(rowsOf(result, 'habits').single['kind'], 1);
-      expect(result.envelope['schemaVersion'], 6);
+      expect(result.envelope['schemaVersion'], 7);
     });
 
     test('relapses dedupe by habit+date, newest wins', () {
@@ -593,6 +595,198 @@ void main() {
         now: now,
       );
       expect(rowsOf(result, 'vacations'), isEmpty);
+    });
+  });
+  group('routines and scoped vacation (schema v7)', () {
+    Map<String, Object?> routine(String uuid, String name, int updatedAt) => {
+      'id': 1,
+      'uuid': uuid,
+      'updatedAt': updatedAt,
+      'name': name,
+      'color': 1,
+      'sortOrder': 0,
+    };
+
+    Map<String, Object?> scope(
+      String uuid,
+      String periodUuid,
+      int kind,
+      String targetUuid,
+      int updatedAt,
+    ) => {
+      'id': 1,
+      'uuid': uuid,
+      'updatedAt': updatedAt,
+      'periodUuid': periodUuid,
+      'targetKind': kind,
+      'targetUuid': targetUuid,
+    };
+
+    test('routine name dedupe remaps habits and scope targets', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'routines': [routine('r1', 'Morning', 100)],
+              'habits': [
+                {...habit('h1', 100)..['routineUuid'] = 'r1'},
+              ],
+            },
+          ),
+          env(
+            'b',
+            data: {
+              'routines': [routine('r2', 'Morning', 200)],
+              'habits': [
+                {...habit('h2', 100)..['routineUuid'] = 'r2'},
+              ],
+              'vacations': [
+                {
+                  'id': 1,
+                  'uuid': 'p1',
+                  'updatedAt': 100,
+                  'startDate': '2026-11-20',
+                  'endDate': '2026-11-22',
+                  'allHabits': false,
+                },
+              ],
+              'vacationScopes': [scope('s1', 'p1', 0, 'r2', 100)],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(rowsOf(result, 'routines'), hasLength(1));
+      expect(rowsOf(result, 'routines').single['uuid'], 'r2');
+      final habits = rowsOf(result, 'habits');
+      expect(habits, hasLength(2));
+      expect(
+        habits.every((h) => h['routineUuid'] == 'r2' && h['routineId'] == null),
+        isTrue,
+      );
+      expect(rowsOf(result, 'vacationScopes').single['targetUuid'], 'r2');
+      expect(result.stats.duplicatesMerged, 1);
+      expect(result.envelope['schemaVersion'], 7);
+    });
+
+    test('scope natural-key dedupe keeps the newest copy', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'habits': [habit('h1', 100)],
+              'vacations': [
+                {
+                  'id': 1,
+                  'uuid': 'p1',
+                  'updatedAt': 100,
+                  'startDate': '2026-11-20',
+                  'endDate': '2026-11-22',
+                  'allHabits': false,
+                },
+              ],
+              'vacationScopes': [scope('s1', 'p1', 1, 'h1', 100)],
+            },
+          ),
+          env(
+            'b',
+            data: {
+              'vacationScopes': [scope('s2', 'p1', 1, 'h1', 200)],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      final scopes = rowsOf(result, 'vacationScopes');
+      expect(scopes, hasLength(1));
+      expect(scopes.single['uuid'], 's2');
+    });
+
+    test('scopes with missing period or target are dropped', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'habits': [habit('h1', 100)],
+              'routines': [routine('r1', 'Morning', 100)],
+              'vacations': [
+                {
+                  'id': 1,
+                  'uuid': 'p1',
+                  'updatedAt': 100,
+                  'startDate': '2026-11-20',
+                  'endDate': '2026-11-22',
+                  'allHabits': false,
+                },
+              ],
+              'vacationScopes': [
+                scope('s1', 'ghost', 1, 'h1', 100),
+                scope('s2', 'p1', 1, 'ghost', 100),
+                scope('s3', 'p1', 0, 'r1', 100),
+              ],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      final scopes = rowsOf(result, 'vacationScopes');
+      expect(scopes, hasLength(1));
+      expect(scopes.single['uuid'], 's3');
+      expect(result.stats.orphansDropped, 2);
+    });
+
+    test('a deleted routine clears the habit link but keeps the habit', () {
+      final habitRow = habit('h1', 100)..['routineUuid'] = 'gone';
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'habits': [habitRow],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      final row = rowsOf(result, 'habits').single;
+      expect(row['name'], 'H');
+      expect(row['routineUuid'], isNull);
+      expect(row['routineId'], isNull);
+    });
+
+    test('v7 merge reaches a fixed point', () {
+      final a = env(
+        'a',
+        data: {
+          'routines': [routine('r1', 'Morning', 100)],
+          'habits': [habit('h1', 100)..['routineUuid'] = 'r1'],
+          'vacationScopes': [scope('s1', 'p1', 0, 'r1', 100)],
+        },
+      );
+      final b = env(
+        'b',
+        data: {
+          'routines': [routine('r2', 'Evening', 150)],
+          'vacationScopes': [scope('s2', 'p1', 0, 'r2', 150)],
+        },
+      );
+      final merged = mergeEnvelopes(envelopes: [a, b], deviceId: 'a', now: now);
+      final again = mergeEnvelopes(
+        envelopes: [merged.envelope, a, b],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(
+        jsonEncode(merged.envelope['data']),
+        jsonEncode(again.envelope['data']),
+      );
     });
   });
 }

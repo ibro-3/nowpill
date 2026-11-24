@@ -73,6 +73,36 @@ void main() {
     expect(review.lastWeekTotal, 0);
   });
 
+  test('fully paused weeks are skipped in the comparison', () {
+    final review = buildWeeklyReview(
+      today: today,
+      weeks: [
+        WeekSummary(
+          weekStart: DateTime(2026, 11, 2),
+          habitCheckins: 3,
+          tasksDone: 1,
+        ),
+        // Fully paused last week: must not become "last week".
+        WeekSummary(
+          weekStart: DateTime(2026, 11, 9),
+          habitCheckins: 0,
+          tasksDone: 0,
+          pausedDays: 7,
+        ),
+        WeekSummary(
+          weekStart: DateTime(2026, 11, 16),
+          habitCheckins: 99,
+          tasksDone: 99,
+        ),
+      ],
+      leaderboard: const [],
+      checkedTodayHabitIds: const {},
+      dueDates: const [],
+    );
+    expect(review.lastWeekTotal, 4);
+    expect(review.previousWeekTotal, 0);
+  });
+
   test('quit habits can be excluded from the at-risk list', () {
     final review = buildWeeklyReview(
       today: today,
