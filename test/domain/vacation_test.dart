@@ -33,6 +33,60 @@ void main() {
     });
   });
 
+  group('isWeekFullyPaused', () {
+    test('a whole week counts, a partial week does not', () {
+      final full = expandPausedDates([
+        const VacationPeriod(start: '2026-11-09', end: '2026-11-15'),
+      ]);
+      final partial = expandPausedDates([
+        const VacationPeriod(start: '2026-11-09', end: '2026-11-11'),
+      ]);
+      expect(
+        isWeekFullyPaused(
+          weekStart: DateTime(2026, 11, 9),
+          habitStart: DateTime(2026, 11, 2),
+          today: DateTime(2026, 11, 24),
+          pausedDates: full,
+        ),
+        isTrue,
+      );
+      expect(
+        isWeekFullyPaused(
+          weekStart: DateTime(2026, 11, 9),
+          habitStart: DateTime(2026, 11, 2),
+          today: DateTime(2026, 11, 24),
+          pausedDates: partial,
+        ),
+        isFalse,
+      );
+    });
+
+    test('only active, elapsed days need coverage', () {
+      // Habit created on Thursday and a week that is still in progress.
+      expect(
+        isWeekFullyPaused(
+          weekStart: DateTime(2026, 11, 9),
+          habitStart: DateTime(2026, 11, 12),
+          today: DateTime(2026, 11, 13),
+          pausedDates: {
+            formatDate(DateTime(2026, 11, 12)),
+            formatDate(DateTime(2026, 11, 13)),
+          },
+        ),
+        isTrue,
+      );
+      expect(
+        isWeekFullyPaused(
+          weekStart: DateTime(2026, 11, 9),
+          habitStart: DateTime(2026, 11, 2),
+          today: DateTime(2026, 11, 24),
+          pausedDates: const {},
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('paused days in streak replay', () {
     final today = DateTime(2026, 11, 24, 12);
     const daily = HabitSchedule.daily();
@@ -109,6 +163,27 @@ void main() {
       );
       // Weeks of Nov 2 and Nov 16 met the target; Nov 9 was paused (not missed).
       expect(result.currentStreak, 2);
+    });
+
+    test('a partially paused weekly-target week can still be missed', () {
+      final result = replayStreak(
+        schedule: const HabitSchedule.weeklyTarget(3),
+        checkins: {
+          formatDate(DateTime(2026, 11, 3)),
+          formatDate(DateTime(2026, 11, 4)),
+          formatDate(DateTime(2026, 11, 5)),
+          formatDate(DateTime(2026, 11, 17)),
+          formatDate(DateTime(2026, 11, 18)),
+          formatDate(DateTime(2026, 11, 19)),
+        },
+        today: today,
+        startDate: DateTime(2026, 11, 2),
+        pausedDates: expandPausedDates([
+          const VacationPeriod(start: '2026-11-09', end: '2026-11-11'),
+        ]),
+      );
+      // Mon–Wed off does not excuse Thu–Sun: the Nov 9 week still breaks it.
+      expect(result.currentStreak, 1);
     });
 
     test('paused days never spend freeze tokens', () {

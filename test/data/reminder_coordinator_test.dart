@@ -107,6 +107,27 @@ void main() {
     expect(notifications.scheduled.first.$2, DateTime(2026, 11, 24, 9));
   });
 
+  test('vacation days get no habit reminders', () async {
+    final habits = HabitRepository(db);
+    await habits.create(
+      name: 'Meditate',
+      color: 0xFF2DD4A8,
+      reminderTime: DateTime(2026, 11, 23, 9),
+    );
+    await habits.createVacation('2026-11-24', '2026-11-26');
+
+    await coordinator.rescheduleAll();
+    expect(notifications.scheduled.map((s) => s.$2.day), [
+      23,
+      27,
+      28,
+      29,
+      30,
+      1,
+      2,
+    ]);
+  });
+
   test('schedules a future task reminder, skips completed', () async {
     final tasks = TaskRepository(db);
     final open = await tasks.create(

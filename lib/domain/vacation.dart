@@ -47,6 +47,31 @@ Set<String> expandPausedDates(
   return result;
 }
 
+/// Whether every active day of the ISO week containing [weekStart] is paused.
+///
+/// A weekly-target habit misses only a *fully* elapsed week — a Mon–Wed
+/// vacation must not excuse Thu–Sun. Active days are clamped to the habit's
+/// lifetime ([habitStart]) and elapsed time ([today]) so a habit created
+/// mid-week, or the current week, never demands future pause coverage.
+bool isWeekFullyPaused({
+  required DateTime weekStart,
+  required DateTime habitStart,
+  required DateTime today,
+  required Set<String> pausedDates,
+}) {
+  final first = weekStart.isAfter(habitStart) ? weekStart : habitStart;
+  final weekEnd = weekStart.add(const Duration(days: 6));
+  final last = weekEnd.isBefore(today) ? weekEnd : today;
+  var day = DateTime(first.year, first.month, first.day);
+  final end = DateTime(last.year, last.month, last.day);
+  if (day.isAfter(end)) return false;
+  while (!day.isAfter(end)) {
+    if (!pausedDates.contains(formatDate(day))) return false;
+    day = nextDay(day);
+  }
+  return true;
+}
+
 /// Whether [day] falls in any planned vacation.
 bool isDayPaused(DateTime day, Iterable<VacationPeriod> periods) {
   final key = formatDate(day);

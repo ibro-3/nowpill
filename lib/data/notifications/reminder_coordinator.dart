@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' show TableUpdate, UpdateKind;
 
+import '../../domain/date_utils.dart';
 import '../../domain/reminder_planner.dart';
 import '../../domain/schedule.dart';
+import '../../domain/vacation.dart' as vacation_domain;
 import '../db/app_database.dart';
 import '../repositories/habit_repository.dart';
 import '../repositories/task_repository.dart';
@@ -43,6 +45,9 @@ class ReminderCoordinator {
     _subs.add(_habits.watchAll().listen((_) => _scheduleReschedule()));
     _subs.add(_habits.watchAllCheckins().listen((_) => _scheduleReschedule()));
     _subs.add(_tasks.watchAll().listen((_) => _scheduleReschedule()));
+    _subs.add(
+      _habits.watchVacationPeriods().listen((_) => _scheduleReschedule()),
+    );
     // Initial sync once the first stream events arrive.
     _scheduleReschedule();
   }
@@ -61,6 +66,18 @@ class ReminderCoordinator {
     final habits = await _habits.getAll();
     final checkins = await _habits.getAllCheckins();
     final tasks = await _tasks.getAll();
+    final periods = await _habits.getAllVacationPeriods();
+    final domainPeriods = periods
+        .map(
+          (p) => vacation_domain.VacationPeriod(
+            start: p.startDate,
+            end: p.endDate,
+          ),
+        )
+        .toList();
+    // Only the planning horizon needs expanding — reminders never reach
+    // beyond a few weeks ahead, so bounds keep the sets tiny.
+    final horizonEnd = now.add(const Duration(days: 60));
 
     final checkedByHabit = <int, Set<String>>{};
     for (final c in checkins) {
@@ -80,6 +97,11 @@ class ReminderCoordinator {
         reminderTime: habit.reminderTime,
         now: now,
         checkedDays: checkedByHabit[habit.id] ?? const <String>{},
+        pausedDays: vacation_domain.expandPausedDates(
+          domainPeriods,
+          from: formatDate(now),
+          to: formatDate(horizonEnd),
+        ),
         count: kHabitReminderHorizon,
         habitId: habit.id,
       );

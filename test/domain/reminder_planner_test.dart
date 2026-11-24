@@ -58,6 +58,19 @@ void main() {
       expect(r.map((o) => o.when.day).toList(), [24, 26, 27]);
     });
 
+    test('skips planned vacation days', () {
+      final r = planHabitReminders(
+        habitName: 'Meditate',
+        schedule: const HabitSchedule.daily(),
+        reminderTime: at9,
+        now: now,
+        checkedDays: const {},
+        pausedDays: const {'2026-11-24', '2026-11-26'},
+        count: 3,
+      );
+      expect(r.map((o) => o.when.day).toList(), [23, 25, 27]);
+    });
+
     test('weekdays schedule only fires on listed days', () {
       // Mon/Wed/Fri = 1/3/5.
       final r = planHabitReminders(

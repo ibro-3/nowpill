@@ -6,6 +6,7 @@ import '../../domain/enums.dart';
 import '../../domain/schedule.dart';
 import '../../domain/stats_engine.dart';
 import '../../domain/streak_engine.dart';
+import '../../domain/vacation.dart' as vacation_domain;
 import '../../domain/weekly_review.dart';
 import '../habits/habit_providers.dart';
 import '../tasks/task_providers.dart';
@@ -25,6 +26,8 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       ref.watch(allRelapsesProvider).value ?? const <HabitRelapse>[];
   final tags = ref.watch(allTagsProvider).value ?? const <Tag>[];
   final links = ref.watch(allTaskTagsProvider).value ?? const <TaskTag>[];
+  final periods =
+      ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
 
   final now = DateTime.now();
 
@@ -102,13 +105,22 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
     for (final c in checkins)
       if (c.date == todayKey) c.habitId,
   };
+  // A vacation day is neutral: habits are not "at risk" for skipping it.
+  final pausedToday = vacation_domain.isDayPaused(
+    now,
+    periods.map(
+      (p) => vacation_domain.VacationPeriod(start: p.startDate, end: p.endDate),
+    ),
+  );
   final review = buildWeeklyReview(
     today: now,
     weeks: weeks,
     leaderboard: entries,
     checkedTodayHabitIds: checkedTodayHabitIds,
     dueDates: tasks.where((t) => t.completedAt == null).map((t) => t.dueAt),
-    excludedHabitIds: quitHabitIds,
+    excludedHabitIds: pausedToday
+        ? {...quitHabitIds, ...habits.map((h) => h.id)}
+        : quitHabitIds,
   );
 
   final tagsById = <int, ({String name, int color})>{

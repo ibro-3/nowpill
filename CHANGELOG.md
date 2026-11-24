@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.1 — 2026-11-24
+
+Vacation correctness patch. No schema or backup-format change (both stay v6).
+
+- A weekly-target habit now loses a week only when **every active day** of that
+  week was paused. Previously a Monday-only vacation excused the whole week.
+- Habit reminders skip planned vacation days; adding or removing a vacation
+  re-plans them immediately.
+- Habits on vacation are no longer listed as "at risk" in the weekly review.
+
 ## v0.6.0 — 2026-11-24
 
 Habit depth: quitting and planned time off. Still local-first — no account, no server, no tracking.

@@ -1,6 +1,7 @@
 import 'date_utils.dart';
 import 'enums.dart';
 import 'habit_schedule.dart';
+import 'vacation.dart';
 
 /// The derived streak state for a habit, replayed purely from its check-in
 /// history and schedule. No mutable counters are stored — this is recomputed
@@ -289,9 +290,17 @@ StreakResult _replayWeeklyTarget({
         tokens++;
         earns.add(formatDate(week));
       }
-    } else if (!isCurrentWeek && !pausedDates.contains(formatDate(week))) {
-      // A fully-elapsed week that missed its target. Auto mode bridges with any
-      // available token; manual mode requires an explicit freeze on the Monday.
+    } else if (!isCurrentWeek &&
+        !isWeekFullyPaused(
+          weekStart: week,
+          habitStart: startDate,
+          today: today,
+          pausedDates: pausedDates,
+        )) {
+      // A fully-elapsed week that missed its target. Only a *fully* paused
+      // week is neutral — a few days off do not excuse the rest of the week.
+      // Auto mode bridges with any available token; manual mode requires an
+      // explicit freeze on the Monday.
       final weekKey = formatDate(week);
       final bridged =
           freezeMode == FreezeMode.auto || manualFreezes.contains(weekKey);
@@ -305,7 +314,7 @@ StreakResult _replayWeeklyTarget({
       }
     }
     // The current week, if not yet met, is still in progress — no penalty.
-    // Paused weeks are neutral in the same way.
+    // Fully paused weeks are neutral in the same way.
 
     week = nextDay(week).add(const Duration(days: 6));
     week = startOfWeek(week);

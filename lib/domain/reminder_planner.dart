@@ -46,6 +46,9 @@ class ReminderOccurrence {
 /// [reminderTime] supplies the time-of-day (only hour/minute are used).
 /// [checkedDays] is the set of `yyyy-MM-dd` days already completed — a
 /// reminder is never planned for a day the habit is already done.
+/// [pausedDays] (also `yyyy-MM-dd`) are planned-vacation days: neutral and
+/// silent. A real check-in on a paused day still removes its reminder via
+/// [checkedDays].
 ///
 /// * daily / weeklyTarget — every day is eligible.
 /// * weekdays — only the listed ISO weekdays.
@@ -58,6 +61,7 @@ List<ReminderOccurrence> planHabitReminders({
   required DateTime? reminderTime,
   required DateTime now,
   required Set<String> checkedDays,
+  Set<String> pausedDays = const {},
   int count = 7,
   int habitId = 0,
 }) {
@@ -70,7 +74,10 @@ List<ReminderOccurrence> planHabitReminders({
   // schedules may skip many days, so bound the scan generously.
   for (var i = 0; i < 366 && result.length < count; i++) {
     final key = formatDate(day);
-    final eligible = schedule.isDueOn(day) && !checkedDays.contains(key);
+    final eligible =
+        schedule.isDueOn(day) &&
+        !checkedDays.contains(key) &&
+        !pausedDays.contains(key);
     if (eligible) {
       final when = DateTime(
         day.year,
