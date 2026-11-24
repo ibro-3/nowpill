@@ -10,6 +10,7 @@ import 'package:nowpill/data/repositories/task_repository.dart';
 import 'package:nowpill/domain/date_utils.dart';
 import 'package:nowpill/domain/enums.dart';
 import 'package:nowpill/domain/recurrence_rule.dart';
+import 'package:nowpill/features/habits/habit_detail_screen.dart';
 import 'package:nowpill/features/habits/widgets/streak_odometer.dart';
 import 'package:nowpill/features/habits/widgets/token_wallet.dart';
 import 'package:nowpill/main.dart';
@@ -205,6 +206,20 @@ void main() {
     final frozenKey = ValueKey('heatmap-${formatDate(frozenDay)}');
     expect(find.byKey(frozenKey), findsOneWidget);
 
+    // v0.9's insights card makes the detail page taller, so bring the cell
+    // into view before tapping it.
+    await tester.scrollUntilVisible(
+      find.byKey(frozenKey),
+      200,
+      scrollable: find
+          .ancestor(
+            of: find.byKey(frozenKey),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await pumpFor(tester, 200);
+
     // Backfill the frozen day by tapping its heatmap cell.
     await tester.tap(find.byKey(frozenKey));
     await pumpFor(tester, 600);
@@ -213,6 +228,19 @@ void main() {
     // is refunded back into the wallet.
     final checkins = await habits.getCheckins(id);
     expect(checkins.any((c) => c.date == formatDate(frozenDay)), isTrue);
+
+    // The wallet was disposed while scrolled down; bring it back into view.
+    await tester.scrollUntilVisible(
+      find.byType(TokenWallet),
+      -200,
+      scrollable: find
+          .descendant(
+            of: find.byType(HabitDetailScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await pumpFor(tester, 200);
     expect(tester.widget<TokenWallet>(find.byType(TokenWallet)).tokens, 1);
 
     await screenshot(tester, 'backfill_freeze_refund');
