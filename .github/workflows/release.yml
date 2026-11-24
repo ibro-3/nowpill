@@ -120,8 +120,9 @@ jobs:
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "dist/nowpill-$version-armeabi-v7a.apk"
           for apk in dist/*.apk; do
             "$build_tools/apksigner" verify "$apk"
-            "$build_tools/apksigner" verify --print-certs "$apk" 2>/dev/null | grep -q 'CN=NowPill'
-            badging="$("$build_tools/aapt2" dump badging "$apk" | head -1)"
+            certs="$("$build_tools/apksigner" verify --print-certs "$apk" 2>/dev/null)"
+            grep -q 'CN=NowPill' <<<"$certs"
+            badging="$("$build_tools/aapt2" dump badging "$apk" 2>/dev/null | sed -n '1p')"
             echo "$apk: $badging"
             echo "$badging" | grep -q "versionCode='$build_number'"
             echo "$badging" | grep -q "versionName='$version'"

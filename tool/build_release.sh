@@ -85,7 +85,7 @@ for asset in "${assets[@]}"; do
     echo "$certs" >&2
     exit 1
   fi
-  badging="$("$aapt2" dump badging "$apk" | head -1)"
+  badging="$("$aapt2" dump badging "$apk" 2>/dev/null | sed -n '1p')"
   echo "  $asset: $badging"
   grep -q "versionCode='$build_number'" <<<"$badging"
   grep -q "versionName='$version'" <<<"$badging"
