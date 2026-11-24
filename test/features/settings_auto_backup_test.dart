@@ -63,6 +63,13 @@ void main() {
     await tester.pumpWidget(wrap());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
+    // The vacation stream provider cancels its Drift subscription
+    // asynchronously; flush the disposal before the test ends.
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+    });
   }
 
   testWidgets('empty state when no snapshots exist', (tester) async {

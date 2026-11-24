@@ -68,6 +68,12 @@ void main() {
     await tester.pumpWidget(wrap(coordinator: coordinator));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
+    // Flush the async Drift stream cancellation from the vacation provider.
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+    });
   }
 
   testWidgets('sync section shows idle state with no folder', (tester) async {

@@ -28,12 +28,19 @@ import 'dart:convert';
 /// Row tables in the envelope's `data` object, parents before children.
 /// `taskLists` is a soft parent: a task may reference it by uuid, but a
 /// missing list never removes the task (the link is simply cleared).
-const List<String> kSyncParentTables = ['taskLists', 'tasks', 'habits', 'tags'];
+const List<String> kSyncParentTables = [
+  'taskLists',
+  'tasks',
+  'habits',
+  'tags',
+  'vacations',
+];
 const List<String> kSyncChildTables = [
   'subtasks',
   'taskTags',
   'checkins',
   'freezes',
+  'relapses',
 ];
 
 /// Parent-uuid field → parent table, per child table.
@@ -42,10 +49,11 @@ const Map<String, Map<String, String>> kSyncParentRefs = {
   'taskTags': {'taskUuid': 'tasks', 'tagUuid': 'tags'},
   'checkins': {'habitUuid': 'habits'},
   'freezes': {'habitUuid': 'habits'},
+  'relapses': {'habitUuid': 'habits'},
 };
 
-/// Full current-schema (v5) key set per row table. Older envelopes (e.g. a
-/// pre-v5 device's file) omit nullable columns added later; rows are
+/// Full current-schema (v6) key set per row table. Older envelopes (e.g. a
+/// pre-v6 device's file) omit nullable columns added later; rows are
 /// normalized to these keys (missing → null) before merging so a missing key
 /// and an explicit null compare equal. Without this, a v4 device would see
 /// its own row as "changed" against an older copy every cycle and rewrite it
@@ -81,6 +89,7 @@ const Map<String, List<String>> kSyncRowKeys = {
     'targetPerWeek',
     'reminderTime',
     'freezeMode',
+    'kind',
     'targetAmount',
     'createdAt',
     'archivedAt',
@@ -117,6 +126,16 @@ const Map<String, List<String>> kSyncRowKeys = {
     'date',
     'createdAt',
   ],
+  'relapses': [
+    'id',
+    'uuid',
+    'updatedAt',
+    'habitId',
+    'habitUuid',
+    'date',
+    'note',
+  ],
+  'vacations': ['id', 'uuid', 'updatedAt', 'startDate', 'endDate'],
   'tombstones': ['uuid', 'sourceTable', 'deletedAt', 'deviceId'],
 };
 
@@ -363,6 +382,7 @@ SyncMergeResult mergeEnvelopes({
 
   dedupe('checkins', ['habitUuid', 'date']);
   dedupe('freezes', ['habitUuid', 'date']);
+  dedupe('relapses', ['habitUuid', 'date']);
   dedupe('taskTags', ['taskUuid', 'tagUuid']);
 
   // --- 7. Assemble the merged envelope. ---
@@ -374,7 +394,7 @@ SyncMergeResult mergeEnvelopes({
 
   return SyncMergeResult(
     envelope: {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'exportedAt': now.toUtc().millisecondsSinceEpoch,
       'deviceId': deviceId,
       'data': data,

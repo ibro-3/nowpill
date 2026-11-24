@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.5.0** (see `CHANGELOG.md`).
+Current release: **v0.6.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -40,6 +40,11 @@ Current release: **v0.5.0** (see `CHANGELOG.md`).
   one-tap Check pill for the next undone habit, and a “Today's habits” list with
   per-habit check pills (Android AppWidget; check-ins work with the app closed;
   iOS WidgetKit/AppIntents sources included, build needs macOS).
+- **Quit habits** — track what you're leaving behind without logging good days:
+  pick a quit date, log relapses when they happen, and keep a "days clean"
+  streak with a best-ever record. Relapses and the quit date sync and back up.
+- **Vacation mode** — plan date ranges in Settings; paused days are neutral
+  (no misses, no freeze spend, no fake streak growth) and disappear from Today.
 - **First-run onboarding** — a short 3-step intro with optional starter habits
   (drink water, move, read); skip it any time, all choices editable later.
 - **Task lists** — group tasks into lists (projects) with per-list filters and
@@ -51,7 +56,7 @@ Current release: **v0.5.0** (see `CHANGELOG.md`).
 - **Accessibility** — screen-reader labels on heatmap days, progress ring,
   streak/token widgets, and charts; tap-target and 2× text-scale regression
   tests for the primary tabs.
-- **Backup & sync** — versioned JSON export/import (schema v5, imports v1–v4)
+- **Backup & sync** — versioned JSON export/import (schema v6, imports v1–v5)
   with a confirm-replace-all flow; **automatic daily backups** (last 7 kept,
   explicit restore); **optional folder sync** through a user-chosen folder
   (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW

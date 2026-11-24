@@ -36,7 +36,8 @@ class StreakResult {
   /// Days where a token was earned (`yyyy-MM-dd`).
   final Set<String> earnEvents;
 
-  /// Total check-ins counted (for stats).
+  /// Total check-ins counted (for stats). For quit habits this is the number
+  /// of clean days since the quit date.
   final int completedDays;
 
   static const StreakResult empty = StreakResult(
@@ -96,6 +97,14 @@ const int weeksPerToken = 4;
 /// When [targetAmount] is null the output is byte-identical to pre-v0.3.0.
 /// For weekly-target habits each fully-met day counts once toward the weekly
 /// target; partial days do not count.
+///
+/// v0.6 adds two opt-in dimensions, both no-ops with their defaults:
+/// * [pausedDates] (`yyyy-MM-dd`) marks planned vacation days. They are
+///   neutral: no check-in needed, no miss, no token spent, no streak gained.
+///   A real check-in on a paused day still counts.
+/// * [kind] = [HabitKind.quit] switches to the relapse model: every day from
+///   [startDate] (the quit date) is clean by default, and only [relapses]
+///   reset the streak. Freeze tokens are unused for quit habits.
 StreakResult replayStreak({
   required HabitSchedule schedule,
   required Set<String> checkins,
@@ -105,11 +114,22 @@ StreakResult replayStreak({
   Set<String> manualFreezes = const {},
   double? targetAmount,
   Map<String, double> amounts = const {},
+  HabitKind kind = HabitKind.build,
+  Set<String> relapses = const {},
+  Set<String> pausedDates = const {},
 }) {
   // startDate is a calendar day ("the first day the habit existed"), not an
   // instant. Normalize to date-only local so a creation time later in the day
   // does not exclude same-day check-ins (parsed as local midnight).
   final startDay = DateTime(startDate.year, startDate.month, startDate.day);
+  if (kind == HabitKind.quit) {
+    return _replayQuit(
+      today: DateTime(today.year, today.month, today.day),
+      startDate: startDay,
+      relapses: relapses,
+      pausedDates: pausedDates,
+    );
+  }
   if (schedule.isDayBased) {
     return _replayDayBased(
       schedule: schedule,
@@ -120,6 +140,7 @@ StreakResult replayStreak({
       manualFreezes: manualFreezes,
       targetAmount: targetAmount,
       amounts: amounts,
+      pausedDates: pausedDates,
     );
   }
   return _replayWeeklyTarget(
@@ -131,6 +152,7 @@ StreakResult replayStreak({
     manualFreezes: manualFreezes,
     targetAmount: targetAmount,
     amounts: amounts,
+    pausedDates: pausedDates,
   );
 }
 
@@ -157,6 +179,7 @@ StreakResult _replayDayBased({
   required Set<String> manualFreezes,
   required double? targetAmount,
   required Map<String, double> amounts,
+  required Set<String> pausedDates,
 }) {
   var current = 0;
   var best = 0;
@@ -174,6 +197,7 @@ StreakResult _replayDayBased({
     final checked = checkins.contains(key);
     final metGoal = checked && dayMeetsGoal(key, targetAmount, amounts);
     final due = schedule.isDueOn(day);
+    final paused = pausedDates.contains(key);
 
     if (metGoal) {
       completedDays++;
@@ -183,7 +207,7 @@ StreakResult _replayDayBased({
         tokens++;
         earns.add(key);
       }
-    } else if (due && !isToday) {
+    } else if (due && !isToday && !paused) {
       // A missed scheduled day that has fully elapsed (a partial measurable
       // day counts as missed — only 100% keeps the streak). In auto mode any
       // available token bridges it; in manual mode only an explicit freeze does.
@@ -198,8 +222,8 @@ StreakResult _replayDayBased({
         current = 0;
       }
     }
-    // Unscheduled days, partial progress today, and today-without-checkin
-    // leave the streak unchanged.
+    // Unscheduled days, paused days, partial progress today, and
+    // today-without-checkin leave the streak unchanged.
 
     day = nextDay(day);
   }
@@ -223,6 +247,7 @@ StreakResult _replayWeeklyTarget({
   required Set<String> manualFreezes,
   required double? targetAmount,
   required Map<String, double> amounts,
+  required Set<String> pausedDates,
 }) {
   final target = schedule.targetPerWeek ?? 1;
   var current = 0;
@@ -264,7 +289,7 @@ StreakResult _replayWeeklyTarget({
         tokens++;
         earns.add(formatDate(week));
       }
-    } else if (!isCurrentWeek) {
+    } else if (!isCurrentWeek && !pausedDates.contains(formatDate(week))) {
       // A fully-elapsed week that missed its target. Auto mode bridges with any
       // available token; manual mode requires an explicit freeze on the Monday.
       final weekKey = formatDate(week);
@@ -280,6 +305,7 @@ StreakResult _replayWeeklyTarget({
       }
     }
     // The current week, if not yet met, is still in progress — no penalty.
+    // Paused weeks are neutral in the same way.
 
     week = nextDay(week).add(const Duration(days: 6));
     week = startOfWeek(week);
@@ -292,5 +318,45 @@ StreakResult _replayWeeklyTarget({
     frozenDates: frozen,
     earnEvents: earns,
     completedDays: completedDays,
+  );
+}
+
+/// Quit-habit replay (v0.6).
+///
+/// The only event is a relapse. Every day from the quit date is clean unless
+/// it was relapsed or paused, so closing the app for a week does not destroy
+/// the streak. A relapse resets the current streak but the best is kept;
+/// freeze tokens are not part of this model.
+StreakResult _replayQuit({
+  required DateTime today,
+  required DateTime startDate,
+  required Set<String> relapses,
+  required Set<String> pausedDates,
+}) {
+  var current = 0;
+  var best = 0;
+  var cleanDays = 0;
+
+  var day = DateTime(startDate.year, startDate.month, startDate.day);
+  final end = DateTime(today.year, today.month, today.day);
+  while (!day.isAfter(end)) {
+    final key = formatDate(day);
+    if (relapses.contains(key)) {
+      current = 0;
+    } else if (!pausedDates.contains(key)) {
+      current++;
+      cleanDays++;
+      if (current > best) best = current;
+    }
+    day = nextDay(day);
+  }
+
+  return StreakResult(
+    currentStreak: current,
+    bestStreak: best,
+    tokens: 0,
+    frozenDates: const {},
+    earnEvents: const {},
+    completedDays: cleanDays,
   );
 }

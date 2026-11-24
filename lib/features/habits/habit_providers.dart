@@ -5,6 +5,7 @@ import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/schedule.dart';
 import '../../domain/streak_engine.dart';
+import '../../domain/vacation.dart' as vacation_domain;
 
 // Drift-typed providers are hand-written (riverpod_generator cannot resolve
 // Drift part-file row classes). See doc/m3e_spike_decision.md.
@@ -45,6 +46,42 @@ final allCheckinsProvider = StreamProvider<List<HabitCheckin>>((ref) {
   return ref.watch(habitRepositoryProvider).watchAllCheckins();
 });
 
+/// All relapse events across quit habits, reactive.
+final allRelapsesProvider = StreamProvider<List<HabitRelapse>>((ref) {
+  return ref.watch(habitRepositoryProvider).watchAllRelapses();
+});
+
+/// Planned vacation ranges, reactive. Currently app-wide.
+final vacationPeriodsProvider = StreamProvider<List<VacationPeriod>>((ref) {
+  return ref.watch(habitRepositoryProvider).watchVacationPeriods();
+});
+
+/// The set of paused day keys for a habit's lifetime, reactive.
+final pausedDaysProvider = Provider.family<Set<String>, DateTime>((ref, start) {
+  final periods =
+      ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
+  return vacation_domain.expandPausedDates(
+    periods.map(
+      (p) => vacation_domain.VacationPeriod(
+        start: p.startDate,
+        end: p.endDate,
+        uuid: p.uuid,
+        updatedAt: p.updatedAt.millisecondsSinceEpoch,
+      ),
+    ),
+    from: formatDate(start),
+    to: formatDate(DateTime.now()),
+  );
+});
+
+/// Relapse events for a quit habit, reactive.
+final habitRelapsesProvider = StreamProvider.family<List<HabitRelapse>, int>((
+  ref,
+  habitId,
+) {
+  return ref.watch(habitRepositoryProvider).watchRelapses(habitId);
+});
+
 /// The derived streak state for a habit, replayed from its check-in history.
 final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
   final habit = ref.watch(habitProvider(habitId)).value;
@@ -54,6 +91,10 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
       ref.watch(habitCheckinsProvider(habitId)).value ?? const <HabitCheckin>[];
   final freezes =
       ref.watch(habitFreezesProvider(habitId)).value ?? const <HabitFreeze>[];
+  final relapses =
+      ref.watch(habitRelapsesProvider(habitId)).value ?? const <HabitRelapse>[];
+  final start = habit.createdAt.toLocal();
+  final paused = ref.watch(pausedDaysProvider(start));
   final schedule = scheduleFromFields(
     type: habit.scheduleType,
     weekdays: habit.weekdays,
@@ -64,7 +105,7 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
     schedule: schedule,
     checkins: checkins.map((c) => c.date).toSet(),
     today: DateTime.now(),
-    startDate: habit.createdAt.toLocal(),
+    startDate: start,
     freezeMode: habit.freezeMode,
     manualFreezes: freezes.map((f) => f.date).toSet(),
     targetAmount: habit.targetAmount,
@@ -72,6 +113,9 @@ final habitStreakProvider = Provider.family<StreakResult, int>((ref, habitId) {
       for (final c in checkins)
         if (c.amount != null) c.date: c.amount!,
     },
+    kind: habit.kind,
+    relapses: relapses.map((r) => r.date).toSet(),
+    pausedDates: paused,
   );
 });
 

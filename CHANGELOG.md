@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.6.0 — 2026-11-24
+
+Habit depth: quitting and planned time off. Still local-first — no account, no server, no tracking.
+
+### Features
+- **Quit habits** — a second habit kind whose streak is the number of clean days
+  since the quit date. No daily check-ins: every day is clean until you log a
+  relapse (one per day, with an optional note). Relapses reset the current
+  streak but keep the best; freeze tokens don't apply. The habit editor lets you
+  backdate the quit date, and the kind locks once the habit has history.
+- **Upcoming: routines** — v0.7 will group habits into routines and let a
+  vacation pause selected routines/habits. v0.6's engine already resolves
+  pauses per habit so that extension needs no streak-engine change.
+- **Planned vacation** — add inclusive date ranges in Settings. Paused days are
+  neutral: not due, not missed, no token spent, no streak gain; a real check-in
+  on a paused day still counts. Today shows a vacation banner and drops paused
+  habits, and the heatmap marks those days as paused.
+- **Replay intro** — Settings → About replays the first-run walkthrough without
+  re-seeding starter habits.
+
+### Under the hood
+- Schema v6: `HabitRelapses`, `VacationPeriods`, and `Habits.kind`, with a
+  guarded v5→v6 migration. Export envelope v6 imports v1–v5 payloads (old habits
+  become build habits). Folder sync carries relapses and vacations with LWW,
+  natural-key relapse dedupe, parent-orphan cleanup, and tombstones.
+- Pure domain: `replayStreak` gains an opt-in quit branch and a `pausedDates`
+  set; `expandPausedDates` resolves ranges to local day keys; heatmaps gain
+  `relapsed` and `paused` states with screen-reader labels.
+- 460 unit/widget tests plus Linux e2e; new coverage for the v6 migration,
+  quit replay, vacation replay/range expansion, merge rules, and the relapse /
+  vacation UI.
+
 ## v0.5.0 — 2026-11-24
 
 First run, project organization, and a quieter accessibility pass. Still

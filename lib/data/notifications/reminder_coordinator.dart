@@ -133,6 +133,8 @@ void refreshDatabaseStreams(AppDatabase db) {
       TableUpdate.onTable(db.habits, kind: UpdateKind.update),
       TableUpdate.onTable(db.habitCheckins, kind: UpdateKind.update),
       TableUpdate.onTable(db.habitFreezes, kind: UpdateKind.update),
+      TableUpdate.onTable(db.habitRelapses, kind: UpdateKind.update),
+      TableUpdate.onTable(db.vacationPeriods, kind: UpdateKind.update),
     });
   } catch (_) {
     // Guarded: a refresh failure must not break resume.

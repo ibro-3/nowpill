@@ -24,6 +24,8 @@ void main() {
         'taskTags': <Object>[],
         'checkins': <Object>[],
         'freezes': <Object>[],
+        'relapses': <Object>[],
+        'vacations': <Object>[],
         'tombstones': <Object>[],
         ...data,
       },
@@ -465,6 +467,132 @@ void main() {
       expect(row.containsKey('targetAmount'), isFalse);
       // Unknown table passes through.
       expect(normalizeSyncRow('unknown', row), same(row));
+    });
+  });
+
+  group('quit habits and vacation (schema v6)', () {
+    Map<String, Object?> relapse(
+      String uuid,
+      String habitUuid,
+      String date,
+      int updatedAt,
+    ) => {
+      'id': 1,
+      'uuid': uuid,
+      'updatedAt': updatedAt,
+      'habitId': 1,
+      'habitUuid': habitUuid,
+      'date': date,
+      'note': null,
+    };
+
+    Map<String, Object?> vacation(
+      String uuid,
+      int updatedAt, {
+      String start = '2026-11-20',
+      String end = '2026-11-23',
+    }) => {
+      'id': 1,
+      'uuid': uuid,
+      'updatedAt': updatedAt,
+      'startDate': start,
+      'endDate': end,
+    };
+
+    test('preserves HabitKind across a merge', () {
+      final quitHabit = {...habit('h1', 100), 'kind': 1};
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'habits': [quitHabit],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(rowsOf(result, 'habits').single['kind'], 1);
+      expect(result.envelope['schemaVersion'], 6);
+    });
+
+    test('relapses dedupe by habit+date, newest wins', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'habits': [habit('h1', 100)],
+              'relapses': [relapse('r1', 'h1', '2026-11-20', 100)],
+            },
+          ),
+          env(
+            'b',
+            data: {
+              'habits': [habit('h1', 100)],
+              'relapses': [relapse('r2', 'h1', '2026-11-20', 200)],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      final relapses = rowsOf(result, 'relapses');
+      expect(relapses, hasLength(1));
+      expect(relapses.single['uuid'], 'r2');
+      expect(result.stats.duplicatesMerged, 1);
+    });
+
+    test('an orphan relapse is dropped, a vacation survives LWW', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'relapses': [relapse('r1', 'ghost', '2026-11-20', 100)],
+              'vacations': [vacation('v1', 100)],
+            },
+          ),
+          env(
+            'b',
+            data: {
+              'vacations': [vacation('v1', 200, end: '2026-11-25')],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(rowsOf(result, 'relapses'), isEmpty);
+      expect(result.stats.orphansDropped, 1);
+      final periods = rowsOf(result, 'vacations');
+      expect(periods, hasLength(1));
+      expect(periods.single['endDate'], '2026-11-25');
+    });
+
+    test('a vacation tombstone removes the period on every device', () {
+      final result = mergeEnvelopes(
+        envelopes: [
+          env(
+            'a',
+            data: {
+              'vacations': [vacation('v1', 100)],
+            },
+          ),
+          env(
+            'b',
+            data: {
+              'tombstones': [
+                tomb('v1', 200, 'b')..['sourceTable'] = 'vacation_periods',
+              ],
+            },
+          ),
+        ],
+        deviceId: 'a',
+        now: now,
+      );
+      expect(rowsOf(result, 'vacations'), isEmpty);
     });
   });
 }

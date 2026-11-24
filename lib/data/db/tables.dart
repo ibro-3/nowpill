@@ -187,9 +187,13 @@ class Habits extends Table {
       integer().nullable().map(const UtcMillisConverter())();
 
   /// How freeze tokens are spent: auto-consume (default) or explicit manual
-  /// placement. Added in schema v2.
+  /// placement. Added in schema v2. Ignored for [HabitKind.quit] habits.
   IntColumn get freezeMode =>
       intEnum<FreezeMode>().withDefault(const Constant(0))();
+
+  /// Build (default) or quit. Quit habits derive streaks from the absence of
+  /// relapses and do not use tokens. Added in schema v6.
+  IntColumn get kind => intEnum<HabitKind>().withDefault(const Constant(0))();
 
   /// Optional numeric daily goal (schema v4, measurable habits). When set, a
   /// check-in only counts toward the streak at 100% of this amount; partial
@@ -269,6 +273,52 @@ class HabitFreezes extends Table {
   List<Set<Column>> get uniqueKeys => [
     {habitId, date},
   ];
+}
+
+/// Relapse events for quit habits (schema v6). One per day: presence of a row
+/// means the user broke the clean streak on that local calendar day. Absence
+/// of a row means the day was clean — no check-in required.
+class HabitRelapses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  IntColumn get habitId =>
+      integer().references(Habits, #id, onDelete: KeyAction.cascade)();
+
+  /// Parent habit uuid (schema v3) — survives merges that remap local ids.
+  TextColumn get habitUuid => text()();
+
+  /// Local calendar day of the relapse (`yyyy-MM-dd`).
+  TextColumn get date => text().withLength(min: 10, max: 10)();
+
+  TextColumn get note => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {habitId, date},
+  ];
+}
+
+/// Planned vacation ranges (schema v6). App-wide for now: every habit is
+/// paused on these days. v0.7 adds per-routine/habit scopes without changing
+/// the streak engine. Ranges are inclusive and stored as local day strings.
+class VacationPeriods extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  TextColumn get startDate => text().withLength(min: 10, max: 10)();
+
+  TextColumn get endDate => text().withLength(min: 10, max: 10)();
 }
 
 /// Deletion markers for sync (schema v3). When a row is deleted locally its

@@ -51,6 +51,8 @@ SyncCoordinator syncCoordinator(Ref ref) {
   final subs = [
     habits.watchAll().listen((_) => coordinator.scheduleSync()),
     habits.watchAllCheckins().listen((_) => coordinator.scheduleSync()),
+    habits.watchVacationPeriods().listen((_) => coordinator.scheduleSync()),
+    habits.watchAllRelapses().listen((_) => coordinator.scheduleSync()),
     tasks.watchAll().listen((_) => coordinator.scheduleSync()),
     tasks.watchAllTaskTags().listen((_) => coordinator.scheduleSync()),
     lists.watchAll().listen((_) => coordinator.scheduleSync()),

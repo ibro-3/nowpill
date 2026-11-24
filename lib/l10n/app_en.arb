@@ -625,5 +625,78 @@
   },
   "a11yWeeklyBars": "Weekly check-ins and tasks done",
   "a11yTrend": "Daily activity over the last 30 days",
-  "a11yDonut": "Tasks by tag"
+  "a11yDonut": "Tasks by tag",
+  "habitKind": "Habit type",
+  "kindBuild": "Build a habit",
+  "kindQuit": "Quit a habit",
+  "kindBuildDesc": "Check in on the days you want to follow through.",
+  "kindQuitDesc": "No check-ins needed — each day is clean until you log a relapse.",
+  "quitDate": "Quit date",
+  "setQuitDate": "Set quit date",
+  "clearQuitDate": "Clear quit date",
+  "daysClean": "{count} days clean",
+  "@daysClean": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "habitCleanDays": "days clean",
+  "logRelapse": "Log relapse",
+  "logRelapseFor": "Log relapse for {name}",
+  "@logRelapseFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeRelapse": "Remove relapse",
+  "relapseTitle": "Log a relapse?",
+  "relapseBody": "This resets your current streak. Your best streak is kept, and you can remove the entry later.",
+  "relapseNote": "What happened? (optional)",
+  "relapseLogged": "Relapse logged.",
+  "relapseRemoved": "Relapse removed.",
+  "settingsVacation": "Vacation",
+  "vacationDescription": "Planned days off pause your habits without breaking streaks or spending freezes.",
+  "vacationAdd": "Plan vacation",
+  "vacationStart": "Start",
+  "vacationEnd": "End",
+  "vacationPeriod": "{start} – {end}",
+  "@vacationPeriod": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "vacationActive": "On vacation until {date}",
+  "@vacationActive": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "vacationBanner": "On vacation — nothing is due. Enjoy your time off!",
+  "vacationBannerUntil": "On vacation until {date} — nothing is due.",
+  "@vacationBannerUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "vacationSaved": "Vacation planned.",
+  "vacationRemoved": "Vacation removed.",
+  "vacationInvalid": "The end date must be on or after the start date.",
+  "vacationEmpty": "No vacation planned.",
+  "vacationManage": "Manage",
+  "todayPaused": "Paused",
+  "a11yHeatmapRelapsed": "Relapse",
+  "a11yHeatmapPaused": "Paused (vacation)"
 }

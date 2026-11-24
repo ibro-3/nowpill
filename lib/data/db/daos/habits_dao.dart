@@ -9,7 +9,16 @@ part 'habits_dao.g.dart';
 ///
 /// Sync-aware (schema v3): updates stamp `updatedAt`, deletes record
 /// tombstones (including cascaded check-ins/freezes) so devices converge.
-@DriftAccessor(tables: [Habits, HabitCheckins, HabitFreezes, Tombstones])
+@DriftAccessor(
+  tables: [
+    Habits,
+    HabitCheckins,
+    HabitFreezes,
+    HabitRelapses,
+    VacationPeriods,
+    Tombstones,
+  ],
+)
 class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
   HabitsDao(super.db);
 
@@ -67,6 +76,9 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
       final freezes = await (select(
         habitFreezes,
       )..where((f) => f.habitId.equals(id))).get();
+      final relapses = await (select(
+        habitRelapses,
+      )..where((r) => r.habitId.equals(id))).get();
       await batch((b) {
         b.insertAll(tombstones, [
           TombstonesCompanion.insert(
@@ -86,6 +98,13 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
             TombstonesCompanion.insert(
               uuid: f.uuid,
               sourceTable: 'habit_freezes',
+              deletedAt: now,
+              deviceId: deviceId,
+            ),
+          for (final r in relapses)
+            TombstonesCompanion.insert(
+              uuid: r.uuid,
+              sourceTable: 'habit_relapses',
               deletedAt: now,
               deviceId: deviceId,
             ),
@@ -296,6 +315,117 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
       return (delete(
         habitFreezes,
       )..where((f) => f.habitId.equals(habitId) & f.date.equals(date))).go();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Quit-habit relapses (schema v6)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<HabitRelapse>> watchRelapses(int habitId) {
+    return (select(habitRelapses)
+          ..where((r) => r.habitId.equals(habitId))
+          ..orderBy([(r) => OrderingTerm(expression: r.date)]))
+        .watch();
+  }
+
+  Future<List<HabitRelapse>> getRelapses(int habitId) {
+    return (select(habitRelapses)
+          ..where((r) => r.habitId.equals(habitId))
+          ..orderBy([(r) => OrderingTerm(expression: r.date)]))
+        .get();
+  }
+
+  Stream<List<HabitRelapse>> watchAllRelapses() =>
+      select(habitRelapses).watch();
+
+  Future<List<HabitRelapse>> getAllRelapses() => select(habitRelapses).get();
+
+  /// Logs one relapse per habit per day. Idempotent: re-logging the same day
+  /// is a no-op rather than a second event.
+  Future<int> logRelapse(HabitRelapsesCompanion entry) async {
+    final existing =
+        await (select(habitRelapses)..where(
+              (r) =>
+                  r.habitId.equals(entry.habitId.value) &
+                  r.date.equals(entry.date.value),
+            ))
+            .getSingleOrNull();
+    if (existing != null) return -1;
+    final habit = await getHabit(entry.habitId.value);
+    if (habit == null) {
+      throw StateError(
+        'Cannot log relapse for missing habit ${entry.habitId.value}',
+      );
+    }
+    return into(habitRelapses).insert(
+      entry.copyWith(habitUuid: Value(habit.uuid)),
+      onConflict: DoNothing(
+        target: [habitRelapses.habitId, habitRelapses.date],
+      ),
+    );
+  }
+
+  /// Removes a relapse entry (undo). Tombstoned so the undo propagates.
+  Future<int> removeRelapse(int habitId, String date) async {
+    return attachedDatabase.transaction(() async {
+      final row =
+          await (select(habitRelapses)
+                ..where((r) => r.habitId.equals(habitId) & r.date.equals(date)))
+              .getSingleOrNull();
+      if (row == null) return 0;
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: row.uuid,
+          sourceTable: 'habit_relapses',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+      return (delete(
+        habitRelapses,
+      )..where((r) => r.habitId.equals(habitId) & r.date.equals(date))).go();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Planned vacation (schema v6)
+  // ---------------------------------------------------------------------------
+
+  Stream<List<VacationPeriod>> watchVacationPeriods() {
+    return (select(
+      vacationPeriods,
+    )..orderBy([(p) => OrderingTerm(expression: p.startDate)])).watch();
+  }
+
+  Future<List<VacationPeriod>> getAllVacationPeriods() =>
+      select(vacationPeriods).get();
+
+  Future<int> insertVacationPeriod(VacationPeriodsCompanion entry) =>
+      into(vacationPeriods).insert(entry);
+
+  Future<bool> updateVacationPeriod(VacationPeriod entry) =>
+      update(vacationPeriods)
+          .replace(entry.copyWith(updatedAt: DateTime.now().toUtc()));
+
+  /// Deleting a planned vacation records a tombstone so other devices drop it.
+  Future<int> deleteVacationPeriod(int id) async {
+    return attachedDatabase.transaction(() async {
+      final row = await (select(
+        vacationPeriods,
+      )..where((p) => p.id.equals(id))).getSingleOrNull();
+      if (row == null) return 0;
+      await into(tombstones).insert(
+        TombstonesCompanion.insert(
+          uuid: row.uuid,
+          sourceTable: 'vacation_periods',
+          deletedAt: DateTime.now().toUtc(),
+          deviceId: attachedDatabase.deviceId,
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+      return (delete(vacationPeriods)..where((p) => p.id.equals(id))).go();
     });
   }
 }

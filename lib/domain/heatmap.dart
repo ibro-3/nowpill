@@ -1,4 +1,5 @@
 import 'date_utils.dart';
+import 'enums.dart';
 import 'habit_schedule.dart';
 
 /// The visual state of a single heatmap day (shared by the month and year
@@ -24,6 +25,12 @@ enum HeatmapDayState {
 
   /// Outside the habit's lifetime or in the future.
   inactive,
+
+  /// A quit habit: a relapse was logged on this day.
+  relapsed,
+
+  /// Inside a planned vacation. Neutral: neither success nor miss.
+  paused,
 }
 
 /// Pure day-state classification for heatmaps. Identical rules for the month
@@ -37,6 +44,9 @@ HeatmapDayState heatmapDayState({
   required Set<String> frozenDates,
   double? targetAmount,
   Map<String, double> amounts = const {},
+  HabitKind kind = HabitKind.build,
+  Set<String> relapses = const {},
+  Set<String> pausedDates = const {},
 }) {
   final d = DateTime(day.year, day.month, day.day);
   final t = DateTime(today.year, today.month, today.day);
@@ -44,6 +54,16 @@ HeatmapDayState heatmapDayState({
   final key = formatDate(d);
   if (d.isAfter(t)) return HeatmapDayState.inactive;
   if (d.isBefore(start)) return HeatmapDayState.inactive;
+
+  // Quit habits have no "missed" day: a day is clean unless a relapse was
+  // logged (or the day was paused). Today is clean so far, just like any
+  // other day — the user can still log a relapse for it.
+  if (kind == HabitKind.quit) {
+    if (relapses.contains(key)) return HeatmapDayState.relapsed;
+    if (pausedDates.contains(key)) return HeatmapDayState.paused;
+    return HeatmapDayState.done;
+  }
+
   if (checkins.contains(key)) {
     // Measurable habits: full goal = done, partial progress = partial shade.
     if (targetAmount != null) {
@@ -54,6 +74,9 @@ HeatmapDayState heatmapDayState({
     }
     return HeatmapDayState.done;
   }
+  // A check-in during a vacation still counts; only an unchecked paused day
+  // is neutral.
+  if (pausedDates.contains(key)) return HeatmapDayState.paused;
   // Weekly-target freezes are stored under the week's Monday; render frozen
   // on every unchecked day of a frozen week.
   final frozenKey = schedule.isDayBased ? key : formatDate(startOfWeek(d));
@@ -87,6 +110,9 @@ List<YearHeatmapWeek> yearHeatmapWeeks({
   required Set<String> frozenDates,
   double? targetAmount,
   Map<String, double> amounts = const {},
+  HabitKind kind = HabitKind.build,
+  Set<String> relapses = const {},
+  Set<String> pausedDates = const {},
 }) {
   final t = DateTime(today.year, today.month, today.day);
   final lastMonday = startOfWeek(t);
@@ -106,6 +132,9 @@ List<YearHeatmapWeek> yearHeatmapWeeks({
           frozenDates: frozenDates,
           targetAmount: targetAmount,
           amounts: amounts,
+          kind: kind,
+          relapses: relapses,
+          pausedDates: pausedDates,
         );
       }),
     );

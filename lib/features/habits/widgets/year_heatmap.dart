@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
 import '../../../domain/date_utils.dart';
+import '../../../domain/enums.dart';
 import '../../../domain/habit_schedule.dart';
 import '../../../domain/heatmap.dart';
 import '../../../domain/streak_engine.dart';
@@ -26,6 +27,9 @@ class YearHeatmap extends StatefulWidget {
     required this.onToggleDay,
     this.targetAmount,
     this.amounts = const {},
+    this.kind = HabitKind.build,
+    this.relapses = const {},
+    this.pausedDates = const {},
     super.key,
   });
 
@@ -37,6 +41,9 @@ class YearHeatmap extends StatefulWidget {
   final ValueChanged<DateTime> onToggleDay;
   final double? targetAmount;
   final Map<String, double> amounts;
+  final HabitKind kind;
+  final Set<String> relapses;
+  final Set<String> pausedDates;
 
   @override
   State<YearHeatmap> createState() => _YearHeatmapState();
@@ -89,6 +96,9 @@ class _YearHeatmapState extends State<YearHeatmap>
       frozenDates: widget.streak.frozenDates,
       targetAmount: widget.targetAmount,
       amounts: widget.amounts,
+      kind: widget.kind,
+      relapses: widget.relapses,
+      pausedDates: widget.pausedDates,
     );
 
     return AnimatedBuilder(
@@ -240,6 +250,10 @@ class _YearCell extends StatelessWidget {
         fill = theme.colorScheme.surfaceContainerHighest;
       case HeatmapDayState.inactive:
         fill = theme.colorScheme.surfaceContainerLow;
+      case HeatmapDayState.relapsed:
+        fill = theme.colorScheme.error.withValues(alpha: 0.7);
+      case HeatmapDayState.paused:
+        fill = theme.colorScheme.outline.withValues(alpha: 0.2);
     }
 
     final cell = Container(

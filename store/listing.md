@@ -53,6 +53,8 @@ MAKE IT YOURS
 • Material You dynamic color, light/dark/system themes.
 • Expressive or reduced motion (honors your accessibility setting).
 • Screen-reader labels and large-text-friendly layouts.
+• Quit habits: count days clean from your quit date, log relapses when they happen.
+• Planned vacations: pause habits for a date range without breaking your streak.
 • English and Spanish.
 
 ## Category
@@ -71,8 +73,8 @@ Full policy + Play data-safety answers: `store/privacy-policy.md`.
 
 ## Screenshots
 Phone captures (1080×2400) from the Android emulator live in `store/screenshots/`
-for the Play listing: the core screens plus v0.5 feature highlights (first-run
-intro, task lists, weekly review, and the launcher widgets). Desktop captures from
+for the Play listing: the core screens plus v0.6 feature highlights (quit
+habits, planned vacation, task lists, and the launcher widgets). Desktop captures from
 the Phase 17 visual pass live in `doc/screenshots/` (today-light, today-dark,
 stats-dark, habits-dark, settings-dark) and serve as feature-graphic source
 material.

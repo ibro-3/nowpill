@@ -10,6 +10,8 @@ import '../db/app_database.dart';
 /// Current export envelope schema version. Bump when the payload shape changes
 /// and add a migration path in `ExportService.importFromString`.
 ///
+/// v6 (v0.6.0) adds quit habits and planned vacation: `relapses` + `vacations`
+/// lists and `kind` on habits (older payloads import as build habits).
 /// v5 (v0.5.0) adds task lists: a `taskLists` list plus nullable `listId` /
 /// `listUuid` on tasks (older payloads import their tasks into the inbox).
 /// v4 (v0.3.0) adds measurable habits: per-habit `targetAmount` and per-check-in
@@ -20,7 +22,7 @@ import '../db/app_database.dart';
 /// v2 adds the `freezes` list and per-habit `freezeMode`.
 /// v1 payloads still import: habits default to auto mode with no freezes;
 /// pre-v3 rows receive fresh uuids and derived timestamps.
-const int kExportSchemaVersion = 5;
+const int kExportSchemaVersion = 6;
 
 /// Oldest envelope version this build can import.
 const int kMinImportSchemaVersion = 1;
@@ -45,6 +47,8 @@ class ExportEnvelope {
     required this.taskTags,
     required this.habits,
     required this.checkins,
+    required this.relapses,
+    required this.vacations,
     this.freezes = const [],
     this.tombstones = const [],
     this.deviceId = '',
@@ -101,6 +105,26 @@ class ExportEnvelope {
       final taskListRows = version >= 5 && data['taskLists'] is List
           ? (data['taskLists'] as List).cast<Map<String, dynamic>>()
           : <Map<String, dynamic>>[];
+
+      // v6 payloads carry relapse events and planned vacations; older ones
+      // have neither (quit habits did not exist).
+      final relapseRows = version >= 6 && data['relapses'] is List
+          ? (data['relapses'] as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+      final vacationRows = version >= 6 && data['vacations'] is List
+          ? (data['vacations'] as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+
+      if (version < 6) {
+        // Pre-v6 habits are all "build" habits.
+        habitRows = habitRows
+            .map(
+              (h) => h.containsKey('kind')
+                  ? h
+                  : {...h, 'kind': HabitKind.build.index},
+            )
+            .toList();
+      }
 
       var taskRows = rows('tasks');
       var subtaskRows = rows('subtasks');
@@ -235,6 +259,8 @@ class ExportEnvelope {
         taskTags: taskTagRows.map(TaskTag.fromJson).toList(),
         habits: habitRows.map(Habit.fromJson).toList(),
         checkins: checkinRows.map(HabitCheckin.fromJson).toList(),
+        relapses: relapseRows.map(HabitRelapse.fromJson).toList(),
+        vacations: vacationRows.map(VacationPeriod.fromJson).toList(),
         freezes: freezeRowsTyped.map(HabitFreeze.fromJson).toList(),
         tombstones: tombstoneRows.map(Tombstone.fromJson).toList(),
       );
@@ -258,6 +284,8 @@ class ExportEnvelope {
   final List<TaskTag> taskTags;
   final List<Habit> habits;
   final List<HabitCheckin> checkins;
+  final List<HabitRelapse> relapses;
+  final List<VacationPeriod> vacations;
   final List<HabitFreeze> freezes;
   final List<Tombstone> tombstones;
 
@@ -273,6 +301,8 @@ class ExportEnvelope {
       'taskTags': taskTags.map((t) => t.toJson()).toList(),
       'habits': habits.map((h) => h.toJson()).toList(),
       'checkins': checkins.map((c) => c.toJson()).toList(),
+      'relapses': relapses.map((r) => r.toJson()).toList(),
+      'vacations': vacations.map((v) => v.toJson()).toList(),
       'freezes': freezes.map((f) => f.toJson()).toList(),
       'tombstones': tombstones.map((t) => t.toJson()).toList(),
     },
@@ -307,6 +337,8 @@ class ExportService {
       taskTags: await _db.select(_db.taskTags).get(),
       habits: await _db.select(_db.habits).get(),
       checkins: await _db.select(_db.habitCheckins).get(),
+      relapses: await _db.select(_db.habitRelapses).get(),
+      vacations: await _db.select(_db.vacationPeriods).get(),
       freezes: await _db.select(_db.habitFreezes).get(),
       tombstones: await _db.select(_db.tombstones).get(),
     );
@@ -398,6 +430,27 @@ class ExportService {
         idOf: (r) => r.id,
         whereUuid: (t, u) => t.uuid.equals(u),
         resolve: (r) => r.toCompanion(true),
+        contentJson: (r) => _contentJson(r.toJson()),
+      );
+
+      // Planned vacations are app-wide parents; no child remap is needed.
+      await _upsertByUuid<$VacationPeriodsTable, VacationPeriod>(
+        table: _db.vacationPeriods,
+        rows: merged.vacations,
+        uuidOf: (r) => r.uuid,
+        whereUuid: (t, u) => t.uuid.equals(u),
+        resolve: (r) => r.toCompanion(true),
+        contentJson: (r) => _contentJson(r.toJson()),
+      );
+      await _upsertByUuid<$HabitRelapsesTable, HabitRelapse>(
+        table: _db.habitRelapses,
+        rows: merged.relapses,
+        uuidOf: (r) => r.uuid,
+        whereUuid: (t, u) => t.uuid.equals(u),
+        resolve: (r) {
+          final id = habitIds[r.habitUuid];
+          return id == null ? null : r.copyWith(habitId: id).toCompanion(true);
+        },
         contentJson: (r) => _contentJson(r.toJson()),
       );
 
@@ -536,6 +589,8 @@ class ExportService {
       await _db.delete(_db.tombstones).go();
       await _db.delete(_db.habitFreezes).go();
       await _db.delete(_db.habitCheckins).go();
+      await _db.delete(_db.habitRelapses).go();
+      await _db.delete(_db.vacationPeriods).go();
       await _db.delete(_db.taskTags).go();
       await _db.delete(_db.subtasks).go();
       await _db.delete(_db.tasks).go();
@@ -553,6 +608,8 @@ class ExportService {
         b.insertAll(_db.subtasks, e.subtasks);
         b.insertAll(_db.taskTags, e.taskTags);
         b.insertAll(_db.habitCheckins, e.checkins);
+        b.insertAll(_db.habitRelapses, e.relapses);
+        b.insertAll(_db.vacationPeriods, e.vacations);
         b.insertAll(_db.habitFreezes, e.freezes);
         b.insertAll(_db.tombstones, e.tombstones);
       });

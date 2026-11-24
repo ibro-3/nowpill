@@ -9,6 +9,7 @@ import '../shell/feature_placeholders.dart';
 import 'habit_detail_screen.dart';
 import 'habit_editor_sheet.dart';
 import 'habit_providers.dart';
+import 'relapse_sheet.dart';
 import 'widgets/habit_card.dart';
 
 /// The Habits tab: active habits with check-pills, streaks, and tokens.
@@ -48,10 +49,33 @@ class HabitsScreen extends ConsumerWidget {
                     ),
                   ),
                   onCheckIn: () => _toggleToday(ref, habit.id),
+                  onLogRelapse: () => _logRelapse(context, ref, habit.id),
                 );
               },
             ),
     );
+  }
+
+  Future<void> _logRelapse(
+    BuildContext context,
+    WidgetRef ref,
+    int habitId,
+  ) async {
+    final note = await showRelapseDialog(context);
+    if (note == null) return;
+    await ref
+        .read(habitRepositoryProvider)
+        .logRelapse(
+          habitId,
+          formatDate(DateTime.now()),
+          note: note.isEmpty ? null : note,
+        );
+    if (context.mounted) {
+      M3ESnackbar.show(
+        context,
+        message: AppLocalizations.of(context).relapseLogged,
+      );
+    }
   }
 
   Future<void> _toggleToday(WidgetRef ref, int habitId) async {

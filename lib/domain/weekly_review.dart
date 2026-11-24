@@ -39,13 +39,15 @@ class WeeklyReview {
 ///
 /// [weeks] is oldest-first with the current (incomplete) week last, as
 /// produced by `weeklySummary`. [dueDates] contains due dates of open tasks;
-/// nulls are ignored.
+/// nulls are ignored. [excludedHabitIds] (quit habits) are never listed as
+/// "at risk" — their streak does not come from daily check-ins.
 WeeklyReview buildWeeklyReview({
   required DateTime today,
   required List<WeekSummary> weeks,
   required List<LeaderboardEntry> leaderboard,
   required Set<int> checkedTodayHabitIds,
   required Iterable<DateTime?> dueDates,
+  Set<int> excludedHabitIds = const {},
 }) {
   final completeWeeks = weeks.length >= 2
       ? weeks.sublist(0, weeks.length - 1)
@@ -68,7 +70,8 @@ WeeklyReview buildWeeklyReview({
   final atRisk = <String>[];
   for (final entry in leaderboard) {
     if (entry.currentStreak > 0 &&
-        !checkedTodayHabitIds.contains(entry.habitId)) {
+        !checkedTodayHabitIds.contains(entry.habitId) &&
+        !excludedHabitIds.contains(entry.habitId)) {
       atRisk.add(entry.name);
     }
   }

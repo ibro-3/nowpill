@@ -19,6 +19,20 @@ enum HabitScheduleType {
   weeklyTarget,
 }
 
+/// What a habit measures.
+///
+/// Stored as an integer index in the database (stable ordering — do not
+/// reorder these values without a migration).
+enum HabitKind {
+  /// A positive habit: progress is a check-in, a missed day can break the
+  /// streak (subject to freezes).
+  build,
+
+  /// A habit to quit: progress is the *absence* of a relapse. Days are clean
+  /// by default, only relapse events are logged, and freezes do not apply.
+  quit,
+}
+
 /// The unit of a recurrence rule.
 enum RecurrenceUnit { day, week, month }
 

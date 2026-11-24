@@ -8,9 +8,13 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/enums.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../habits/habit_detail_screen.dart';
 import '../habits/habit_icons.dart';
 import '../habits/habit_providers.dart';
+import '../habits/relapse_sheet.dart';
+import '../habits/widgets/habit_card.dart';
 import '../habits/widgets/streak_odometer.dart';
 import '../shell/feature_placeholders.dart';
 import '../tasks/task_editor_sheet.dart';
@@ -35,6 +39,23 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   int _confettiToken = 0;
   bool _wasAllDone = false;
+
+  Future<void> _logRelapse(int habitId) async {
+    final note = await showRelapseDialog(context);
+    if (note == null) return;
+    await ref
+        .read(habitRepositoryProvider)
+        .logRelapse(
+          habitId,
+          formatDate(DateTime.now()),
+          note: note.isEmpty ? null : note,
+        );
+    if (!mounted) return;
+    M3ESnackbar.show(
+      context,
+      message: AppLocalizations.of(context).relapseLogged,
+    );
+  }
 
   Future<void> _toggleTask(Task task) async {
     final repo = ref.read(taskRepositoryProvider);
@@ -98,6 +119,18 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
     final vm = ref.watch(todayViewModelProvider);
+    final periods =
+        ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
+    final todayKey = formatDate(DateTime.now());
+    final onVacation = periods.any(
+      (p) =>
+          p.startDate.compareTo(todayKey) <= 0 &&
+          todayKey.compareTo(p.endDate) <= 0,
+    );
+    final quitHabits =
+        (ref.watch(activeHabitsProvider).value ?? const <Habit>[])
+            .where((h) => h.kind == HabitKind.quit)
+            .toList();
 
     // Fire the celebration once per transition into the all-done state.
     if (vm.allDone && !_wasAllDone) {
@@ -122,7 +155,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   children: [
                     _Header(vm: vm, theme: theme, now: now),
                     const SizedBox(height: 20),
-                    if (vm.total == 0)
+                    if (onVacation) ...[
+                      _VacationBanner(theme: theme),
+                      const SizedBox(height: 16),
+                    ],
+                    if (vm.total == 0 && quitHabits.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 32),
                         child: FloatingPills(
@@ -171,6 +208,31 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                               onAddAmount: () => _addAmount(item),
                               onRemoveAmount: () => _removeAmount(item),
                               onCompleteGoal: () => _completeGoal(item),
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (quitHabits.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: l10n.kindQuit,
+                          count: quitHabits.length,
+                          color: theme.colorScheme.tertiary,
+                          theme: theme,
+                        ),
+                        for (final habit in quitHabits)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: HabitCard(
+                              key: ValueKey('today-quit-${habit.id}'),
+                              habit: habit,
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      HabitDetailScreen(habitId: habit.id),
+                                ),
+                              ),
+                              onCheckIn: () {},
+                              onLogRelapse: () => _logRelapse(habit.id),
                             ),
                           ),
                         const SizedBox(height: 12),
@@ -324,6 +386,53 @@ class _Header extends StatelessWidget {
       l10n.monthDec,
     ];
     return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+  }
+}
+
+class _VacationBanner extends StatelessWidget {
+  const _VacationBanner({required this.theme});
+
+  final M3EThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: AppLocalizations.of(context).vacationBanner,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            M3EShapeContainer(
+              kind: M3EShapeKind.cookie6Sided,
+              width: 40,
+              height: 40,
+              color: theme.colorScheme.primary,
+              child: Icon(
+                M3EIcons.beach_access,
+                size: 20,
+                color: theme.colorScheme.onPrimary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).vacationBanner,
+                style: theme.typography.emphasized.titleMedium.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

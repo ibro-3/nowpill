@@ -14,10 +14,12 @@ part 'app_database.g.dart';
 
 /// The NowPill local database. Offline-first; all feature data lives here.
 ///
-/// Schema version 5 (v0.5.0: v3 adds cross-device sync identity — per-row
+/// Schema version 6 (v0.6.0: v3 adds cross-device sync identity — per-row
 /// `uuid` + `updatedAt`, parent uuid references, [Tombstones]; v4 adds
 /// measurable habits — `Habits.targetAmount` + `HabitCheckins.amount`; v5 adds
-/// task lists — [TaskLists], `Tasks.listId` + `Tasks.listUuid`).
+/// task lists — [TaskLists], `Tasks.listId` + `Tasks.listUuid`; v6 adds quit
+/// habits — [HabitRelapses], `Habits.kind` — and planned vacation
+/// [VacationPeriods]).
 /// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
 /// task_tags, checkins, freezes) work.
 @DriftDatabase(
@@ -30,6 +32,8 @@ part 'app_database.g.dart';
     Habits,
     HabitCheckins,
     HabitFreezes,
+    HabitRelapses,
+    VacationPeriods,
     Tombstones,
   ],
   daos: [TasksDao, HabitsDao, TagsDao],
@@ -46,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   final String deviceId;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +76,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await _migrateToV5(m);
       }
+      if (from < 6) {
+        await _migrateToV6(m);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -92,6 +99,21 @@ class AppDatabase extends _$AppDatabase {
       if (!await _columnExists('tasks', 'list_uuid')) {
         await m.addColumn(tasks, tasks.listUuid);
       }
+    }
+  }
+
+  /// v0.6.0 quit habits + planned vacation. Existing habits keep kind 0
+  /// (build), so every derived streak is byte-identical to v5.
+  Future<void> _migrateToV6(Migrator m) async {
+    if (!await _tableExists('habit_relapses')) {
+      await m.createTable(habitRelapses);
+    }
+    if (!await _tableExists('vacation_periods')) {
+      await m.createTable(vacationPeriods);
+    }
+    if (await _tableExists('habits') &&
+        !await _columnExists('habits', 'kind')) {
+      await m.addColumn(habits, habits.kind);
     }
   }
 

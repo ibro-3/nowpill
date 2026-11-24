@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
+import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'habit_icons.dart';
@@ -41,6 +42,8 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
   late int _targetPerWeek;
   DateTime? _reminderTime;
   late FreezeMode _freezeMode;
+  late HabitKind _kind;
+  DateTime? _quitDate;
   bool _saving = false;
 
   bool get _isEdit => widget.habit != null;
@@ -66,6 +69,10 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     _targetPerWeek = h?.targetPerWeek ?? 3;
     _reminderTime = h?.reminderTime;
     _freezeMode = h?.freezeMode ?? FreezeMode.auto;
+    _kind = h?.kind ?? HabitKind.build;
+    _quitDate = _kind == HabitKind.quit
+        ? (h?.createdAt.toLocal() ?? DateTime.now())
+        : null;
   }
 
   @override
@@ -74,6 +81,20 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     _notes.dispose();
     _targetAmount.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickQuitDate() async {
+    final now = DateTime.now();
+    final picked = await M3EDatePicker.show(
+      context,
+      initialDate: _quitDate ?? now,
+      firstDate: DateTime(now.year - 20),
+      lastDate: now,
+    );
+    if (picked == null) return;
+    setState(() {
+      _quitDate = DateTime(picked.year, picked.month, picked.day);
+    });
   }
 
   Future<void> _pickReminder() async {
@@ -104,6 +125,17 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     setState(() => _saving = true);
 
     final repo = ref.read(habitRepositoryProvider);
+    // Kind is locked once a habit has history: converting past check-ins into
+    // clean days would silently rewrite the meaning of its streak.
+    var kind = _kind;
+    if (_isEdit && widget.habit!.kind != kind) {
+      final id = widget.habit!.id;
+      if ((await repo.getCheckins(id)).isNotEmpty ||
+          (await repo.getRelapses(id)).isNotEmpty) {
+        kind = widget.habit!.kind;
+      }
+    }
+    final isQuit = kind == HabitKind.quit;
     final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
     final weekdays = _scheduleType == HabitScheduleType.weekdays
         ? (_weekdays.toList()..sort())
@@ -114,9 +146,10 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
     final reminderUtc = _reminderTime?.toUtc();
     final amountText = _targetAmount.text.trim().replaceAll(',', '.');
     final parsedAmount = double.tryParse(amountText);
-    final targetAmount = parsedAmount != null && parsedAmount > 0
+    final targetAmount = !isQuit && parsedAmount != null && parsedAmount > 0
         ? parsedAmount
         : null;
+    final createdAt = isQuit && _quitDate != null ? _quitDate!.toUtc() : null;
 
     if (_isEdit) {
       await repo.update(
@@ -129,8 +162,10 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
           weekdays: Value(weekdays),
           targetPerWeek: Value(target),
           reminderTime: Value(reminderUtc),
-          freezeMode: _freezeMode,
+          freezeMode: isQuit ? FreezeMode.auto : _freezeMode,
           targetAmount: Value(targetAmount),
+          kind: kind,
+          createdAt: createdAt ?? widget.habit!.createdAt,
         ),
       );
     } else {
@@ -143,8 +178,10 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
         weekdays: weekdays,
         targetPerWeek: target,
         reminderTime: reminderUtc,
-        freezeMode: _freezeMode,
+        freezeMode: isQuit ? FreezeMode.auto : _freezeMode,
         targetAmount: targetAmount,
+        kind: kind,
+        createdAt: createdAt,
       );
     }
 
@@ -173,6 +210,24 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             label: l10n.notes,
             maxLines: 2,
             minLines: 1,
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel(l10n.habitKind, theme),
+          const SizedBox(height: 8),
+          M3ESegmentedButton<HabitKind>(
+            selected: {_kind},
+            onSelectionChanged: (s) => setState(() => _kind = s.first),
+            segments: [
+              M3ESegment(value: HabitKind.build, label: l10n.kindBuild),
+              M3ESegment(value: HabitKind.quit, label: l10n.kindQuit),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _kind == HabitKind.quit ? l10n.kindQuitDesc : l10n.kindBuildDesc,
+            style: theme.typography.baseline.bodySmall.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.icon, theme),
@@ -206,58 +261,95 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
                 ),
             ],
           ),
-          const SizedBox(height: 20),
-          _SectionLabel(l10n.schedule, theme),
-          const SizedBox(height: 8),
-          M3ESegmentedButton<HabitScheduleType>(
-            selected: {_scheduleType},
-            onSelectionChanged: (s) => setState(() => _scheduleType = s.first),
-            segments: [
-              M3ESegment(
-                value: HabitScheduleType.daily,
-                label: l10n.scheduleDaily,
-              ),
-              M3ESegment(
-                value: HabitScheduleType.weekdays,
-                label: l10n.scheduleWeekdays,
-              ),
-              M3ESegment(
-                value: HabitScheduleType.weeklyTarget,
-                label: l10n.scheduleWeekly,
+          if (_kind == HabitKind.quit) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(l10n.quitDate, theme),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: M3EButton.icon(
+                    onPressed: _pickQuitDate,
+                    style: M3EButtonStyle.tonal,
+                    icon: const Icon(M3EIcons.calendar_today),
+                    label: Text(
+                      _quitDate == null
+                          ? l10n.setQuitDate
+                          : formatDate(_quitDate!),
+                    ),
+                  ),
+                ),
+                if (_quitDate != null) ...[
+                  const SizedBox(width: 8),
+                  M3EIconButton(
+                    variant: M3EIconButtonVariant.standard,
+                    icon: const Icon(M3EIcons.close),
+                    tooltip: l10n.clearQuitDate,
+                    onPressed: () => setState(() => _quitDate = DateTime.now()),
+                  ),
+                ],
+              ],
+            ),
+          ],
+          if (_kind == HabitKind.build) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(l10n.schedule, theme),
+            const SizedBox(height: 8),
+            M3ESegmentedButton<HabitScheduleType>(
+              selected: {_scheduleType},
+              onSelectionChanged: (s) =>
+                  setState(() => _scheduleType = s.first),
+              segments: [
+                M3ESegment(
+                  value: HabitScheduleType.daily,
+                  label: l10n.scheduleDaily,
+                ),
+                M3ESegment(
+                  value: HabitScheduleType.weekdays,
+                  label: l10n.scheduleWeekdays,
+                ),
+                M3ESegment(
+                  value: HabitScheduleType.weeklyTarget,
+                  label: l10n.scheduleWeekly,
+                ),
+              ],
+            ),
+            if (_scheduleType == HabitScheduleType.weekdays) ...[
+              const SizedBox(height: 12),
+              _WeekdayPicker(
+                selected: _weekdays,
+                onToggle: (d) => setState(() {
+                  _weekdays.contains(d)
+                      ? _weekdays.remove(d)
+                      : _weekdays.add(d);
+                }),
               ),
             ],
-          ),
-          if (_scheduleType == HabitScheduleType.weekdays) ...[
-            const SizedBox(height: 12),
-            _WeekdayPicker(
-              selected: _weekdays,
-              onToggle: (d) => setState(() {
-                _weekdays.contains(d) ? _weekdays.remove(d) : _weekdays.add(d);
-              }),
+            if (_scheduleType == HabitScheduleType.weeklyTarget) ...[
+              const SizedBox(height: 12),
+              _TargetPicker(
+                value: _targetPerWeek,
+                onChanged: (v) => setState(() => _targetPerWeek = v),
+              ),
+            ],
+            const SizedBox(height: 20),
+            _SectionLabel(l10n.dailyGoal, theme),
+            const SizedBox(height: 8),
+            M3ETextField(
+              controller: _targetAmount,
+              label: l10n.dailyGoalHint,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.dailyGoalDesc,
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
-          if (_scheduleType == HabitScheduleType.weeklyTarget) ...[
-            const SizedBox(height: 12),
-            _TargetPicker(
-              value: _targetPerWeek,
-              onChanged: (v) => setState(() => _targetPerWeek = v),
-            ),
-          ],
-          const SizedBox(height: 20),
-          _SectionLabel(l10n.dailyGoal, theme),
-          const SizedBox(height: 8),
-          M3ETextField(
-            controller: _targetAmount,
-            label: l10n.dailyGoalHint,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.dailyGoalDesc,
-            style: theme.typography.baseline.bodySmall.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.reminder, theme),
           const SizedBox(height: 8),
@@ -286,26 +378,28 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
               ],
             ],
           ),
-          const SizedBox(height: 20),
-          _SectionLabel(l10n.freezeTokens, theme),
-          const SizedBox(height: 8),
-          M3ESegmentedButton<FreezeMode>(
-            selected: {_freezeMode},
-            onSelectionChanged: (s) => setState(() => _freezeMode = s.first),
-            segments: [
-              M3ESegment(value: FreezeMode.auto, label: l10n.freezeAuto),
-              M3ESegment(value: FreezeMode.manual, label: l10n.freezeManual),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _freezeMode == FreezeMode.auto
-                ? l10n.freezeAutoDesc
-                : l10n.freezeManualDesc,
-            style: theme.typography.baseline.bodySmall.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          if (_kind == HabitKind.build) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(l10n.freezeTokens, theme),
+            const SizedBox(height: 8),
+            M3ESegmentedButton<FreezeMode>(
+              selected: {_freezeMode},
+              onSelectionChanged: (s) => setState(() => _freezeMode = s.first),
+              segments: [
+                M3ESegment(value: FreezeMode.auto, label: l10n.freezeAuto),
+                M3ESegment(value: FreezeMode.manual, label: l10n.freezeManual),
+              ],
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              _freezeMode == FreezeMode.auto
+                  ? l10n.freezeAutoDesc
+                  : l10n.freezeManualDesc,
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
           Align(
             alignment: Alignment.centerRight,

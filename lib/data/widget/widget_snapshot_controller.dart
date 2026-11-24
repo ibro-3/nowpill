@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/date_utils.dart';
 import '../../domain/schedule.dart';
 import '../../domain/streak_engine.dart';
+import '../../domain/vacation.dart' as vacation_domain;
 import '../../features/today/today_view_model.dart';
 import '../repositories/habit_repository.dart';
 import '../repositories/task_repository.dart';
@@ -60,13 +61,21 @@ class WidgetSnapshotController {
     final habits = await _habits.getAll();
     final checkins = await _habits.getAllCheckins();
     final tasks = await _tasks.getAll();
+    final periods = await _habits.getAllVacationPeriods();
 
     final active = habits.where((h) => h.archivedAt == null).toList();
+    final paused = vacation_domain.expandPausedDates(
+      periods.map(
+        (p) =>
+            vacation_domain.VacationPeriod(start: p.startDate, end: p.endDate),
+      ),
+    );
     final vm = computeTodayViewModel(
       tasks: tasks,
       habits: active,
       checkins: checkins,
       now: now,
+      pausedDates: paused,
     );
 
     // Current streak per active habit (pure replay), for the headline streak.

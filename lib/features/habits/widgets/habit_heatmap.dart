@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
 import '../../../domain/date_utils.dart';
+import '../../../domain/enums.dart';
 import '../../../domain/habit_schedule.dart';
 import '../../../domain/heatmap.dart';
 import '../../../domain/streak_engine.dart';
@@ -26,6 +27,9 @@ class HabitHeatmap extends StatefulWidget {
     required this.onToggleDay,
     this.targetAmount,
     this.amounts = const {},
+    this.kind = HabitKind.build,
+    this.relapses = const {},
+    this.pausedDates = const {},
     super.key,
   });
 
@@ -52,6 +56,15 @@ class HabitHeatmap extends StatefulWidget {
 
   /// Logged amounts per day for measurable habits.
   final Map<String, double> amounts;
+
+  /// Quit habits render clean/relapsed days instead of check-ins.
+  final HabitKind kind;
+
+  /// Days with a logged relapse (`yyyy-MM-dd`).
+  final Set<String> relapses;
+
+  /// Days inside a planned vacation (`yyyy-MM-dd`).
+  final Set<String> pausedDates;
 
   @override
   State<HabitHeatmap> createState() => _HabitHeatmapState();
@@ -109,6 +122,9 @@ class _HabitHeatmapState extends State<HabitHeatmap>
       frozenDates: widget.streak.frozenDates,
       targetAmount: widget.targetAmount,
       amounts: widget.amounts,
+      kind: widget.kind,
+      relapses: widget.relapses,
+      pausedDates: widget.pausedDates,
     );
   }
 
@@ -251,6 +267,18 @@ class _HeatmapCell extends StatelessWidget {
       case HeatmapDayState.inactive:
         fill = theme.colorScheme.surfaceContainerLowest;
         border = const Color(0x00000000);
+        child = null;
+      case HeatmapDayState.relapsed:
+        fill = theme.colorScheme.errorContainer;
+        border = theme.colorScheme.error;
+        child = Icon(
+          M3EIcons.close,
+          size: 14,
+          color: theme.colorScheme.onErrorContainer,
+        );
+      case HeatmapDayState.paused:
+        fill = theme.colorScheme.surfaceContainerHigh;
+        border = theme.colorScheme.outline.withValues(alpha: 0.7);
         child = null;
     }
 

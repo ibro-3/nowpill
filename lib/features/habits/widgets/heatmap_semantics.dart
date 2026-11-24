@@ -9,5 +9,7 @@ String heatmapStateLabel(AppLocalizations l10n, HeatmapDayState state) =>
       HeatmapDayState.frozen => l10n.a11yHeatmapFrozen,
       HeatmapDayState.missed => l10n.a11yHeatmapMissed,
       HeatmapDayState.todayPending => l10n.a11yHeatmapPending,
+      HeatmapDayState.relapsed => l10n.a11yHeatmapRelapsed,
+      HeatmapDayState.paused => l10n.a11yHeatmapPaused,
       HeatmapDayState.unscheduled || HeatmapDayState.inactive => '',
     };

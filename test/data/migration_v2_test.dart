@@ -80,7 +80,7 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((r) => r.data.values.first as int)
         .getSingle();
-    expect(version, 5);
+    expect(version, 6);
 
     await db.close();
   });

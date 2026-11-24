@@ -11,6 +11,7 @@ import '../../core/router/app_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/settings/app_settings_provider.dart';
 import '../../data/backup/auto_backup_service.dart';
+import '../../data/db/app_database.dart';
 import '../../data/export/backup_service.dart';
 import '../../data/export/export_service.dart';
 import '../../data/notifications/notification_permission_service.dart';
@@ -19,6 +20,8 @@ import '../../data/sync/device_identity.dart';
 import '../../data/sync/sync_coordinator.dart';
 import '../../data/sync/sync_folder.dart';
 import '../../data/sync/sync_providers.dart';
+import '../../domain/date_utils.dart';
+import '../../features/habits/habit_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// App preferences: appearance, motion, reminders, notifications, data
@@ -34,6 +37,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _busy = false;
   NotificationPermissionStatus? _permission;
   bool? _canExact;
+  DateTime? _vacationStart;
+  DateTime? _vacationEnd;
 
   @override
   void initState() {
@@ -132,6 +137,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context,
       message: ok ? l10n.testNotificationSent : l10n.testNotificationFailed,
     );
+  }
+
+  Future<void> _pickVacationDate({required bool start}) async {
+    final now = DateTime.now();
+    final initial = (start ? _vacationStart : _vacationEnd) ?? now;
+    final picked = await M3EDatePicker.show(
+      context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (start) {
+        _vacationStart = picked;
+      } else {
+        _vacationEnd = picked;
+      }
+    });
+  }
+
+  Future<void> _saveVacation() async {
+    if (_vacationStart == null || _vacationEnd == null) return;
+    final l10n = AppLocalizations.of(context);
+    final from = formatDate(_vacationStart!);
+    final to = formatDate(_vacationEnd!);
+    if (from.compareTo(to) > 0) {
+      M3ESnackbar.show(context, message: l10n.vacationInvalid);
+      return;
+    }
+    await ref.read(habitRepositoryProvider).createVacation(from, to);
+    if (!mounted) return;
+    setState(() {
+      _vacationStart = null;
+      _vacationEnd = null;
+    });
+    M3ESnackbar.show(context, message: l10n.vacationSaved);
   }
 
   Future<void> _pickDefaultReminder() async {
@@ -267,6 +309,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final notifier = ref.read(appSettingsProvider.notifier);
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
+    final vacations =
+        ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
 
     return Scaffold(
       appBar: M3EAppBar.top(
@@ -458,6 +502,95 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          _SectionHeader(title: l10n.settingsVacation, theme: theme),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            theme: theme,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.vacationDescription,
+                  style: theme.typography.baseline.bodySmall.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (final period in vacations)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          M3EIcons.beach_access,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.vacationPeriod(
+                              formatDate(parseDate(period.startDate)),
+                              formatDate(parseDate(period.endDate)),
+                            ),
+                            style: theme.typography.baseline.bodyMedium,
+                          ),
+                        ),
+                        M3EIconButton(
+                          variant: M3EIconButtonVariant.standard,
+                          icon: const Icon(M3EIcons.delete_outline),
+                          tooltip: l10n.delete,
+                          key: ValueKey('vacation-delete-${period.id}'),
+                          onPressed: () => ref
+                              .read(habitRepositoryProvider)
+                              .deleteVacation(period.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: M3EButton.icon(
+                        onPressed: () => _pickVacationDate(start: true),
+                        style: M3EButtonStyle.tonal,
+                        icon: const Icon(M3EIcons.calendar_today),
+                        label: Text(
+                          _vacationStart == null
+                              ? l10n.vacationStart
+                              : formatDate(_vacationStart!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: M3EButton.icon(
+                        onPressed: () => _pickVacationDate(start: false),
+                        style: M3EButtonStyle.tonal,
+                        icon: const Icon(M3EIcons.calendar_today),
+                        label: Text(
+                          _vacationEnd == null
+                              ? l10n.vacationEnd
+                              : formatDate(_vacationEnd!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: M3EButton(
+                    key: const ValueKey('vacation-save'),
+                    onPressed: _saveVacation,
+                    label: Text(l10n.vacationAdd),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           _SectionHeader(title: l10n.settingsNotifications, theme: theme),
           const SizedBox(height: 8),
           _SettingsCard(
@@ -584,10 +717,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: theme.typography.emphasized.titleMedium,
                       ),
                       Text(
-                        l10n.aboutVersion('0.5.0'),
+                        l10n.aboutVersion('0.6.0'),
                         style: theme.typography.baseline.bodySmall.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      M3EButton.icon(
+                        key: const ValueKey('onboarding-replay'),
+                        style: M3EButtonStyle.tonal,
+                        icon: const Icon(M3EIcons.autorenew),
+                        label: Text(l10n.onboardingReplay),
+                        onPressed: () {
+                          notifier.setOnboardingComplete(false);
+                          context.go(AppRoutes.onboarding);
+                        },
                       ),
                     ],
                   ),

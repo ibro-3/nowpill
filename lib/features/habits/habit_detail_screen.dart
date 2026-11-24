@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import 'habit_editor_sheet.dart';
 import 'habit_icons.dart';
 import 'habit_providers.dart';
+import 'relapse_sheet.dart';
 import 'widgets/habit_heatmap.dart';
 import 'widgets/token_wallet.dart';
 import 'widgets/year_heatmap.dart';
@@ -53,6 +54,32 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final habit = ref.read(habitProvider(widget.habitId)).value;
     if (habit == null) return;
     final key = formatDate(day);
+
+    if (habit.kind == HabitKind.quit) {
+      // Tapping a clean day logs a relapse; tapping it again removes the
+      // entry. Paused days are neutral and cannot be toggled.
+      if (ref
+          .read(pausedDaysProvider(habit.createdAt.toLocal()))
+          .contains(key)) {
+        return;
+      }
+      final relapses =
+          ref.read(habitRelapsesProvider(widget.habitId)).value ?? const [];
+      final existing = relapses.where((r) => r.date == key).firstOrNull;
+      if (existing != null) {
+        await repo.removeRelapse(widget.habitId, key);
+      } else {
+        final note = await showRelapseDialog(context);
+        if (note == null) return;
+        await repo.logRelapse(
+          widget.habitId,
+          key,
+          note: note.isEmpty ? null : note,
+        );
+      }
+      return;
+    }
+
     final checkins =
         ref.read(habitCheckinsProvider(widget.habitId)).value ?? const [];
     final freezes =
@@ -130,6 +157,24 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     return result ?? _DayChoice.cancel;
   }
 
+  Future<void> _logRelapse() async {
+    final note = await showRelapseDialog(context);
+    if (note == null) return;
+    await ref
+        .read(habitRepositoryProvider)
+        .logRelapse(
+          widget.habitId,
+          formatDate(DateTime.now()),
+          note: note.isEmpty ? null : note,
+        );
+    if (mounted) {
+      M3ESnackbar.show(
+        context,
+        message: AppLocalizations.of(context).relapseLogged,
+      );
+    }
+  }
+
   Future<void> _archive() async {
     await ref.read(habitRepositoryProvider).archive(widget.habitId);
     if (mounted) Navigator.of(context).pop();
@@ -173,7 +218,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final streak = ref.watch(habitStreakProvider(widget.habitId));
     final checkins =
         ref.watch(habitCheckinsProvider(widget.habitId)).value ?? const [];
+    final relapses =
+        ref.watch(habitRelapsesProvider(widget.habitId)).value ?? const [];
+    final paused = ref.watch(pausedDaysProvider(habit.createdAt.toLocal()));
     final schedule = ref.watch(habitScheduleProvider(widget.habitId));
+    final isQuit = habit.kind == HabitKind.quit;
     final color = Color(habit.color);
     final unit = schedule.isDayBased ? daysPerToken : weeksPerToken;
     final unitLabel = schedule.isDayBased ? l10n.unitDay : l10n.unitWeek;
@@ -203,6 +252,23 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
+              if (isQuit) ...[
+                M3ECard(
+                  variant: M3ECardVariant.filled,
+                  padding: const EdgeInsets.all(16),
+                  child: Semantics(
+                    container: true,
+                    label: l10n.daysClean(streak.currentStreak),
+                    child: Text(
+                      l10n.daysClean(streak.currentStreak),
+                      style: theme.typography.emphasized.headlineSmall.copyWith(
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
               Row(
                 children: [
                   M3EShapeContainer(
@@ -223,7 +289,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       children: [
                         _StatRow(
                           icon: M3EIcons.local_fire_department,
-                          label: l10n.currentStreak,
+                          label: isQuit
+                              ? l10n.habitCleanDays
+                              : l10n.currentStreak,
                           value: '${streak.currentStreak}',
                           color: theme.colorScheme.tertiary,
                           theme: theme,
@@ -241,43 +309,49 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              M3ECard(
-                variant: M3ECardVariant.filled,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          l10n.freezeTokens,
-                          style: theme.typography.emphasized.titleSmall,
-                        ),
-                        const Spacer(),
-                        TokenWallet(tokens: streak.tokens),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      habit.freezeMode == FreezeMode.manual
-                          ? (streak.tokens >= maxTokens
-                                ? l10n.walletFullManual
-                                : l10n.walletEarnManual(
-                                    unit,
-                                    unitLabel,
-                                    toNext,
-                                  ))
-                          : (streak.tokens >= maxTokens
-                                ? l10n.walletFullAuto(unitLabel)
-                                : l10n.walletEarnAuto(unit, unitLabel, toNext)),
-                      style: theme.typography.baseline.bodySmall.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+              if (!isQuit) ...[
+                const SizedBox(height: 20),
+                M3ECard(
+                  variant: M3ECardVariant.filled,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            l10n.freezeTokens,
+                            style: theme.typography.emphasized.titleSmall,
+                          ),
+                          const Spacer(),
+                          TokenWallet(tokens: streak.tokens),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        habit.freezeMode == FreezeMode.manual
+                            ? (streak.tokens >= maxTokens
+                                  ? l10n.walletFullManual
+                                  : l10n.walletEarnManual(
+                                      unit,
+                                      unitLabel,
+                                      toNext,
+                                    ))
+                            : (streak.tokens >= maxTokens
+                                  ? l10n.walletFullAuto(unitLabel)
+                                  : l10n.walletEarnAuto(
+                                      unit,
+                                      unitLabel,
+                                      toNext,
+                                    )),
+                        style: theme.typography.baseline.bodySmall.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 20),
               M3ESegmentedButton<_HeatmapRange>(
                 selected: {_range},
@@ -328,6 +402,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   startDate: habit.createdAt.toLocal(),
                   color: color,
                   onToggleDay: _toggleDay,
+                  kind: habit.kind,
+                  relapses: relapses.map((r) => r.date).toSet(),
+                  pausedDates: paused,
                   targetAmount: habit.targetAmount,
                   amounts: {
                     for (final c in checkins)
@@ -349,6 +426,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   startDate: habit.createdAt.toLocal(),
                   color: color,
                   onToggleDay: _toggleDay,
+                  kind: habit.kind,
+                  relapses: relapses.map((r) => r.date).toSet(),
+                  pausedDates: paused,
                   targetAmount: habit.targetAmount,
                   amounts: {
                     for (final c in checkins)
@@ -358,7 +438,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               ],
               const SizedBox(height: 8),
               Text(
-                habit.freezeMode == FreezeMode.manual
+                isQuit
+                    ? l10n.kindQuitDesc
+                    : habit.freezeMode == FreezeMode.manual
                     ? l10n.heatmapHintManual
                     : l10n.heatmapHintAuto,
                 style: theme.typography.baseline.labelSmall.copyWith(
@@ -369,12 +451,20 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: M3EButton.icon(
-                      onPressed: _archive,
-                      style: M3EButtonStyle.tonal,
-                      icon: const Icon(M3EIcons.archive),
-                      label: Text(l10n.archive),
-                    ),
+                    child: isQuit
+                        ? M3EButton.icon(
+                            key: const ValueKey('log-relapse'),
+                            onPressed: _logRelapse,
+                            style: M3EButtonStyle.tonal,
+                            icon: const Icon(M3EIcons.error),
+                            label: Text(l10n.logRelapse),
+                          )
+                        : M3EButton.icon(
+                            onPressed: _archive,
+                            style: M3EButtonStyle.tonal,
+                            icon: const Icon(M3EIcons.archive),
+                            label: Text(l10n.archive),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   M3EIconButton(

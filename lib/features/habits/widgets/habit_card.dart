@@ -18,12 +18,14 @@ class HabitCard extends ConsumerWidget {
     required this.habit,
     required this.onTap,
     required this.onCheckIn,
+    this.onLogRelapse,
     super.key,
   });
 
   final Habit habit;
   final VoidCallback onTap;
   final VoidCallback onCheckIn;
+  final VoidCallback? onLogRelapse;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,6 +33,7 @@ class HabitCard extends ConsumerWidget {
     final streak = ref.watch(habitStreakProvider(habit.id));
     final checkedToday = ref.watch(habitCheckedTodayProvider(habit.id));
     final color = Color(habit.color);
+    final isQuit = habit.kind == HabitKind.quit;
 
     return M3ECard(
       variant: M3ECardVariant.filled,
@@ -58,7 +61,9 @@ class HabitCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _scheduleLabel(AppLocalizations.of(context), habit),
+                  isQuit
+                      ? AppLocalizations.of(context).habitCleanDays
+                      : _scheduleLabel(AppLocalizations.of(context), habit),
                   style: theme.typography.baseline.labelSmall.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -108,14 +113,26 @@ class HabitCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(width: 12),
-          CheckPill(
-            checked: checkedToday,
-            activeColor: color,
-            onChanged: (_) => onCheckIn(),
-            semanticLabel: checkedToday
-                ? AppLocalizations.of(context).undoCheckInHabit(habit.name)
-                : AppLocalizations.of(context).checkInHabit(habit.name),
-          ),
+          if (isQuit)
+            Semantics(
+              button: true,
+              label: AppLocalizations.of(context).logRelapseFor(habit.name),
+              child: M3EIconButton(
+                variant: M3EIconButtonVariant.standard,
+                icon: Icon(M3EIcons.error, color: color),
+                tooltip: AppLocalizations.of(context).logRelapse,
+                onPressed: onLogRelapse ?? onCheckIn,
+              ),
+            )
+          else
+            CheckPill(
+              checked: checkedToday,
+              activeColor: color,
+              onChanged: (_) => onCheckIn(),
+              semanticLabel: checkedToday
+                  ? AppLocalizations.of(context).undoCheckInHabit(habit.name)
+                  : AppLocalizations.of(context).checkInHabit(habit.name),
+            ),
         ],
       ),
     );

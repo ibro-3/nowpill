@@ -24,6 +24,11 @@ class HabitRepository {
   Stream<List<HabitCheckin>> watchCheckins(int habitId) =>
       _habits.watchCheckins(habitId);
   Stream<List<HabitCheckin>> watchAllCheckins() => _habits.watchAllCheckins();
+  Stream<List<HabitRelapse>> watchRelapses(int habitId) =>
+      _habits.watchRelapses(habitId);
+  Stream<List<HabitRelapse>> watchAllRelapses() => _habits.watchAllRelapses();
+  Stream<List<VacationPeriod>> watchVacationPeriods() =>
+      _habits.watchVacationPeriods();
 
   // ---------------------------------------------------------------------------
   // CRUD
@@ -41,6 +46,8 @@ class HabitRepository {
     FreezeMode freezeMode = FreezeMode.auto,
     double? targetAmount,
     int sortOrder = 0,
+    HabitKind kind = HabitKind.build,
+    DateTime? createdAt,
   }) {
     return _habits.insertHabit(
       HabitsCompanion.insert(
@@ -54,8 +61,10 @@ class HabitRepository {
         reminderTime: Value(reminderTime),
         freezeMode: Value(freezeMode),
         targetAmount: Value(targetAmount),
-        createdAt: DateTime.now().toUtc(),
+        // Quit habits use this as the quit date and may backdate it.
+        createdAt: (createdAt ?? DateTime.now()).toUtc(),
         sortOrder: Value(sortOrder),
+        kind: Value(kind),
       ),
     );
   }
@@ -161,4 +170,67 @@ class HabitRepository {
   /// Removes an explicit freeze (refund). Returns rows removed.
   Future<int> removeFreeze(int habitId, String date) =>
       _habits.removeFreeze(habitId, date);
+
+  // ---------------------------------------------------------------------------
+  // Quit habits (schema v6)
+  // ---------------------------------------------------------------------------
+
+  /// Changes a habit's kind. Refused once the habit has history: converting
+  /// check-ins to clean days (or vice versa) would change the meaning of its
+  /// existing streak data.
+  Future<bool> setKind(int id, HabitKind kind) async {
+    final habit = await _habits.getHabit(id);
+    if (habit == null || habit.kind == kind) return false;
+    if ((await _habits.getCheckins(id)).isNotEmpty ||
+        (await _habits.getRelapses(id)).isNotEmpty) {
+      return false;
+    }
+    return _habits.updateHabit(habit.copyWith(kind: kind));
+  }
+
+  /// Backdates or corrects the quit date (the habit's `createdAt`).
+  Future<bool> setQuitDate(int id, DateTime date) async {
+    final habit = await _habits.getHabit(id);
+    if (habit == null || habit.kind != HabitKind.quit) return false;
+    return _habits.updateHabit(habit.copyWith(createdAt: date.toUtc()));
+  }
+
+  Future<List<HabitRelapse>> getRelapses(int habitId) =>
+      _habits.getRelapses(habitId);
+
+  Future<List<HabitRelapse>> getAllRelapses() => _habits.getAllRelapses();
+
+  /// Logs a relapse for a local day (`yyyy-MM-dd`). Idempotent.
+  Future<int> logRelapse(int habitId, String date, {String? note}) {
+    return _habits.logRelapse(
+      HabitRelapsesCompanion(
+        habitId: Value(habitId),
+        date: Value(date),
+        note: Value(note),
+      ),
+    );
+  }
+
+  /// Removes a relapse entry (undo). Returns rows removed.
+  Future<int> removeRelapse(int habitId, String date) =>
+      _habits.removeRelapse(habitId, date);
+
+  // ---------------------------------------------------------------------------
+  // Planned vacation (schema v6)
+  // ---------------------------------------------------------------------------
+
+  Future<List<VacationPeriod>> getAllVacationPeriods() =>
+      _habits.getAllVacationPeriods();
+
+  /// Adds an inclusive date range. Rejects inverted ranges.
+  Future<int> createVacation(String start, String end) {
+    if (start.compareTo(end) > 0) {
+      throw ArgumentError.value(end, 'end', 'must not be before start');
+    }
+    return _habits.insertVacationPeriod(
+      VacationPeriodsCompanion.insert(startDate: start, endDate: end),
+    );
+  }
+
+  Future<int> deleteVacation(int id) => _habits.deleteVacationPeriod(id);
 }

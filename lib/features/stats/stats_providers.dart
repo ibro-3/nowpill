@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/app_database.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/enums.dart';
 import '../../domain/schedule.dart';
 import '../../domain/stats_engine.dart';
 import '../../domain/streak_engine.dart';
@@ -20,6 +21,8 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
   final habits = ref.watch(activeHabitsProvider).value ?? const <Habit>[];
   final checkins =
       ref.watch(allCheckinsProvider).value ?? const <HabitCheckin>[];
+  final relapses =
+      ref.watch(allRelapsesProvider).value ?? const <HabitRelapse>[];
   final tags = ref.watch(allTagsProvider).value ?? const <Tag>[];
   final links = ref.watch(allTaskTagsProvider).value ?? const <TaskTag>[];
 
@@ -49,9 +52,16 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       (amountsByHabit[c.habitId] ??= <String, double>{})[c.date] = c.amount!;
     }
   }
+  final relapsesByHabit = <int, Set<String>>{};
+  for (final r in relapses) {
+    (relapsesByHabit[r.habitId] ??= <String>{}).add(r.date);
+  }
+
   final entries = <LeaderboardEntry>[];
+  final quitHabitIds = <int>{};
   var bestOverall = 0;
   for (final habit in habits) {
+    if (habit.kind == HabitKind.quit) quitHabitIds.add(habit.id);
     final schedule = scheduleFromFields(
       type: habit.scheduleType,
       weekdays: habit.weekdays,
@@ -64,6 +74,9 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
       startDate: habit.createdAt.toLocal(),
       targetAmount: habit.targetAmount,
       amounts: amountsByHabit[habit.id] ?? const <String, double>{},
+      kind: habit.kind,
+      relapses: relapsesByHabit[habit.id] ?? const <String>{},
+      pausedDates: ref.watch(pausedDaysProvider(habit.createdAt.toLocal())),
     );
     if (streak.bestStreak > bestOverall) bestOverall = streak.bestStreak;
     entries.add(
@@ -95,6 +108,7 @@ final statsViewModelProvider = Provider<StatsViewModel>((ref) {
     leaderboard: entries,
     checkedTodayHabitIds: checkedTodayHabitIds,
     dueDates: tasks.where((t) => t.completedAt == null).map((t) => t.dueAt),
+    excludedHabitIds: quitHabitIds,
   );
 
   final tagsById = <int, ({String name, int color})>{

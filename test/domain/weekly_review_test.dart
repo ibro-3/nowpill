@@ -72,4 +72,16 @@ void main() {
     expect(review.dueAhead, 2);
     expect(review.lastWeekTotal, 0);
   });
+
+  test('quit habits can be excluded from the at-risk list', () {
+    final review = buildWeeklyReview(
+      today: today,
+      weeks: const [],
+      leaderboard: [entry(1, 'Water', 5, 9), entry(2, 'Stop smoking', 30, 30)],
+      checkedTodayHabitIds: const {},
+      dueDates: const [],
+      excludedHabitIds: const {2},
+    );
+    expect(review.atRisk, ['Water']);
+  });
 }

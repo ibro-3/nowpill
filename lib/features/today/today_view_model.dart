@@ -1,5 +1,6 @@
 import '../../data/db/app_database.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/enums.dart';
 import '../../domain/schedule.dart';
 
 /// A habit shown in the Today dashboard, paired with whether it is already
@@ -94,6 +95,7 @@ TodayViewModel computeTodayViewModel({
   required List<Habit> habits,
   required List<HabitCheckin> checkins,
   required DateTime now,
+  Set<String> pausedDates = const {},
 }) {
   final todayKey = formatDate(now);
 
@@ -131,6 +133,10 @@ TodayViewModel computeTodayViewModel({
 
   final dueHabits = <TodayHabit>[];
   for (final habit in habits) {
+    // Quit habits are tracked through their clean-day streak, not a daily
+    // check-in; they get their own section on Today.
+    if (habit.kind == HabitKind.quit) continue;
+    if (pausedDates.contains(todayKey)) continue;
     final schedule = scheduleFromFields(
       type: habit.scheduleType,
       weekdays: habit.weekdays,

@@ -105,6 +105,20 @@ void main() {
       habitId,
       formatDate(today.subtract(const Duration(days: 3))),
     );
+    final quitId = await habits.create(
+      name: 'Smoking',
+      color: 0xFFFF6B5E,
+      kind: HabitKind.quit,
+      createdAt: today.subtract(const Duration(days: 10)),
+    );
+    await habits.logRelapse(
+      quitId,
+      formatDate(today.subtract(const Duration(days: 2))),
+    );
+    await habits.createVacation(
+      formatDate(today.add(const Duration(days: 5))),
+      formatDate(today.add(const Duration(days: 8))),
+    );
 
     final listId = await lists.create(name: 'Home', color: 0xFF5B8DEF);
     final taskId = await tasks.create(
@@ -132,22 +146,31 @@ void main() {
     expect(exported.existsSync(), isTrue);
     final envelope =
         jsonDecode(await exported.readAsString()) as Map<String, Object?>;
-    expect(envelope['schemaVersion'], 5);
+    expect(envelope['schemaVersion'], 6);
     final data = envelope['data'] as Map<String, Object?>;
-    expect(data['habits'], hasLength(1));
+    expect(data['habits'], hasLength(2));
     expect(data['checkins'], hasLength(3));
     expect(data['freezes'], hasLength(1));
+    expect(data['relapses'], hasLength(1));
+    expect(data['vacations'], hasLength(1));
     expect(data['tasks'], hasLength(1));
     expect(data['taskLists'], hasLength(1));
     expect(data['subtasks'], hasLength(1));
     expect(data['tags'], hasLength(1));
     expect(data['taskTags'], hasLength(1));
-    final habitRow = (data['habits'] as List).single as Map<String, Object?>;
+    final habitRow = (data['habits'] as List)
+        .cast<Map<String, Object?>>()
+        .firstWhere((h) => h['name'] == 'Meditate');
     expect(habitRow['freezeMode'], FreezeMode.manual.index);
+    final quitRow = (data['habits'] as List)
+        .cast<Map<String, Object?>>()
+        .firstWhere((h) => h['name'] == 'Smoking');
+    expect(quitRow['kind'], HabitKind.quit.index);
 
     // --- Mutate the database so import has something to replace. ---
     await tasks.create(title: 'Scratch task', dueAt: today);
     await habits.delete(habitId); // Cascades check-ins + freezes.
+    await habits.delete(quitId); // Cascades the relapse.
     expect(await tasks.getAll(), hasLength(2)); // original + scratch
     expect(await habits.getAll(), isEmpty);
 
@@ -164,12 +187,18 @@ void main() {
 
     // --- Every row is restored, including v2 freeze data. ---
     final restoredHabits = await habits.getAll();
-    expect(restoredHabits, hasLength(1));
-    expect(restoredHabits.single.name, 'Meditate');
-    expect(restoredHabits.single.freezeMode, FreezeMode.manual);
+    expect(restoredHabits, hasLength(2));
+    final restoredMeditate = restoredHabits.firstWhere(
+      (h) => h.name == 'Meditate',
+    );
+    expect(restoredMeditate.freezeMode, FreezeMode.manual);
+    final restoredQuit = restoredHabits.firstWhere((h) => h.name == 'Smoking');
+    expect(restoredQuit.kind, HabitKind.quit);
     expect(await habits.getAllCheckins(), hasLength(3));
     final freezes = await habits.getAllFreezes();
     expect(freezes, hasLength(1));
+    expect(await habits.getAllRelapses(), hasLength(1));
+    expect(await habits.getAllVacationPeriods(), hasLength(1));
     expect(
       freezes.single.date,
       formatDate(today.subtract(const Duration(days: 3))),
