@@ -29,14 +29,20 @@ class SpringSwitcher extends StatefulWidget {
 }
 
 class _SpringSwitcherState extends State<SpringSwitcher>
-    with SingleTickerProviderStateMixin {
-  late final SingleMotionController _reveal;
+    with TickerProviderStateMixin {
+  late final SingleMotionController _rise;
+  late final SingleMotionController _fade;
 
   @override
   void initState() {
     super.initState();
-    _reveal = SingleMotionController(
+    _rise = SingleMotionController(
       motion: MotionTokens.expressive.spatialFast,
+      vsync: this,
+      initialValue: 1,
+    );
+    _fade = SingleMotionController(
+      motion: MotionTokens.expressive.effectsFast,
       vsync: this,
       initialValue: 1,
     );
@@ -46,7 +52,10 @@ class _SpringSwitcherState extends State<SpringSwitcher>
   void didUpdateWidget(SpringSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.switchKey != widget.switchKey) {
-      _reveal
+      _rise
+        ..value = 0
+        ..animateTo(1);
+      _fade
         ..value = 0
         ..animateTo(1);
     }
@@ -54,24 +63,27 @@ class _SpringSwitcherState extends State<SpringSwitcher>
 
   @override
   void dispose() {
-    _reveal.dispose();
+    _rise.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = MotionScope.of(context);
-    _reveal.motion = tokens.spatialFast;
+    _rise.motion = tokens.spatialFast;
+    _fade.motion = tokens.effectsFast;
     if (tokens.reduced) return widget.child;
     return AnimatedBuilder(
-      animation: _reveal,
+      animation: Listenable.merge([_rise, _fade]),
       builder: (context, child) {
-        final t = _reveal.value.clamp(0.0, 1.0);
+        final rise = _rise.value.clamp(0.0, 1.0);
+        final fade = _fade.value.clamp(0.0, 1.0);
         return Opacity(
           alwaysIncludeSemantics: true,
-          opacity: t,
+          opacity: fade,
           child: Transform.translate(
-            offset: Offset(0, widget.rise * (1 - t)),
+            offset: Offset(0, widget.rise * (1 - rise)),
             child: child,
           ),
         );

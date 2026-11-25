@@ -4,6 +4,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../core/theme/app_surfaces.dart';
 import '../../../domain/date_utils.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/habit_schedule.dart';
@@ -56,8 +57,10 @@ class _YearHeatmapState extends State<YearHeatmap>
   @override
   void initState() {
     super.initState();
+    // The year overview only fades in; opacity is an effect, not a spatial
+    // transform. No per-cell springs for 371 cells.
     _entrance = SingleMotionController(
-      motion: MotionTokens.expressive.spatialSlow,
+      motion: MotionTokens.expressive.effectsSlow,
       vsync: this,
       initialValue: 0,
     )..animateTo(1);
@@ -85,7 +88,7 @@ class _YearHeatmapState extends State<YearHeatmap>
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final tokens = MotionScope.of(context);
-    _entrance.motion = tokens.spatialSlow;
+    _entrance.motion = tokens.effectsSlow;
 
     final now = DateTime.now();
     final weeks = yearHeatmapWeeks(
@@ -123,32 +126,49 @@ class _YearHeatmapState extends State<YearHeatmap>
                     theme: theme,
                   ),
                   const SizedBox(height: 4),
-                  SizedBox(
-                    height: cell * 7 + gap * 6,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var w = 0; w < weeks.length; w++) ...[
-                          if (w > 0) const SizedBox(width: gap),
-                          Column(
-                            children: [
-                              for (var d = 0; d < 7; d++) ...[
-                                if (d > 0) const SizedBox(height: gap),
-                                _YearCell(
-                                  day: weeks[w].monday.add(Duration(days: d)),
-                                  state: weeks[w].states[d],
-                                  color: widget.color,
-                                  size: cell,
-                                  backfillable: _canBackfill(
-                                    weeks[w].monday.add(Duration(days: d)),
+                  // Individual year cells are only a few dp wide — far below
+                  // M3's 48dp target. Make the whole grid the gesture target
+                  // and map the tap position to a day instead of giving each
+                  // square its own tiny GestureDetector.
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (details) {
+                      final pitch = cell + gap;
+                      final w = (details.localPosition.dx / pitch)
+                          .floor()
+                          .clamp(0, weeks.length - 1);
+                      final d = (details.localPosition.dy / pitch)
+                          .floor()
+                          .clamp(0, 6);
+                      final day = weeks[w].monday.add(Duration(days: d));
+                      if (_canBackfill(day)) widget.onToggleDay(day);
+                    },
+                    child: SizedBox(
+                      height: cell * 7 + gap * 6,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var w = 0; w < weeks.length; w++) ...[
+                            if (w > 0) const SizedBox(width: gap),
+                            Column(
+                              children: [
+                                for (var d = 0; d < 7; d++) ...[
+                                  if (d > 0) const SizedBox(height: gap),
+                                  _YearCell(
+                                    day: weeks[w].monday.add(Duration(days: d)),
+                                    state: weeks[w].states[d],
+                                    color: widget.color,
+                                    size: cell,
+                                    backfillable: _canBackfill(
+                                      weeks[w].monday.add(Duration(days: d)),
+                                    ),
                                   ),
-                                  onTap: widget.onToggleDay,
-                                ),
+                                ],
                               ],
-                            ],
-                          ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -220,7 +240,6 @@ class _YearCell extends StatelessWidget {
     required this.color,
     required this.size,
     required this.backfillable,
-    required this.onTap,
   });
 
   final DateTime day;
@@ -228,7 +247,6 @@ class _YearCell extends StatelessWidget {
   final Color color;
   final double size;
   final bool backfillable;
-  final ValueChanged<DateTime> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -256,32 +274,23 @@ class _YearCell extends StatelessWidget {
     }
 
     final cell = Container(
+      key: backfillable ? ValueKey('year-heatmap-${formatDate(day)}') : null,
       width: size,
       height: size,
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(2),
+        // Only scale steps: 0 for tiny cells, 4dp (extra small) otherwise.
+        borderRadius: BorderRadius.circular(size >= 8 ? AppShape.xsmall : 0),
         border: state == HeatmapDayState.todayPending
             ? Border.all(color: color, width: 1)
             : null,
       ),
     );
 
+    // Cells are visual marks with labels; the enclosing grid owns the single
+    // gesture target. Screen readers can use the month grid for per-day edits.
     final l10n = AppLocalizations.of(context);
     final label = '${formatDate(day)}, ${heatmapStateLabel(l10n, state)}';
-    if (!backfillable) {
-      return Semantics(container: true, label: label, child: cell);
-    }
-    return Semantics(
-      button: true,
-      label: label,
-      onTap: () => onTap(day),
-      child: GestureDetector(
-        key: ValueKey('year-heatmap-${formatDate(day)}'),
-        onTap: () => onTap(day),
-        behavior: HitTestBehavior.opaque,
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: cell),
-      ),
-    );
+    return Semantics(container: true, label: label, child: cell);
   }
 }

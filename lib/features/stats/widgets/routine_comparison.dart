@@ -15,7 +15,6 @@ class RoutineComparison extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
-    final color = theme.colorScheme.primary.toARGB32();
     return Column(
       children: [
         for (final entry in entries)
@@ -23,7 +22,7 @@ class RoutineComparison extends StatelessWidget {
             label: entry.key == null ? l10n.unrouted : entry.name,
             detail: l10n.insightHabitCount(entry.habitCount),
             percent: entry.percent,
-            color: color,
+            color: theme.colorScheme.primary,
           ),
       ],
     );

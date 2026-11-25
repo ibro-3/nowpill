@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/motion/spring_switcher.dart';
 import '../../core/theme/app_surfaces.dart';
+import '../../core/widgets/chip_hit_area.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -35,7 +36,11 @@ class HabitsScreen extends ConsumerWidget {
     }).toList();
 
     return Scaffold(
+      // The shell paints the shared ambient backdrop behind the branch.
+      backgroundColor: Colors.transparent,
       appBar: M3EAppBar.top(
+        // Keep the ambient backdrop continuous behind the bar.
+        backgroundColor: Colors.transparent,
         titleText: l10n.navHabits,
         actions: const [
           ArchivedHabitsAction(),
@@ -162,7 +167,8 @@ class HabitsScreen extends ConsumerWidget {
   Widget _chip(String label, bool selected, VoidCallback onPressed) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Center(
+      child: ChipHitArea(
+        onTap: onPressed,
         child: M3EChip(
           label: label,
           type: M3EChipType.filter,
@@ -271,7 +277,7 @@ class _RoutineSection extends StatelessWidget {
                   height: 18,
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: BorderRadius.circular(AppShape.card / 2),
+                    borderRadius: BorderRadius.circular(AppShape.xsmall),
                   ),
                 ),
               ),
@@ -286,7 +292,7 @@ class _RoutineSection extends StatelessWidget {
               ),
               Text(
                 '${children.length}',
-                style: theme.typography.emphasized.labelSmall.copyWith(
+                style: theme.typography.baseline.labelSmall.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),

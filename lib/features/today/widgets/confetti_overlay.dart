@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../core/theme/app_surfaces.dart';
 
 /// A subtle confetti shower for the all-done celebration.
 ///
@@ -173,7 +174,7 @@ class _ConfettiPainter extends CustomPainter {
               width: p.width,
               height: p.height * (0.4 + 0.6 * math.cos(local * math.pi)),
             ),
-            const Radius.circular(2),
+            const Radius.circular(AppShape.xsmall),
           ),
           paint,
         );

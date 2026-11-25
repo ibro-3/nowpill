@@ -135,33 +135,55 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
   Future<_DayChoice> _showFreezeChoice({required bool canFreeze}) async {
     final l10n = AppLocalizations.of(context);
+    // M3 basic dialogs carry at most two actions. The two mutually exclusive
+    // resolutions live in the content as a selection, with cancel + apply
+    // as the only dialog actions.
+    var choice = canFreeze ? _DayChoice.freeze : _DayChoice.backfill;
     final result = await M3EDialog.show<_DayChoice>(
       context,
-      dialog: M3EDialog(
-        title: l10n.dayMissedTitle,
-        content: Text(
-          canFreeze ? l10n.dayMissedCanFreeze : l10n.dayMissedNoToken,
-        ),
-        actions: [
-          M3EButton(
-            key: const ValueKey('day-cancel'),
-            style: M3EButtonStyle.text,
-            onPressed: () => Navigator.of(context).pop(_DayChoice.cancel),
-            label: Text(l10n.cancel),
+      dialog: StatefulBuilder(
+        builder: (context, setState) => M3EDialog(
+          title: l10n.dayMissedTitle,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(canFreeze ? l10n.dayMissedCanFreeze : l10n.dayMissedNoToken),
+              const SizedBox(height: 12),
+              if (canFreeze)
+                M3EButton(
+                  key: const ValueKey('day-freeze'),
+                  style: choice == _DayChoice.freeze
+                      ? M3EButtonStyle.tonal
+                      : M3EButtonStyle.text,
+                  onPressed: () => setState(() => choice = _DayChoice.freeze),
+                  label: Text(l10n.freeze),
+                ),
+              M3EButton(
+                key: const ValueKey('day-backfill'),
+                style: choice == _DayChoice.backfill
+                    ? M3EButtonStyle.tonal
+                    : M3EButtonStyle.text,
+                onPressed: () => setState(() => choice = _DayChoice.backfill),
+                label: Text(l10n.backfill),
+              ),
+            ],
           ),
-          if (canFreeze)
+          actions: [
             M3EButton(
-              key: const ValueKey('day-freeze'),
-              style: M3EButtonStyle.tonal,
-              onPressed: () => Navigator.of(context).pop(_DayChoice.freeze),
-              label: Text(l10n.freeze),
+              key: const ValueKey('day-cancel'),
+              style: M3EButtonStyle.text,
+              onPressed: () => Navigator.of(context).pop(_DayChoice.cancel),
+              label: Text(l10n.cancel),
             ),
-          M3EButton(
-            key: const ValueKey('day-backfill'),
-            onPressed: () => Navigator.of(context).pop(_DayChoice.backfill),
-            label: Text(l10n.backfill),
-          ),
-        ],
+            M3EButton(
+              key: const ValueKey('day-confirm'),
+              style: M3EButtonStyle.text,
+              onPressed: () => Navigator.of(context).pop(choice),
+              label: Text(l10n.dayApply),
+            ),
+          ],
+        ),
       ),
     );
     return result ?? _DayChoice.cancel;
@@ -204,6 +226,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             label: Text(l10n.cancel),
           ),
           M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => Navigator.of(context).pop(true),
             label: Text(l10n.delete),
           ),

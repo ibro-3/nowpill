@@ -34,7 +34,7 @@ class HabitCompletionList extends StatelessWidget {
             label: entry.name,
             detail: insightDetail(l10n, entry.insight),
             percent: entry.insight.percent,
-            color: entry.color,
+            color: Color(entry.color),
             icon: habitIconForKey(entry.iconKey),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(

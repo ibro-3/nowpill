@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nowpill/data/repositories/providers.dart';
+import 'package:nowpill/features/today/widgets/today_progress_ring.dart';
 import 'package:nowpill/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -83,6 +84,27 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(tester.takeException(), isNull, reason: 'overflow on $tab');
     }
+
+    await cleanup(tester);
+  });
+
+  testWidgets('Today hero fits at 2x text on a 320dp phone', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.view.reset);
+    addTearDown(
+      () => tester.platformDispatcher.textScaleFactorTestValue = 1.0,
+    );
+
+    await boot(tester);
+
+    expect(tester.takeException(), isNull, reason: 'Today hero overflowed');
+    final ring = tester.widget<TodayProgressRing>(
+      find.byType(TodayProgressRing),
+    );
+    // Stacked hero: the ring can never exceed half the available width.
+    expect(ring.size, lessThanOrEqualTo(160));
 
     await cleanup(tester);
   });

@@ -72,6 +72,7 @@
   "editTask": "Edit task",
   "taskTitle": "Title",
   "notes": "Notes",
+  "addNotes": "Add notes",
   "dueDate": "Due date",
   "setDate": "Set date",
   "time": "Time",
@@ -705,6 +706,25 @@
   "routineEdit": "Edit routine",
   "routineName": "Routine name",
   "routineDelete": "Delete routine",
+  "a11yInsightProgress": "Habit completion rate: {percent}%",
+  "@a11yInsightProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "dayApply": "Apply",
+  "routineMoveUp": "Move routine up",
+  "routineMoveDown": "Move routine down",
+  "routineColorOption": "Color {index}",
+  "@routineColorOption": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "routineDeleteBody": "Habits in this routine stay, but become Unrouted.",
   "routineSaved": "Routine saved.",
   "routineDeleted": "Routine deleted.",

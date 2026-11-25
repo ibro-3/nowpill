@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../habits/habit_detail_screen.dart';
@@ -60,10 +61,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: M3ETextField(
+            // M3E search bar: the recommended contained search style with
+            // focus-expand behavior, instead of a plain text field.
+            child: M3ESearchBar(
               controller: _controller,
-              label: l10n.searchHint,
-              autofocus: true,
+              hintText: l10n.searchHint,
+              autoFocus: true,
               leading: const Icon(M3EIcons.search),
               onChanged: (v) => ref.read(searchQueryProvider.notifier).set(v),
             ),
@@ -196,7 +199,8 @@ class _TaskResult extends StatelessWidget {
       child: M3ECard(
         variant: M3ECardVariant.filled,
         onPressed: () => showTaskEditor(context, task: task),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        // 12dp vertical padding + 24dp text line = a 48dp card target.
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             Icon(
@@ -246,10 +250,15 @@ class _HabitResult extends StatelessWidget {
             builder: (_) => HabitDetailScreen(habitId: habit.id),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        // 12dp vertical padding + 24dp text line = a 48dp card target.
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            Icon(habitIconForKey(habit.iconKey), size: 18, color: color),
+            Icon(
+              habitIconForKey(habit.iconKey),
+              size: 18,
+              color: AppSurfaces.graphic(theme.colorScheme, color),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -279,10 +288,15 @@ class _TagResult extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: M3ECard(
         variant: M3ECardVariant.filled,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        // 12dp vertical padding + 24dp text line = a 48dp card target.
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            Icon(M3EIcons.tag, size: 18, color: color),
+            Icon(
+              M3EIcons.tag,
+              size: 18,
+              color: AppSurfaces.graphic(theme.colorScheme, color),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

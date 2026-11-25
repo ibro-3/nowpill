@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -9,6 +11,12 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 /// the bold steps are reserved for low-density hero panels and decoration.
 abstract final class AppShape {
   const AppShape._();
+
+  /// M3 `extra small` — tiny accent bars and dense marks.
+  static const double xsmall = 4;
+
+  /// M3 `small` — dense containers such as heatmap cells.
+  static const double small = 8;
 
   /// M3 `medium` — the card step (M3 cards specify 12dp).
   static const double card = 12;
@@ -68,5 +76,51 @@ abstract final class AppSurfaces {
     return wantsDarkForeground == onSurfaceIsDark
         ? scheme.onSurface
         : scheme.surface;
+  }
+
+  /// WCAG contrast ratio of two colors.
+  static double contrast(Color a, Color b) {
+    final la = _luminance(a);
+    final lb = _luminance(b);
+    return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+  }
+
+  static double _luminance(Color c) {
+    double channel(double value) => value <= 0.04045
+        ? value / 12.92
+        : math.pow((value + 0.055) / 1.055, 2.4).toDouble();
+    return 0.2126 * channel(c.r) +
+        0.7152 * channel(c.g) +
+        0.0722 * channel(c.b);
+  }
+
+  /// Foreground for a per-entity color used as a small graphic (icon, dot,
+  /// swatch) on a surface or on a low-alpha wash of that same color.
+  ///
+  /// From M3: non-text graphics need 3:1 against their container; container
+  /// colors are fills, never foregrounds (tokens.md, color.md).
+  /// My design decision (not in M3): keep the entity color when it already
+  /// clears 3:1, otherwise fall back to `onSurfaceVariant` so identity is
+  /// preserved wherever contrast allows it.
+  static Color graphic(M3EColorScheme scheme, Color accent) =>
+      contrast(accent, tint(scheme, accent)) >= 3
+      ? accent
+      : scheme.onSurfaceVariant;
+
+  /// Contrast-safe fill for per-entity graphics used as fills (chart slices,
+  /// legend swatches), where the fill itself is the graphic.
+  ///
+  /// From M3: graphics need 3:1 against the surrounding surface.
+  /// My design decision (not in M3): stepwise blend toward `onSurface` until
+  /// the fill clears 3:1; the hue survives wherever contrast permits.
+  static Color fill(M3EColorScheme scheme, Color accent, {Color? container}) {
+    final background = container ?? scheme.surfaceContainerHighest;
+    if (contrast(accent, background) >= 3) return accent;
+    final target = scheme.onSurface;
+    for (var i = 1; i <= 10; i++) {
+      final candidate = Color.lerp(accent, target, i / 10)!;
+      if (contrast(candidate, background) >= 3) return candidate;
+    }
+    return target;
   }
 }

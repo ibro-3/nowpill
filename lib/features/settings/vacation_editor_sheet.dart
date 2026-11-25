@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -171,10 +172,13 @@ class VacationEditorFormState extends ConsumerState<VacationEditorForm> {
                 ],
               ),
             ),
-            M3ESwitch(
-              key: const ValueKey('vacation-all-habits'),
-              value: _allHabits,
-              onChanged: (v) => setState(() => _allHabits = v),
+            Semantics(
+              label: l10n.vacationAllHabits,
+              child: M3ESwitch(
+                key: const ValueKey('vacation-all-habits'),
+                value: _allHabits,
+                onChanged: (v) => setState(() => _allHabits = v),
+              ),
             ),
           ],
         ),
@@ -257,6 +261,7 @@ class _ScopeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = M3ETheme.of(context).colorScheme;
     return Semantics(
       label: label,
       checked: selected,
@@ -266,7 +271,11 @@ class _ScopeTile extends StatelessWidget {
           height: 56,
           child: Row(
             children: [
-              Icon(M3EIcons.circle, color: color, size: 16),
+              Icon(
+                M3EIcons.circle,
+                color: AppSurfaces.graphic(scheme, color),
+                size: 16,
+              ),
               const SizedBox(width: 12),
               Expanded(child: Text(label)),
               M3ECheckbox(

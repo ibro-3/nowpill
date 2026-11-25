@@ -132,7 +132,9 @@ class HabitCard extends ConsumerWidget {
               label: AppLocalizations.of(context).logRelapseFor(habit.name),
               child: M3EIconButton(
                 variant: M3EIconButtonVariant.standard,
-                icon: Icon(M3EIcons.error, color: color),
+                // Relapse is an error state, not the habit's brand color:
+                // light accents on a light surface fail graphic contrast.
+                icon: Icon(M3EIcons.error, color: theme.colorScheme.error),
                 tooltip: AppLocalizations.of(context).logRelapse,
                 onPressed: onLogRelapse ?? onCheckIn,
               ),

@@ -149,7 +149,7 @@ class _PriorityDot extends StatelessWidget {
         height: 24,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(AppShape.card / 2),
+          borderRadius: BorderRadius.circular(AppShape.xsmall),
         ),
       ),
     );
@@ -238,7 +238,7 @@ class _TagChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppShape.pill),
       ),
       child: Text(
         tag.name,

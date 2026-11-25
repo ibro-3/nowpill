@@ -2,6 +2,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/widgets/connected_choice_group.dart';
+import '../../../core/widgets/spring_progress.dart';
 import '../../../domain/insights_engine.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -85,15 +86,10 @@ class HabitInsightsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Semantics(
-              container: true,
-              label: '${insight.percent}%',
-              child: M3EProgressIndicator.linear(
-                value: insight.rate ?? 0,
-                color: scheme.primary,
-                trackColor: scheme.surfaceContainerHighest,
-                semanticsLabel: '${insight.percent}%',
-              ),
+            SpringWavyProgressBar(
+              value: insight.rate ?? 0,
+              color: scheme.primary,
+              semanticsLabel: l10n.a11yInsightProgress(insight.percent),
             ),
             const SizedBox(height: 12),
             if (insight.isQuit)

@@ -15,11 +15,9 @@ Current release: **v0.9.5** (see `CHANGELOG.md`).
 
 ## Features
 
-- **Today dashboard** — greeting + spring progress ring; overdue → habits due →
-  tasks due → done-today; one-line **natural-language quick-add** with live
-  preview chips (dates, times, recurrence, `#tags`, `!priority`, EN/ES) and a
-  plain-text fallback; an all-done celebration (ring overshoot, shape burst,
-  confetti).
+- **Today dashboard** — greeting + spring progress ring in a card; overdue →
+  habits due → tasks due → done-today; one FAB creates a task due today; an
+  all-done celebration (ring overshoot, confetti).
 - **Search** — one reactive screen over tasks (titles, notes, subtasks), habits,
   and tags; case- and accent-insensitive, tap-through to results.
 - **Tasks** — subtasks, tags, priorities, due dates, recurring tasks
@@ -73,8 +71,9 @@ Current release: **v0.9.5** (see `CHANGELOG.md`).
 - **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic
-  color, spring-driven shape morphs on completion/selection, and a
-  reduce-motion mode (honors the OS accessibility setting).
+  color, spring-driven shape morphs on completion/selection, a slowly drifting
+  and morphing ambient backdrop behind all tabs, spring-animated progress
+  fills, and a reduce-motion mode (honors the OS accessibility setting).
 
 ## Platforms
 

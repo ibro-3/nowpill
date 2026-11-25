@@ -8,6 +8,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../core/theme/app_surfaces.dart';
 import '../../../data/repositories/providers.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/quick_add_parser.dart';
@@ -227,7 +228,7 @@ class _PreviewChips extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: (color ?? theme.colorScheme.primary).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppShape.small),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

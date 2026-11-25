@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/theme/app_surfaces.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -41,6 +42,7 @@ class ArchivedHabitsScreen extends ConsumerWidget {
             label: Text(l10n.cancel),
           ),
           M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => Navigator.of(context).pop(true),
             label: Text(l10n.delete),
           ),
@@ -97,7 +99,10 @@ class ArchivedHabitsScreen extends ConsumerWidget {
                           child: Icon(
                             habitIconForKey(habit.iconKey),
                             size: 20,
-                            color: color,
+                            color: AppSurfaces.graphic(
+                              theme.colorScheme,
+                              color,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),

@@ -32,7 +32,11 @@ class TasksScreen extends ConsumerWidget {
     final wide = MediaQuery.sizeOf(context).width >= 840;
 
     return Scaffold(
+      // The shell paints the shared ambient backdrop behind the branch.
+      backgroundColor: Colors.transparent,
       appBar: M3EAppBar.top(
+        // Keep the ambient backdrop continuous behind the bar.
+        backgroundColor: Colors.transparent,
         titleText: l10n.navTasks,
         actions: const [SearchAction(), SettingsAction()],
       ),
@@ -55,7 +59,7 @@ class TasksScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: M3EButtonGroup(
                 selectedIndex: filter.index,
                 onSelectedIndexChanged: (i) {

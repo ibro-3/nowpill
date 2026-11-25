@@ -30,7 +30,11 @@ class StatsScreen extends ConsumerWidget {
     final vm = ref.watch(statsViewModelProvider);
 
     return Scaffold(
+      // The shell paints the shared ambient backdrop behind the branch.
+      backgroundColor: Colors.transparent,
       appBar: M3EAppBar.top(
+        // Keep the ambient backdrop continuous behind the bar.
+        backgroundColor: Colors.transparent,
         titleText: l10n.navStats,
         actions: const [SearchAction(), SettingsAction()],
       ),
@@ -167,40 +171,50 @@ class _SummaryRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = theme.colorScheme;
     // M3 role pairs: a container fill always uses its matching `on *` role.
+    final tiles = <Widget>[
+      _SummaryTile(
+        theme: theme,
+        value: '$checkins',
+        label: l10n.statsCheckIns,
+        icon: M3EIcons.check_circle,
+        color: scheme.primaryContainer,
+        onColor: scheme.onPrimaryContainer,
+      ),
+      _SummaryTile(
+        theme: theme,
+        value: '$tasksDone',
+        label: l10n.statsTasksDone,
+        icon: M3EIcons.task_alt,
+        color: scheme.tertiaryContainer,
+        onColor: scheme.onTertiaryContainer,
+      ),
+      _SummaryTile(
+        theme: theme,
+        value: '$bestStreak',
+        label: l10n.statsBestStreak,
+        icon: M3EIcons.local_fire_department,
+        color: scheme.secondaryContainer,
+        onColor: scheme.onSecondaryContainer,
+      ),
+    ];
+    // Three equal columns get cramped with large text: stack them instead.
+    final showAsColumn =
+        MediaQuery.textScalerOf(context).scale(1.0) > 1.3 ||
+        MediaQuery.sizeOf(context).width < 360;
+    if (showAsColumn) {
+      return Column(
+        children: [
+          for (final tile in tiles)
+            Padding(padding: const EdgeInsets.only(bottom: 10), child: tile),
+        ],
+      );
+    }
     return Row(
       children: [
-        Expanded(
-          child: _SummaryTile(
-            theme: theme,
-            value: '$checkins',
-            label: l10n.statsCheckIns,
-            icon: M3EIcons.check_circle,
-            color: scheme.primaryContainer,
-            onColor: scheme.onPrimaryContainer,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryTile(
-            theme: theme,
-            value: '$tasksDone',
-            label: l10n.statsTasksDone,
-            icon: M3EIcons.task_alt,
-            color: scheme.tertiaryContainer,
-            onColor: scheme.onTertiaryContainer,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryTile(
-            theme: theme,
-            value: '$bestStreak',
-            label: l10n.statsBestStreak,
-            icon: M3EIcons.local_fire_department,
-            color: scheme.secondaryContainer,
-            onColor: scheme.onSecondaryContainer,
-          ),
-        ),
+        for (var i = 0; i < tiles.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: tiles[i]),
+        ],
       ],
     );
   }

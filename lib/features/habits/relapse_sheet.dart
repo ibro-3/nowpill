@@ -37,6 +37,7 @@ Future<String?> showRelapseDialog(BuildContext context) async {
         ),
         M3EButton(
           key: const ValueKey('relapse-confirm'),
+          style: M3EButtonStyle.text,
           onPressed: () => Navigator.of(context).pop(controller.text.trim()),
           label: Text(l10n.logRelapse),
         ),

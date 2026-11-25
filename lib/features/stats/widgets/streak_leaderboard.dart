@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../core/theme/app_surfaces.dart';
 import '../../../domain/stats_engine.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../habits/habit_icons.dart';
@@ -66,7 +67,11 @@ class _Row extends StatelessWidget {
           width: 36,
           height: 36,
           color: color.withValues(alpha: 0.18),
-          child: Icon(habitIconForKey(entry.iconKey), size: 18, color: color),
+          child: Icon(
+            habitIconForKey(entry.iconKey),
+            size: 18,
+            color: AppSurfaces.graphic(scheme, color),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

@@ -48,6 +48,7 @@
   "editTask": "Editar tarea",
   "taskTitle": "Título",
   "notes": "Notas",
+  "addNotes": "Añadir notas",
   "dueDate": "Fecha límite",
   "setDate": "Fijar fecha",
   "time": "Hora",
@@ -507,6 +508,25 @@
   "routineEdit": "Editar rutina",
   "routineName": "Nombre de la rutina",
   "routineDelete": "Eliminar rutina",
+  "a11yInsightProgress": "Tasa de finalización de hábitos: {percent}%",
+  "@a11yInsightProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "dayApply": "Aplicar",
+  "routineMoveUp": "Subir rutina",
+  "routineMoveDown": "Bajar rutina",
+  "routineColorOption": "Color {index}",
+  "@routineColorOption": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "routineDeleteBody": "Los hábitos de esta rutina se conservan, pero quedan sin agrupar.",
   "routineSaved": "Rutina guardada.",
   "routineDeleted": "Rutina eliminada.",

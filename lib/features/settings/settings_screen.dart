@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/router/app_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/settings/app_settings_provider.dart';
+import '../../core/theme/app_surfaces.dart';
 import '../../core/widgets/connected_choice_group.dart';
 import '../../data/backup/auto_backup_service.dart';
 import '../../data/db/app_database.dart';
@@ -1004,7 +1005,7 @@ class _SectionHeader extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppShape.xsmall),
               ),
             ),
           ),
@@ -1220,7 +1221,12 @@ class _SwitchRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        M3ESwitch(value: value, onChanged: onChanged),
+        // The package exposes no semanticsLabel; name the switch with its
+        // adjacent title so screen readers announce what it controls.
+        Semantics(
+          label: title,
+          child: M3ESwitch(value: value, onChanged: onChanged),
+        ),
       ],
     );
   }

@@ -56,5 +56,39 @@ void main() {
         );
       }
     });
+
+    test('graphic clears 3:1 over its own wash in $name theme', () {
+      final base = AppTheme.light();
+      final scheme = isDark
+          ? base.deriveDarkTemplate().colorScheme
+          : base.colorScheme;
+      for (final hex in accents) {
+        final accent = Color(hex);
+        final foreground = AppSurfaces.graphic(scheme, accent);
+        expect(
+          contrast(foreground, AppSurfaces.tint(scheme, accent)),
+          greaterThanOrEqualTo(3),
+          reason: 'accent ${hex.toRadixString(16)} in $name theme',
+        );
+      }
+    });
+
+    test('fill clears 3:1 over a container in $name theme', () {
+      final base = AppTheme.light();
+      final scheme = isDark
+          ? base.deriveDarkTemplate().colorScheme
+          : base.colorScheme;
+      for (final hex in accents) {
+        final accent = Color(hex);
+        expect(
+          contrast(
+            AppSurfaces.fill(scheme, accent),
+            scheme.surfaceContainerHighest,
+          ),
+          greaterThanOrEqualTo(3),
+          reason: 'accent ${hex.toRadixString(16)} in $name theme',
+        );
+      }
+    });
   }
 }

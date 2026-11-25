@@ -205,10 +205,12 @@ class _MorphingShapeState extends State<MorphingShape>
             alignment: Alignment.center,
             children: [
               IgnorePointer(
-                child: Opacity(opacity: 1 - shapeT, child: resting),
+                // Opacity is an effect: crossfade on the non-overshooting
+                // color spring, never on the morphing shape spring.
+                child: Opacity(opacity: 1 - colorT, child: resting),
               ),
               IgnorePointer(
-                child: Opacity(opacity: shapeT, child: widget.activeChild),
+                child: Opacity(opacity: colorT, child: widget.activeChild),
               ),
             ],
           );

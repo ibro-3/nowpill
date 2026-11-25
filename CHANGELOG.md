@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Features
+- **Ambient backdrop everywhere** — the drifting, morphing decorative shapes
+  now live behind all four tabs (one shared instance in the shell), not just
+  Today. They freeze under reduced motion and pause off-tab.
+- **Animated progress fills** — the measurable-habit bar, habit insights, and
+  stats completion rows now spring their fill to each new value instead of
+  jumping. Under reduced motion they render a flat, static indicator with no
+  wave ticker running.
+
+### Fixed
+- **Large text** — the Today hero keeps the ring on the trailing edge at every
+  width, and the ring label scales down to fit at 2× text on a narrow phone.
+- **Today polish** — greeting and ring share a filled card over transparent
+  app bars; the FAB creates a task due today; the progress ring's stroke and
+  wave count were tuned; the check pill spins once on check-in and its
+  unchecked outline is bolder.
+
 ## v0.9.5 — 2026-11-25
 
 Material 3 Expressive conformance pass. No data, schema, or export changes — format stays v7.

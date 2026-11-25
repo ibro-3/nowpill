@@ -72,14 +72,21 @@ class HabitHeatmap extends StatefulWidget {
 }
 
 class _HabitHeatmapState extends State<HabitHeatmap>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final SingleMotionController _entrance;
+  late final SingleMotionController _entranceFade;
 
   @override
   void initState() {
     super.initState();
     _entrance = SingleMotionController(
       motion: MotionTokens.expressive.spatialSlow,
+      vsync: this,
+      initialValue: 0,
+    )..animateTo(1);
+    // M3: opacity is an effect, never a spatial transform.
+    _entranceFade = SingleMotionController(
+      motion: MotionTokens.expressive.effectsSlow,
       vsync: this,
       initialValue: 0,
     )..animateTo(1);
@@ -93,12 +100,16 @@ class _HabitHeatmapState extends State<HabitHeatmap>
       _entrance
         ..value = 0
         ..animateTo(1);
+      _entranceFade
+        ..value = 0
+        ..animateTo(1);
     }
   }
 
   @override
   void dispose() {
     _entrance.dispose();
+    _entranceFade.dispose();
     super.dispose();
   }
 
@@ -134,6 +145,7 @@ class _HabitHeatmapState extends State<HabitHeatmap>
     final theme = M3ETheme.of(context);
     final tokens = MotionScope.of(context);
     _entrance.motion = tokens.spatialSlow;
+    _entranceFade.motion = tokens.effectsSlow;
 
     final first = DateTime(widget.month.year, widget.month.month, 1);
     final daysInMonth = DateTime(
@@ -146,9 +158,10 @@ class _HabitHeatmapState extends State<HabitHeatmap>
     final totalCells = ((daysInMonth + first.weekday - 1) / 7).ceil() * 7;
 
     return AnimatedBuilder(
-      animation: _entrance,
+      animation: Listenable.merge([_entrance, _entranceFade]),
       builder: (context, _) {
         final entrance = _entrance.value.clamp(0.0, 1.0);
+        final entranceFade = _entranceFade.value.clamp(0.0, 1.0);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -168,34 +181,47 @@ class _HabitHeatmapState extends State<HabitHeatmap>
               ],
             ),
             const SizedBox(height: 6),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
+            // Seven 48dp columns need 372dp; scroll horizontally on narrow
+            // windows rather than shrinking the day targets below 48dp.
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 7 * 48 + 6 * 6,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 6,
+                    crossAxisSpacing: 6,
+                    mainAxisExtent: 48,
+                  ),
+                  itemCount: totalCells,
+                  itemBuilder: (context, i) {
+                    final day = gridStart.add(Duration(days: i));
+                    final inMonth = day.month == widget.month.month;
+                    // Stagger by cell index. Geometry uses the spatial spring,
+                    // opacity the effects spring; they must not share a value.
+                    final delay = (i / totalCells) * 0.5;
+                    final local = ((entrance - delay) / (1 - delay)).clamp(
+                      0.0,
+                      1.0,
+                    );
+                    final localFade = ((entranceFade - delay) / (1 - delay))
+                        .clamp(0.0, 1.0);
+                    return _HeatmapCell(
+                      day: day,
+                      inMonth: inMonth,
+                      state: _stateFor(day),
+                      color: widget.color,
+                      entrance: local,
+                      opacity: localFade,
+                      backfillable: inMonth && _canBackfill(day),
+                      onTap: () => widget.onToggleDay(day),
+                    );
+                  },
+                ),
               ),
-              itemCount: totalCells,
-              itemBuilder: (context, i) {
-                final day = gridStart.add(Duration(days: i));
-                final inMonth = day.month == widget.month.month;
-                // Stagger by cell index.
-                final delay = (i / totalCells) * 0.5;
-                final local = ((entrance - delay) / (1 - delay)).clamp(
-                  0.0,
-                  1.0,
-                );
-                return _HeatmapCell(
-                  day: day,
-                  inMonth: inMonth,
-                  state: _stateFor(day),
-                  color: widget.color,
-                  entrance: local,
-                  backfillable: inMonth && _canBackfill(day),
-                  onTap: () => widget.onToggleDay(day),
-                );
-              },
             ),
           ],
         );
@@ -211,6 +237,7 @@ class _HeatmapCell extends StatefulWidget {
     required this.state,
     required this.color,
     required this.entrance,
+    required this.opacity,
     required this.backfillable,
     required this.onTap,
   });
@@ -220,6 +247,7 @@ class _HeatmapCell extends StatefulWidget {
   final HeatmapDayState state;
   final Color color;
   final double entrance;
+  final double opacity;
   final bool backfillable;
   final VoidCallback onTap;
 
@@ -228,15 +256,23 @@ class _HeatmapCell extends StatefulWidget {
 }
 
 class _HeatmapCellState extends State<_HeatmapCell>
-    with SingleTickerProviderStateMixin {
-  late final SingleMotionController _pop;
+    with TickerProviderStateMixin {
+  late final SingleMotionController _popShape;
+  late final SingleMotionController _popColor;
   late HeatmapDayState _from;
 
   @override
   void initState() {
     super.initState();
     _from = widget.state;
-    _pop = SingleMotionController(
+    // The scale pop is geometry (spatial, may overshoot); the fill/border
+    // transition is an effect (critically damped).
+    _popShape = SingleMotionController(
+      motion: MotionTokens.expressive.spatialFast,
+      vsync: this,
+      initialValue: 1,
+    );
+    _popColor = SingleMotionController(
       motion: MotionTokens.expressive.effectsFast,
       vsync: this,
       initialValue: 1,
@@ -248,7 +284,10 @@ class _HeatmapCellState extends State<_HeatmapCell>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
       _from = oldWidget.state;
-      _pop
+      _popShape
+        ..value = 0
+        ..animateTo(1);
+      _popColor
         ..value = 0
         ..animateTo(1);
     }
@@ -256,7 +295,8 @@ class _HeatmapCellState extends State<_HeatmapCell>
 
   @override
   void dispose() {
-    _pop.dispose();
+    _popShape.dispose();
+    _popColor.dispose();
     super.dispose();
   }
 
@@ -337,17 +377,19 @@ class _HeatmapCellState extends State<_HeatmapCell>
   @override
   Widget build(BuildContext context) {
     final tokens = MotionScope.of(context);
-    _pop.motion = tokens.effectsFast;
+    _popShape.motion = tokens.spatialFast;
+    _popColor.motion = tokens.effectsFast;
 
-    final t = _pop.value.clamp(0.0, 1.0);
+    final shapeT = _popShape.value;
+    final colorT = _popColor.value.clamp(0.0, 1.0);
     final from = _palette(_from);
     final to = _palette(widget.state);
-    final fill = Color.lerp(from.fill, to.fill, t)!;
-    final border = Color.lerp(from.border, to.border, t)!;
+    final fill = Color.lerp(from.fill, to.fill, colorT)!;
+    final border = Color.lerp(from.border, to.border, colorT)!;
     // One springy pop on state change, multiplied by the entrance stagger.
-    final pop = 1 + 0.10 * (4 * t * (1 - t));
+    final pop = 1 + 0.10 * (4 * shapeT * (1 - shapeT));
     final scale = (0.6 + 0.4 * widget.entrance) * pop;
-    final opacity = widget.entrance.clamp(0.0, 1.0);
+    final opacity = widget.opacity.clamp(0.0, 1.0);
 
     final cell = Transform.scale(
       scale: scale,
@@ -356,7 +398,7 @@ class _HeatmapCellState extends State<_HeatmapCell>
         child: Container(
           decoration: BoxDecoration(
             color: fill,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.small),
             border: Border.all(color: border, width: 1.2),
           ),
           child: Center(child: to.child),
@@ -368,7 +410,11 @@ class _HeatmapCellState extends State<_HeatmapCell>
     final label =
         '${formatDate(widget.day)}, ${heatmapStateLabel(l10n, widget.state)}';
     if (!widget.backfillable) {
-      return Semantics(container: true, label: label, child: cell);
+      return Semantics(
+        container: true,
+        label: label,
+        child: Center(child: cell),
+      );
     }
     return Semantics(
       button: true,
@@ -378,7 +424,12 @@ class _HeatmapCellState extends State<_HeatmapCell>
         key: ValueKey('heatmap-${formatDate(widget.day)}'),
         onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: cell),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          // The grid tile is the gesture target, so the hit area does not
+          // shrink while the painted cell scales in or pops.
+          child: SizedBox.expand(child: Center(child: cell)),
+        ),
       ),
     );
   }

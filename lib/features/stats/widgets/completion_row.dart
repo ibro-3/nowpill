@@ -2,6 +2,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/app_surfaces.dart';
+import '../../../core/widgets/spring_progress.dart';
 
 /// One ranked completion row: icon, label, detail, percentage, and bar.
 class CompletionRow extends StatelessWidget {
@@ -18,7 +19,7 @@ class CompletionRow extends StatelessWidget {
   final String label;
   final String? detail;
   final int percent;
-  final int color;
+  final Color color;
   final IconData? icon;
   final VoidCallback? onTap;
 
@@ -26,7 +27,6 @@ class CompletionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
-    final accent = Color(color);
 
     final content = Row(
       children: [
@@ -34,7 +34,7 @@ class CompletionRow extends StatelessWidget {
           kind: M3EShapeKind.cookie6Sided,
           width: 36,
           height: 36,
-          color: accent.withValues(alpha: 0.18),
+          color: color.withValues(alpha: 0.18),
           child: Icon(
             icon ?? M3EIcons.groups,
             size: 18,
@@ -90,15 +90,21 @@ class CompletionRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(
                   AppShape.inner(AppShape.card, 4),
                 ),
-                child: content,
+                // M3 lists need a 48dp-high target; the row's 36dp icon does
+                // not reach it on its own.
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: content,
+                ),
               )
             else
               content,
             const SizedBox(height: 6),
-            M3EProgressIndicator.linear(
+            SpringWavyProgressBar(
               value: percent / 100,
-              color: accent,
-              trackColor: scheme.surfaceContainerHighest,
+              // M3: the active indicator uses the primary role so it clears
+              // 3:1 on the track. Per-entity color stays in the icon wash.
+              color: scheme.primary,
               semanticsLabel: '$percent%',
             ),
           ],

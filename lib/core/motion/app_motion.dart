@@ -79,6 +79,29 @@ abstract final class AppMotion {
   /// Effects slow. 1.0 / 800.
   static const Motion standardEffectsSlow =
       MaterialSpringMotion.standardEffectsSlow();
+
+  // ---------------------------------------------------------------------------
+  // Ambient (continuous) motion
+  // ---------------------------------------------------------------------------
+
+  /// Period of the slow background-shape drift. Deliberately much longer than
+  /// any spring: decorative motion should glide, never snap or settle.
+  static const Duration ambientDrift = Duration(seconds: 42);
+
+  /// Period of one orbit/rotation of the empty-state illustration.
+  static const Duration ambientOrbit = Duration(seconds: 22);
+
+  /// Period of one rotation of the empty-state illustration's center shape.
+  /// Faster than the satellite orbit so the spin reads at a glance.
+  static const Duration ambientSpin = Duration(seconds: 6);
+
+  /// Period of one wave travelling along the Today progress ring.
+  static const Duration ambientWave = Duration(milliseconds: 2600);
+
+  /// Period of one slow morph cycle of the decorative background shapes.
+  /// Deliberately much longer than the wave so the silhouette drift reads as
+  /// ambient rather than as a state change.
+  static const Duration ambientMorph = Duration(seconds: 28);
 }
 
 /// A resolved set of motion tokens for the active scheme.
@@ -96,6 +119,11 @@ class MotionTokens {
     required this.effectsSlow,
     required this.celebration,
     required this.reduced,
+    this.ambientDrift = AppMotion.ambientDrift,
+    this.ambientOrbit = AppMotion.ambientOrbit,
+    this.ambientSpin = AppMotion.ambientSpin,
+    this.ambientWave = AppMotion.ambientWave,
+    this.ambientMorph = AppMotion.ambientMorph,
   });
 
   /// The expressive (playful) token set.
@@ -134,4 +162,19 @@ class MotionTokens {
 
   /// Whether this token set is the reduced-motion variant.
   final bool reduced;
+
+  /// Clock period for slow decorative drift (background shapes).
+  final Duration ambientDrift;
+
+  /// Clock period for orbiting/rotating illustration shapes.
+  final Duration ambientOrbit;
+
+  /// Clock period for the empty-state center shape's spin.
+  final Duration ambientSpin;
+
+  /// Clock period for a wave travelling along a progress indicator.
+  final Duration ambientWave;
+
+  /// Clock period for a decorative background shape's morph cycle.
+  final Duration ambientMorph;
 }

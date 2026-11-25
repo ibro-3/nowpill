@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../core/theme/app_surfaces.dart';
 import '../../../domain/stats_engine.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -104,7 +105,7 @@ class WeeklyBars extends StatelessWidget {
                         BarChartRodData(
                           toY: weeks[i].total.toDouble(),
                           width: 16,
-                          borderRadius: BorderRadius.circular(5),
+                          borderRadius: BorderRadius.circular(AppShape.xsmall),
                           rodStackItems: [
                             BarChartRodStackItem(
                               0,
@@ -174,14 +175,15 @@ class _DeltaHint extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppShape.pill),
             ),
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.typography.baseline.labelSmall.copyWith(
-                color: color,
+                // Primary-on-primary-wash is 4.13:1 here; small text needs 4.5:1.
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),

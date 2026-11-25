@@ -96,8 +96,9 @@ void main() {
     expect(find.byKey(const ValueKey('day-freeze')), findsOneWidget);
     expect(find.byKey(const ValueKey('day-backfill')), findsOneWidget);
 
-    // Choose Freeze → places an explicit freeze, spends the token.
+    // Choose Freeze, then apply → places an explicit freeze, spends the token.
     await tester.tap(find.byKey(const ValueKey('day-freeze')));
+    await tester.tap(find.byKey(const ValueKey('day-confirm')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -151,6 +152,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.byKey(const ValueKey('day-backfill')));
+    await tester.tap(find.byKey(const ValueKey('day-confirm')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

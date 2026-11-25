@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../core/theme/app_surfaces.dart';
 import '../../../domain/stats_engine.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -48,7 +49,7 @@ class TagDonut extends StatelessWidget {
                       for (final s in slices)
                         PieChartSectionData(
                           value: s.taskCount.toDouble(),
-                          color: Color(s.color),
+                          color: AppSurfaces.fill(scheme, Color(s.color)),
                           radius: 24,
                           showTitle: false,
                         ),
@@ -89,8 +90,10 @@ class TagDonut extends StatelessWidget {
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: Color(s.color),
-                            borderRadius: BorderRadius.circular(4),
+                            color: AppSurfaces.fill(scheme, Color(s.color)),
+                            borderRadius: BorderRadius.circular(
+                              AppShape.xsmall,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),

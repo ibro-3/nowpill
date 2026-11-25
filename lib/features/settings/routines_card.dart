@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -39,14 +40,17 @@ class RoutinesCard extends ConsumerWidget {
                   Icon(
                     M3EIcons.circle,
                     size: 16,
-                    color: Color(routines[i].color),
+                    color: AppSurfaces.graphic(
+                      theme.colorScheme,
+                      Color(routines[i].color),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(child: Text(routines[i].name)),
                   M3EIconButton(
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(M3EIcons.arrow_upward),
-                    tooltip: l10n.routineNew,
+                    tooltip: l10n.routineMoveUp,
                     key: ValueKey('routine-up-${routines[i].id}'),
                     onPressed: i == 0
                         ? null
@@ -55,7 +59,7 @@ class RoutinesCard extends ConsumerWidget {
                   M3EIconButton(
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(M3EIcons.arrow_downward),
-                    tooltip: l10n.routineNew,
+                    tooltip: l10n.routineMoveDown,
                     key: ValueKey('routine-down-${routines[i].id}'),
                     onPressed: i == routines.length - 1
                         ? null
@@ -133,20 +137,31 @@ class RoutinesCard extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final c in kHabitColors)
-                    GestureDetector(
-                      onTap: () => setState(() => color = c),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(c),
-                          border: Border.all(
-                            color: c == color
-                                ? theme.colorScheme.onSurface
-                                : const Color(0x00000000),
-                            width: 2.5,
+                  for (var ci = 0; ci < kHabitColors.length; ci++)
+                    Semantics(
+                      label: l10n.routineColorOption(ci + 1),
+                      checked: kHabitColors[ci] == color,
+                      child: GestureDetector(
+                        onTap: () => setState(() => color = kHabitColors[ci]),
+                        // 48dp hit box around the 28dp visual (M3 targets).
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Center(
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(kHabitColors[ci]),
+                                border: Border.all(
+                                  color: kHabitColors[ci] == color
+                                      ? theme.colorScheme.onSurface
+                                      : const Color(0x00000000),
+                                  width: 2.5,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),

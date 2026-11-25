@@ -59,6 +59,36 @@ void main() {
     await cleanup(tester, db);
   });
 
+  testWidgets('onboarding scrolls instead of overflowing at 2x text', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final db = createTestDatabase();
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(() => tester.platformDispatcher.textScaleFactorTestValue = 1.0);
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const NowPillApp(),
+      ),
+    );
+    await boot(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await boot(tester);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('starter-move')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('starter-move')), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'overflow on onboarding');
+    await cleanup(tester, db);
+  });
+
   testWidgets('skip enters Today without seeding anything', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final db = createTestDatabase();

@@ -66,6 +66,26 @@ void main() {
     await cleanup(tester);
   });
 
+  testWidgets('empty-state center shape spins visibly', (tester) async {
+    await pumpScreen(tester);
+    final center = find.byKey(const Key('floating-pills-center'));
+    expect(center, findsOneWidget);
+    // m11 of a Z-rotation is cos(angle); it drops as the shape turns.
+    final before = tester.widget<Transform>(center).transform.storage[0];
+    await tester.pump(const Duration(seconds: 1));
+    final after = tester.widget<Transform>(center).transform.storage[0];
+    expect(after, lessThan(before));
+
+    // The center glyph counter-rotates, so it stays upright while the shape
+    // spins: its sine term is the negative of the container's.
+    final glyph = find.byKey(const Key('floating-pills-center-icon'));
+    expect(glyph, findsOneWidget);
+    final shape = tester.widget<Transform>(center).transform.storage;
+    final icon = tester.widget<Transform>(glyph).transform.storage;
+    expect(icon[1], closeTo(-shape[1], 1e-6));
+    await cleanup(tester);
+  });
+
   testWidgets('sections render overdue, habits, and due-today', (tester) async {
     final tasks = TaskRepository(db);
     final habits = HabitRepository(db);
@@ -170,29 +190,6 @@ void main() {
     await cleanup(tester);
   });
 
-  testWidgets('quick-add creates a task due today', (tester) async {
-    await pumpScreen(tester);
-    expect(find.text('A clear day ahead'), findsOneWidget);
-
-    await tester.enterText(find.byType(M3ETextField), 'Water the plants');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await settle(tester);
-
-    final tasks = await db.select(db.tasks).get();
-    expect(tasks.length, 1);
-    expect(tasks.single.title, 'Water the plants');
-    expect(formatDate(tasks.single.dueAt!), formatDate(DateTime.now()));
-    expect(tasks.single.completedAt, isNull);
-
-    // Field cleared after submit; the new task shows in Due today.
-    final field = tester.widget<M3ETextField>(find.byType(M3ETextField));
-    expect(field.controller!.text, isEmpty);
-    expect(find.text('Water the plants'), findsOneWidget);
-    expect(find.text('Due today'), findsOneWidget);
-    expect(find.text('0/1'), findsOneWidget);
-    await cleanup(tester);
-  });
-
   testWidgets('weekly-target habit appears every day', (tester) async {
     final habits = HabitRepository(db);
     final now = DateTime.now();
@@ -215,6 +212,40 @@ void main() {
     await pumpScreen(tester);
     expect(find.text('Journal'), findsOneWidget);
     expect(find.text('Sauna'), findsNothing);
+    await cleanup(tester);
+  });
+
+  testWidgets('FAB creates a task prefilled with today', (tester) async {
+    await pumpScreen(tester);
+    expect(find.byType(FloatingPills), findsOneWidget);
+    // One create affordance only: no FAB menu, bottom field or duplicate label.
+    expect(find.byType(M3EFabMenu), findsNothing);
+    expect(find.byType(M3ETextField), findsNothing);
+    expect(find.text('New habit'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('New task'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Add task'), findsOneWidget);
+    // Today's date is prefilled rather than the "Set date" placeholder.
+    expect(find.text(formatDate(DateTime.now())), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('rail-width dashboard uses one FAB, not a FAB menu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(wrap(const TodayScreen()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // One plain FAB at every width; "New habit" lives on the Habits screen.
+    expect(find.byType(M3EFabMenu), findsNothing);
+    expect(find.byType(M3EFab), findsOneWidget);
+
     await cleanup(tester);
   });
 }

@@ -25,8 +25,9 @@ class StreakOdometer extends StatefulWidget {
 }
 
 class _StreakOdometerState extends State<StreakOdometer>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final SingleMotionController _slide;
+  late final SingleMotionController _fade;
   late int _previous;
   late int _current;
   bool _forward = true;
@@ -38,6 +39,13 @@ class _StreakOdometerState extends State<StreakOdometer>
     _current = widget.value;
     _slide = SingleMotionController(
       motion: MotionTokens.expressive.spatialDefault,
+      vsync: this,
+      initialValue: 1,
+    );
+    // Digit position slides (spatial); the crossfade is an effect so it can
+    // never overshoot past fully opaque.
+    _fade = SingleMotionController(
+      motion: MotionTokens.expressive.effectsDefault,
       vsync: this,
       initialValue: 1,
     );
@@ -53,12 +61,16 @@ class _StreakOdometerState extends State<StreakOdometer>
       _slide
         ..value = 0
         ..animateTo(1);
+      _fade
+        ..value = 0
+        ..animateTo(1);
     }
   }
 
   @override
   void dispose() {
     _slide.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
@@ -67,13 +79,15 @@ class _StreakOdometerState extends State<StreakOdometer>
     final theme = M3ETheme.of(context);
     final tokens = MotionScope.of(context);
     _slide.motion = tokens.spatialDefault;
+    _fade.motion = tokens.effectsDefault;
     final style = (widget.style ?? theme.typography.emphasized.titleMedium)
         .copyWith(color: widget.color ?? theme.colorScheme.onSurface);
 
     return AnimatedBuilder(
-      animation: _slide,
+      animation: Listenable.merge([_slide, _fade]),
       builder: (context, _) {
         final t = _slide.value.clamp(0.0, 1.0);
+        final f = _fade.value.clamp(0.0, 1.0);
         // Outgoing digit slides away, incoming digit slides in.
         final dir = _forward ? 1.0 : -1.0;
         final outgoingOffset = -dir * t;
@@ -91,7 +105,7 @@ class _StreakOdometerState extends State<StreakOdometer>
                     child: FractionalTranslation(
                       translation: Offset(0, outgoingOffset),
                       child: Opacity(
-                        opacity: (1 - t).clamp(0.0, 1.0),
+                        opacity: 1 - f,
                         child: Align(
                           alignment: Alignment.center,
                           child: Text('$_previous', style: style),
@@ -103,7 +117,7 @@ class _StreakOdometerState extends State<StreakOdometer>
                     child: FractionalTranslation(
                       translation: Offset(0, incomingOffset),
                       child: Opacity(
-                        opacity: t.clamp(0.0, 1.0),
+                        opacity: f,
                         child: Align(
                           alignment: Alignment.center,
                           child: Text('$_current', style: style),

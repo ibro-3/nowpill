@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/motion/shape_morph.dart';
 import '../../core/motion/spring_entrance.dart';
 import '../../core/theme/app_surfaces.dart';
+import '../../core/widgets/spring_progress.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -27,11 +29,11 @@ import 'today_providers.dart';
 import 'today_view_model.dart';
 import 'widgets/confetti_overlay.dart';
 import 'widgets/floating_pills.dart';
-import 'widgets/quick_add_bar.dart';
 import 'widgets/today_progress_ring.dart';
 
 /// The Today dashboard: greeting + progress ring, then overdue → habits due →
-/// tasks due → done-today, with quick-add and an all-done celebration.
+/// tasks due → done-today, with a FAB menu for creation and an all-done
+/// celebration.
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
 
@@ -189,6 +191,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     // dashboard instead when scaling is high.
     final showBarSubtitle = MediaQuery.textScalerOf(context).scale(1.0) <= 1.3;
     return Scaffold(
+      // The shell paints the shared ambient backdrop behind the branch.
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Column(
@@ -199,6 +203,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     // M3 large flexible app bar: the date is the page subtitle,
                     // and the bar compresses to a small one while scrolling.
                     M3EAppBar.sliver(
+                      // Let the shell's ambient backdrop show through the bar;
+                      // the package keeps this color at rest and on scroll.
+                      backgroundColor: Colors.transparent,
                       titleText: l10n.navToday,
                       subtitleText: showBarSubtitle
                           ? _dateLabel(l10n, now)
@@ -208,216 +215,223 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           : M3EAppBarVariant.small,
                       actions: const [SearchAction(), SettingsAction()],
                     ),
-                    SliverList(
-                      delegate: SliverChildListDelegate([
-                        _Header(
-                          vm: vm,
-                          theme: theme,
-                          now: now,
-                          showDate: !showBarSubtitle,
-                        ),
-                        const SizedBox(height: 20),
-                        if (onVacation) ...[
-                          _VacationBanner(
+                    // M3 layout-grid margins: 16dp compact, 24dp from the
+                    // medium breakpoint the shell uses for its nav rail.
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.sizeOf(context).width >= 600
+                            ? 24
+                            : 16,
+                      ),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          _Header(
+                            vm: vm,
                             theme: theme,
-                            message: _vacationBannerMessage(
-                              activePeriod,
-                              scopes,
-                            ),
+                            now: now,
+                            showDate: !showBarSubtitle,
                           ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (vm.total == 0 && quitHabits.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 32),
-                            child: Column(
-                              children: [
-                                FloatingPills(
-                                  icon: M3EIcons.wb_twilight,
-                                  message: l10n.todayEmpty,
-                                ),
-                                const SizedBox(height: 16),
-                                M3EButton(
-                                  style: M3EButtonStyle.tonal,
-                                  onPressed: () => showTaskEditor(context),
-                                  label: Text(l10n.newTask),
-                                ),
-                              ],
-                            ),
-                          )
-                        else ...[
-                          if (vm.allDone) ...[
-                            SpringEntrance(
-                              key: const ValueKey('today-all-done-banner'),
-                              index: 0,
-                              rise: 12,
-                              child: _AllDoneBanner(theme: theme),
+                          const SizedBox(height: 20),
+                          if (onVacation) ...[
+                            _VacationBanner(
+                              theme: theme,
+                              message: _vacationBannerMessage(
+                                activePeriod,
+                                scopes,
+                              ),
                             ),
                             const SizedBox(height: 16),
                           ],
-                          if (vm.overdueTasks.isNotEmpty) ...[
-                            _entrancedSection(0, 'overdue', [
-                              _SectionHeader(
-                                title: l10n.sectionOverdue,
-                                count: vm.overdueTasks.length,
-                                color: theme.colorScheme.error,
-                                theme: theme,
+                          if (vm.total == 0 && quitHabits.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 32),
+                              // Creation lives in the persistent FAB menu; a
+                              // second "new task" target here would duplicate
+                              // the same primary action for assistive tech.
+                              child: FloatingPills(
+                                icon: M3EIcons.wb_twilight,
+                                message: l10n.todayEmpty,
                               ),
-                              for (final task in vm.overdueTasks)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: TaskCard(
-                                    key: ValueKey('today-task-${task.id}'),
-                                    task: task,
-                                    onTap: () =>
-                                        showTaskEditor(context, task: task),
-                                    onToggleComplete: () => _toggleTask(task),
-                                  ),
+                            )
+                          else ...[
+                            if (vm.allDone) ...[
+                              SpringEntrance(
+                                key: const ValueKey('today-all-done-banner'),
+                                index: 0,
+                                rise: 12,
+                                child: _AllDoneBanner(theme: theme),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (vm.overdueTasks.isNotEmpty) ...[
+                              _entrancedSection(0, 'overdue', [
+                                _SectionHeader(
+                                  title: l10n.sectionOverdue,
+                                  count: vm.overdueTasks.length,
+                                  color: theme.colorScheme.error,
+                                  theme: theme,
                                 ),
-                              const SizedBox(height: 12),
-                            ]),
-                          ],
-                          if (vm.habits.isNotEmpty) ...[
-                            _entrancedSection(1, 'habits', [
-                              _SectionHeader(
-                                title: l10n.sectionHabits,
-                                count: vm.habits.length,
-                                color: theme.colorScheme.primary,
-                                theme: theme,
-                              ),
-                              for (final item in vm.habits)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: _TodayHabitTile(
-                                    key: ValueKey(
-                                      'today-habit-${item.habit.id}',
+                                for (final task in vm.overdueTasks)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: TaskCard(
+                                      key: ValueKey('today-task-${task.id}'),
+                                      task: task,
+                                      onTap: () =>
+                                          showTaskEditor(context, task: task),
+                                      onToggleComplete: () => _toggleTask(task),
                                     ),
-                                    item: item,
-                                    onToggle: () => _toggleHabit(item),
-                                    onAddAmount: () => _addAmount(item),
-                                    onRemoveAmount: () => _removeAmount(item),
-                                    onCompleteGoal: () => _completeGoal(item),
                                   ),
+                                const SizedBox(height: 12),
+                              ]),
+                            ],
+                            if (vm.habits.isNotEmpty) ...[
+                              _entrancedSection(1, 'habits', [
+                                _SectionHeader(
+                                  title: l10n.sectionHabits,
+                                  count: vm.habits.length,
+                                  color: theme.colorScheme.primary,
+                                  theme: theme,
                                 ),
-                              const SizedBox(height: 12),
-                            ]),
-                          ],
-                          if (quitHabits.isNotEmpty) ...[
-                            _entrancedSection(2, 'quit', [
-                              _SectionHeader(
-                                title: l10n.kindQuit,
-                                count: quitHabits.length,
-                                color: theme.colorScheme.tertiary,
-                                theme: theme,
-                              ),
-                              for (final habit in quitHabits)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: HabitCard(
-                                    key: ValueKey('today-quit-${habit.id}'),
-                                    habit: habit,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => HabitDetailScreen(
-                                          habitId: habit.id,
+                                for (final item in vm.habits)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: _TodayHabitTile(
+                                      key: ValueKey(
+                                        'today-habit-${item.habit.id}',
+                                      ),
+                                      item: item,
+                                      onToggle: () => _toggleHabit(item),
+                                      onAddAmount: () => _addAmount(item),
+                                      onRemoveAmount: () => _removeAmount(item),
+                                      onCompleteGoal: () => _completeGoal(item),
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                              ]),
+                            ],
+                            if (quitHabits.isNotEmpty) ...[
+                              _entrancedSection(2, 'quit', [
+                                _SectionHeader(
+                                  title: l10n.kindQuit,
+                                  count: quitHabits.length,
+                                  color: theme.colorScheme.tertiary,
+                                  theme: theme,
+                                ),
+                                for (final habit in quitHabits)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: HabitCard(
+                                      key: ValueKey('today-quit-${habit.id}'),
+                                      habit: habit,
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => HabitDetailScreen(
+                                            habitId: habit.id,
+                                          ),
                                         ),
                                       ),
+                                      onCheckIn: () {},
+                                      onLogRelapse: () => _logRelapse(habit.id),
                                     ),
-                                    onCheckIn: () {},
-                                    onLogRelapse: () => _logRelapse(habit.id),
+                                  ),
+                                const SizedBox(height: 12),
+                              ]),
+                            ],
+                            if (pausedHabits.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Semantics(
+                                button: true,
+                                label: l10n.a11yExpandPaused,
+                                child: ListTile(
+                                  key: const ValueKey(
+                                    'today-paused-disclosure',
+                                  ),
+                                  leading: Icon(
+                                    M3EIcons.beach_access,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  title: Text(
+                                    l10n.todayPausedCount(pausedHabits.length),
+                                  ),
+                                  trailing: Icon(
+                                    _showPaused
+                                        ? M3EIcons.expand_less
+                                        : M3EIcons.expand_more,
+                                  ),
+                                  onTap: () => setState(
+                                    () => _showPaused = !_showPaused,
                                   ),
                                 ),
-                              const SizedBox(height: 12),
-                            ]),
-                          ],
-                          if (pausedHabits.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Semantics(
-                              button: true,
-                              label: l10n.a11yExpandPaused,
-                              child: ListTile(
-                                key: const ValueKey('today-paused-disclosure'),
-                                leading: Icon(
-                                  M3EIcons.beach_access,
+                              ),
+                              if (_showPaused)
+                                for (final habit in pausedHabits)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      key: ValueKey('today-paused-${habit.id}'),
+                                      leading: Icon(
+                                        habitIconForKey(habit.iconKey),
+                                        // Raw brand colors are ~1.7-2.4:1 on
+                                        // surface; a role color meets 3:1.
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                      title: Text(habit.name),
+                                      subtitle: Text(l10n.todayPaused),
+                                    ),
+                                  ),
+                            ],
+                            if (vm.dueTodayTasks.isNotEmpty) ...[
+                              _entrancedSection(3, 'due', [
+                                _SectionHeader(
+                                  title: l10n.sectionDueToday,
+                                  count: vm.dueTodayTasks.length,
                                   color: theme.colorScheme.primary,
+                                  theme: theme,
                                 ),
-                                title: Text(
-                                  l10n.todayPausedCount(pausedHabits.length),
-                                ),
-                                trailing: Icon(
-                                  _showPaused
-                                      ? M3EIcons.expand_less
-                                      : M3EIcons.expand_more,
-                                ),
-                                onTap: () =>
-                                    setState(() => _showPaused = !_showPaused),
-                              ),
-                            ),
-                            if (_showPaused)
-                              for (final habit in pausedHabits)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: ListTile(
-                                    key: ValueKey('today-paused-${habit.id}'),
-                                    leading: Icon(
-                                      habitIconForKey(habit.iconKey),
-                                      color: Color(habit.color),
+                                for (final task in vm.dueTodayTasks)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: TaskCard(
+                                      key: ValueKey('today-task-${task.id}'),
+                                      task: task,
+                                      onTap: () =>
+                                          showTaskEditor(context, task: task),
+                                      onToggleComplete: () => _toggleTask(task),
                                     ),
-                                    title: Text(habit.name),
-                                    subtitle: Text(l10n.todayPaused),
                                   ),
+                                const SizedBox(height: 12),
+                              ]),
+                            ],
+                            if (vm.completedTodayTasks.isNotEmpty) ...[
+                              _entrancedSection(4, 'done', [
+                                _SectionHeader(
+                                  title: l10n.sectionDoneToday,
+                                  count: vm.completedTodayTasks.length,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  theme: theme,
                                 ),
-                          ],
-                          if (vm.dueTodayTasks.isNotEmpty) ...[
-                            _entrancedSection(3, 'due', [
-                              _SectionHeader(
-                                title: l10n.sectionDueToday,
-                                count: vm.dueTodayTasks.length,
-                                color: theme.colorScheme.primary,
-                                theme: theme,
-                              ),
-                              for (final task in vm.dueTodayTasks)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: TaskCard(
-                                    key: ValueKey('today-task-${task.id}'),
-                                    task: task,
-                                    onTap: () =>
-                                        showTaskEditor(context, task: task),
-                                    onToggleComplete: () => _toggleTask(task),
+                                for (final task in vm.completedTodayTasks)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: TaskCard(
+                                      key: ValueKey('today-task-${task.id}'),
+                                      task: task,
+                                      onTap: () =>
+                                          showTaskEditor(context, task: task),
+                                      onToggleComplete: () => _toggleTask(task),
+                                    ),
                                   ),
-                                ),
-                              const SizedBox(height: 12),
-                            ]),
+                              ]),
+                            ],
                           ],
-                          if (vm.completedTodayTasks.isNotEmpty) ...[
-                            _entrancedSection(4, 'done', [
-                              _SectionHeader(
-                                title: l10n.sectionDoneToday,
-                                count: vm.completedTodayTasks.length,
-                                color: theme.colorScheme.onSurfaceVariant,
-                                theme: theme,
-                              ),
-                              for (final task in vm.completedTodayTasks)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: TaskCard(
-                                    key: ValueKey('today-task-${task.id}'),
-                                    task: task,
-                                    onTap: () =>
-                                        showTaskEditor(context, task: task),
-                                    onToggleComplete: () => _toggleTask(task),
-                                  ),
-                                ),
-                            ]),
-                          ],
-                        ],
-                      ]),
+                        ]),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const QuickAddBar(),
             ],
           ),
           Positioned.fill(
@@ -433,6 +447,18 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             ),
           ),
         ],
+      ),
+      // One FAB for Today's primary action: create a task due today. M3 uses a
+      // FAB menu only when several kinds of action belong to the button; "New
+      // habit" stays on the Habits destination, so a plain FAB fits every width.
+      floatingActionButton: M3EFab(
+        icon: const Icon(M3EIcons.add),
+        tooltip: l10n.newTask,
+        onPressed: () => showTaskEditor(
+          context,
+          // Prefill the date only; 09:00 is the editor's own default time.
+          initialDueAt: DateTime(now.year, now.month, now.day, 9),
+        ),
       ),
     );
   }
@@ -509,10 +535,26 @@ class _Header extends StatelessWidget {
         : h < 22
         ? l10n.greetingEvening
         : l10n.greetingWindingDown;
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
+    // Keep the ring on the trailing edge at every width; the greeting wraps in
+    // the Expanded column instead. Cap the diameter to a share of the card's
+    // content width. M3 circular indicators top out at 240dp.
+    // From M3: cards use a 12dp corner radius and 16dp left/right padding
+    // (containment.md). My design decision: match that with 16dp top/bottom.
+    return M3ECard(
+      variant: M3ECardVariant.filled,
+      padding: const EdgeInsets.all(16),
+      // Let the card grow with text that scales up to 2x on a small phone.
+      expanded: true,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+          final stacked = textScale > 1.3 || constraints.maxWidth < 360;
+          final maxRing = math.min(
+            240.0,
+            constraints.maxWidth * (stacked ? 0.5 : 0.45),
+          );
+          final ringSize = math.max(96.0, math.min(132 * textScale, maxRing));
+          final copy = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -540,17 +582,23 @@ class _Header extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        TodayProgressRing(
-          progress: vm.progress,
-          done: vm.done,
-          total: vm.total,
-          celebrate: vm.allDone,
-          size: 132 * MediaQuery.textScalerOf(context).scale(1.0),
-        ),
-      ],
+          );
+          final ring = TodayProgressRing(
+            progress: vm.progress,
+            done: vm.done,
+            total: vm.total,
+            celebrate: vm.allDone,
+            size: ringSize,
+          );
+          return Row(
+            children: [
+              Expanded(child: copy),
+              const SizedBox(width: 12),
+              ring,
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -673,7 +721,7 @@ class _SectionHeader extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(AppShape.card / 2),
+                borderRadius: BorderRadius.circular(AppShape.xsmall),
               ),
             ),
           ),
@@ -741,7 +789,8 @@ class _TodayHabitTile extends StatelessWidget {
       border: item.checkedToday
           ? null
           : BorderSide(color: AppSurfaces.accentBorder(color)),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      // M3 card left/right padding is 16dp.
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
           MorphingShape(
@@ -779,8 +828,10 @@ class _TodayHabitTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   _AmountBar(
                     progress: item.amountProgress,
-                    color: color,
-                    done: item.checkedToday,
+                    semanticLabel: l10n.amountProgress(
+                      _formatAmount(item.amountToday ?? 0),
+                      _formatAmount(item.targetAmount ?? 1),
+                    ),
                   ),
                 ],
               ],
@@ -813,37 +864,30 @@ class _TodayHabitTile extends StatelessWidget {
   }
 }
 
-/// Thin progress bar under a measurable habit's name (0…1 of the daily goal).
+/// Formats a measurable amount without a trailing ".0".
+String _formatAmount(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+
+/// Spring-animated circular progress ring for a measurable habit (0…1 of goal).
 class _AmountBar extends StatelessWidget {
-  const _AmountBar({
-    required this.progress,
-    required this.color,
-    required this.done,
-  });
+  const _AmountBar({required this.progress, required this.semanticLabel});
 
   final double progress;
-  final Color color;
-  final bool done;
+  final String semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(3),
-      child: SizedBox(
-        height: 5,
-        child: Stack(
-          children: [
-            Container(color: theme.colorScheme.surfaceContainerHighest),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                color: done ? color : color.withValues(alpha: 0.55),
-              ),
-            ),
-          ],
-        ),
-      ),
+    // M3 circular determinate indicator: 40dp ring, 4dp active/track thickness
+    // and a 4dp arc-to-track gap. A flat ring is thinner than the wavy linear
+    // bar's 10dp wave height and has no broken wave ends. Per-entity identity
+    // stays in the habit icon/card wash; the active fill uses the primary role
+    // so it meets 3:1 on the track. The wrapper springs the fill to each amount.
+    return SpringWavyProgressBar(
+      circular: true,
+      value: progress.clamp(0.0, 1.0).toDouble(),
+      color: theme.colorScheme.primary,
+      semanticsLabel: semanticLabel,
     );
   }
 }
@@ -866,8 +910,7 @@ class _AmountStepper extends StatelessWidget {
   final VoidCallback onRemove;
   final VoidCallback onComplete;
 
-  String _fmt(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+  String _fmt(double v) => _formatAmount(v);
 
   @override
   Widget build(BuildContext context) {

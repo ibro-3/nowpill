@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/motion/shape_morph.dart';
 import '../../core/motion/spring_press.dart';
+import '../../core/theme/app_surfaces.dart';
+import '../../core/widgets/chip_hit_area.dart';
 import '../../core/widgets/connected_choice_group.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
@@ -101,6 +103,7 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
           ),
           M3EButton(
             key: const ValueKey('routine-save'),
+            style: M3EButtonStyle.text,
             label: Text(l10n.save),
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
           ),
@@ -296,11 +299,14 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                M3EChip(
-                  label: l10n.unrouted,
-                  type: M3EChipType.filter,
-                  selected: _routineId == null,
-                  onPressed: () => setState(() => _routineId = null),
+                ChipHitArea(
+                  onTap: () => setState(() => _routineId = null),
+                  child: M3EChip(
+                    label: l10n.unrouted,
+                    type: M3EChipType.filter,
+                    selected: _routineId == null,
+                    onPressed: () => setState(() => _routineId = null),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 for (final routine
@@ -308,18 +314,25 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
                         const <Routine>[])
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: M3EChip(
-                      label: routine.name,
-                      type: M3EChipType.filter,
-                      selected: _routineId == routine.id,
-                      onPressed: () => setState(() => _routineId = routine.id),
+                    child: ChipHitArea(
+                      onTap: () => setState(() => _routineId = routine.id),
+                      child: M3EChip(
+                        label: routine.name,
+                        type: M3EChipType.filter,
+                        selected: _routineId == routine.id,
+                        onPressed: () =>
+                            setState(() => _routineId = routine.id),
+                      ),
                     ),
                   ),
-                M3EChip(
-                  label: l10n.routineNew,
-                  type: M3EChipType.assist,
-                  leading: const Icon(M3EIcons.add, size: 18),
-                  onPressed: _createRoutine,
+                ChipHitArea(
+                  onTap: _createRoutine,
+                  child: M3EChip(
+                    label: l10n.routineNew,
+                    type: M3EChipType.assist,
+                    leading: const Icon(M3EIcons.add, size: 18),
+                    onPressed: _createRoutine,
+                  ),
                 ),
               ],
             ),
@@ -542,17 +555,25 @@ class _IconChoice extends StatelessWidget {
       child: SpringPress(
         child: GestureDetector(
           onTap: onTap,
-          child: MorphingShape(
-            from: M3EShapeKind.circle,
-            to: M3EShapeKind.cookie6Sided,
-            active: selected,
-            size: 44,
-            color: theme.colorScheme.surfaceContainerHigh,
-            activeColor: color.withValues(alpha: 0.2),
-            childBuilder: (t) => Icon(
-              icon,
-              size: 22 * (0.96 + 0.04 * t),
-              color: Color.lerp(theme.colorScheme.onSurfaceVariant, color, t),
+          // 48dp hit box around the 44dp visual.
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: MorphingShape(
+                from: M3EShapeKind.circle,
+                to: M3EShapeKind.cookie6Sided,
+                active: selected,
+                size: 44,
+                color: theme.colorScheme.surfaceContainerHigh,
+                activeColor: color.withValues(alpha: 0.2),
+                childBuilder: (t) => Icon(
+                  icon,
+                  size: 22 * (0.96 + 0.04 * t),
+                  // The wash is a fill; the foreground stays a role color.
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
         ),
@@ -578,22 +599,33 @@ class _ColorChoice extends StatelessWidget {
     return SpringPress(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-            border: Border.all(
-              color: selected
-                  ? theme.colorScheme.onSurface
-                  : Colors.transparent,
-              width: 2.5,
+        // 48dp hit box around the 36dp swatch.
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                border: Border.all(
+                  color: selected
+                      ? theme.colorScheme.onSurface
+                      : Colors.transparent,
+                  width: 2.5,
+                ),
+              ),
+              child: selected
+                  ? Icon(
+                      M3EIcons.check,
+                      size: 18,
+                      color: AppSurfaces.onAccent(theme.colorScheme, color),
+                    )
+                  : null,
             ),
           ),
-          child: selected
-              ? Icon(M3EIcons.check, size: 18, color: theme.colorScheme.surface)
-              : null,
         ),
       ),
     );
@@ -609,15 +641,22 @@ class _WeekdayPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // Wrap instead of Row: seven chips overflowed at 320dp. Each gets a 48dp
+    // box so the row has room for M3's minimum target height.
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      alignment: WrapAlignment.center,
       children: [
         for (var d = 1; d <= 7; d++)
-          M3EChip(
-            label: labels[d - 1],
-            type: M3EChipType.filter,
-            selected: selected.contains(d),
-            onPressed: () => onToggle(d),
+          ChipHitArea(
+            onTap: () => onToggle(d),
+            child: M3EChip(
+              label: labels[d - 1],
+              type: M3EChipType.filter,
+              selected: selected.contains(d),
+              onPressed: () => onToggle(d),
+            ),
           ),
       ],
     );
@@ -648,7 +687,7 @@ class _TargetPicker extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             l10n.goalPerWeek(value),
-            style: theme.typography.emphasized.titleMedium,
+            style: theme.typography.baseline.titleMedium,
           ),
         ),
         M3EIconButton(

@@ -31,14 +31,23 @@ class SpringEntrance extends StatefulWidget {
 }
 
 class _SpringEntranceState extends State<SpringEntrance>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final SingleMotionController _rise;
+  late final SingleMotionController _fade;
 
   @override
   void initState() {
     super.initState();
     _rise = SingleMotionController(
       motion: MotionTokens.expressive.spatialDefault,
+      vsync: this,
+      initialValue: 0,
+    );
+    // M3: opacity is an effect, never a spatial transform. A critically
+    // damped spring keeps a clamped opacity from pausing at 1.0 while the
+    // geometry spring finishes its overshoot.
+    _fade = SingleMotionController(
+      motion: MotionTokens.expressive.effectsDefault,
       vsync: this,
       initialValue: 0,
     );
@@ -51,13 +60,17 @@ class _SpringEntranceState extends State<SpringEntrance>
       ),
     );
     Future<void>.delayed(delay, () {
-      if (mounted) _rise.animateTo(1);
+      if (mounted) {
+        _rise.animateTo(1);
+        _fade.animateTo(1);
+      }
     });
   }
 
   @override
   void dispose() {
     _rise.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
@@ -65,18 +78,20 @@ class _SpringEntranceState extends State<SpringEntrance>
   Widget build(BuildContext context) {
     final tokens = MotionScope.of(context);
     _rise.motion = tokens.spatialDefault;
+    _fade.motion = tokens.effectsDefault;
     if (tokens.reduced) return widget.child;
     return AnimatedBuilder(
-      animation: _rise,
+      animation: Listenable.merge([_rise, _fade]),
       builder: (context, child) {
-        final t = _rise.value.clamp(0.0, 1.0);
+        final rise = _rise.value.clamp(0.0, 1.0);
+        final fade = _fade.value.clamp(0.0, 1.0);
         return Opacity(
           // Keep semantics available from the first frame: an entrance must
           // not hide controls from screen readers (or from widget tests).
           alwaysIncludeSemantics: true,
-          opacity: t,
+          opacity: fade,
           child: Transform.translate(
-            offset: Offset(0, widget.rise * (1 - t)),
+            offset: Offset(0, widget.rise * (1 - rise)),
             child: child,
           ),
         );

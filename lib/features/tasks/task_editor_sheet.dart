@@ -13,21 +13,30 @@ import '../../l10n/generated/app_localizations.dart';
 import 'task_providers.dart';
 
 /// Opens the task editor sheet. Pass [task] to edit, or null to create.
-Future<void> showTaskEditor(BuildContext context, {Task? task}) {
+///
+/// [initialDueAt] prefills the due date of a new task; it is ignored when
+/// editing an existing task.
+Future<void> showTaskEditor(
+  BuildContext context, {
+  Task? task,
+  DateTime? initialDueAt,
+}) {
   final l10n = AppLocalizations.of(context);
   return M3EBottomSheet.showAdaptive<void>(
     context,
     title: task == null ? l10n.newTask : l10n.editTask,
     initialValue: M3EBottomSheetValue.expanded,
     expandToFullScreen: true,
-    builder: (context) => _TaskEditorForm(task: task),
+    builder: (context) =>
+        _TaskEditorForm(task: task, initialDueAt: initialDueAt),
   );
 }
 
 class _TaskEditorForm extends ConsumerStatefulWidget {
-  const _TaskEditorForm({this.task});
+  const _TaskEditorForm({this.task, this.initialDueAt});
 
   final Task? task;
+  final DateTime? initialDueAt;
 
   @override
   ConsumerState<_TaskEditorForm> createState() => _TaskEditorFormState();
@@ -45,6 +54,10 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
   late List<_SubtaskDraft> _subtasks;
   bool _saving = false;
 
+  /// Notes are optional: the field only appears when a note already exists or
+  /// the user asks for it. Empty notes are saved as null (see [_save]).
+  bool _showNotes = false;
+
   bool get _isEdit => widget.task != null;
 
   @override
@@ -53,7 +66,8 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
     final t = widget.task;
     _title = TextEditingController(text: t?.title ?? '');
     _notes = TextEditingController(text: t?.notes ?? '');
-    _dueAt = t?.dueAt;
+    _showNotes = (t?.notes ?? '').isNotEmpty;
+    _dueAt = t?.dueAt ?? widget.initialDueAt;
     _priority = t?.priority ?? TaskPriority.none;
     _recurrence = t?.recurrenceRule;
     _reminderAt = t?.reminderAt;
@@ -248,12 +262,23 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
-          M3ETextField(
-            controller: _notes,
-            label: l10n.notes,
-            maxLines: 3,
-            minLines: 1,
-          ),
+          if (_showNotes)
+            M3ETextField(
+              controller: _notes,
+              label: l10n.notes,
+              maxLines: 3,
+              minLines: 1,
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: M3EButton(
+                style: M3EButtonStyle.text,
+                icon: const Icon(M3EIcons.add),
+                onPressed: () => setState(() => _showNotes = true),
+                label: Text(l10n.addNotes),
+              ),
+            ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.taskLists, theme),
           const SizedBox(height: 8),

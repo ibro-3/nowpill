@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:motor/motor.dart';
 
+import '../../core/motion/ambient_backdrop.dart';
+import '../../core/motion/app_motion.dart';
+import '../../core/motion/motion_scheme_provider.dart';
 import '../../core/motion/spring_switcher.dart';
 import '../../core/router/app_router.dart';
 import '../../data/notifications/reminder_coordinator.dart';
@@ -175,8 +179,16 @@ class _AppShellState extends ConsumerState<AppShell>
                   destinations: [
                     for (var i = 0; i < destinations.length; i++)
                       M3ENavigationRailDestination(
-                        icon: Icon(destinations[i].icon),
-                        selectedIcon: Icon(destinations[i].selectedIcon),
+                        icon: _NavIconWiggle(
+                          selected: i == index,
+                          icon: destinations[i].icon,
+                          selectedIcon: destinations[i].selectedIcon,
+                        ),
+                        selectedIcon: _NavIconWiggle(
+                          selected: i == index,
+                          icon: destinations[i].icon,
+                          selectedIcon: destinations[i].selectedIcon,
+                        ),
                         label: destinations[i].label,
                         badgeCount: badgeFor(i),
                       ),
@@ -185,14 +197,26 @@ class _AppShellState extends ConsumerState<AppShell>
               ],
               trailing: const _SettingsButton(),
             ),
-            Expanded(child: branch),
+            Expanded(
+              child: Stack(
+                children: [
+                  const Positioned.fill(child: AmbientBackdrop()),
+                  branch,
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: branch,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AmbientBackdrop()),
+          branch,
+        ],
+      ),
       // The bar sizes itself from its content (which scales with the system
       // text size) and adds the bottom safe-area inset internally. Wrapping it
       // in a fixed height clipped the labels and hid them behind the gesture
@@ -239,6 +263,71 @@ class _RailBrand extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Nav icons already get M3E's small scale pop. This adds a one-shot tilt on
+/// top — enough to feel alive, not enough to distract from the label. Reduced
+/// motion skips it entirely.
+class _NavIconWiggle extends StatefulWidget {
+  const _NavIconWiggle({
+    required this.selected,
+    required this.icon,
+    required this.selectedIcon,
+  });
+
+  final bool selected;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  @override
+  State<_NavIconWiggle> createState() => _NavIconWiggleState();
+}
+
+class _NavIconWiggleState extends State<_NavIconWiggle>
+    with SingleTickerProviderStateMixin {
+  late final SequenceMotionController<int, double> _tilt =
+      SequenceMotionController<int, double>(
+        motion: MotionTokens.expressive.spatialFast,
+        vsync: this,
+        converter: const SingleMotionConverter(),
+        initialValue: 0,
+      );
+
+  @override
+  void didUpdateWidget(covariant _NavIconWiggle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final tokens = MotionScope.of(context);
+    if (!oldWidget.selected && widget.selected && !tokens.reduced) {
+      _tilt
+        ..motion = tokens.spatialFast
+        ..playSequence(
+          MotionSequence.steps(const [
+            0.0,
+            -1.0,
+            0.55,
+            0.0,
+          ], motion: tokens.spatialFast),
+        );
+    }
+  }
+
+  @override
+  void dispose() {
+    _tilt.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _tilt,
+      builder: (context, _) => Transform.rotate(
+        // −1 → +0.55 → 0 maps to ≈ −8° → +4.4° → 0°.
+        angle: _tilt.value * 0.14,
+        child: Icon(widget.selected ? widget.selectedIcon : widget.icon),
       ),
     );
   }

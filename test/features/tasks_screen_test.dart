@@ -87,6 +87,39 @@ void main() {
     await cleanup(tester);
   });
 
+  testWidgets('notes are optional in the task editor', (tester) async {
+    tester.view.physicalSize = const Size(420, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(wrap(const TasksScreen()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.bySemanticsLabel('New task'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Add notes'), findsOneWidget);
+    expect(find.text('Notes'), findsNothing);
+
+    await tester.tap(find.text('Add notes'));
+    await tester.pump();
+    expect(find.text('Notes'), findsOneWidget);
+
+    await tester.enterText(find.byType(M3ETextField).first, 'No notes needed');
+    await tester.pump();
+    await tester.tap(find.text('Add task'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final tasks = await db.select(db.tasks).get();
+    expect(tasks.single.title, 'No notes needed');
+    expect(tasks.single.notes, isNull);
+    await cleanup(tester);
+  });
+
   testWidgets('completing a recurring task spawns the next occurrence', (
     tester,
   ) async {
