@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## v0.9.6 — 2026-11-25
+
+Material 3 Expressive follow-up: shell-wide ambient motion, spring-animated
+progress, and Today dashboard refinements. No data, schema, or export changes — format stays v7.
 
 ### Features
 - **Ambient backdrop everywhere** — the drifting, morphing decorative shapes

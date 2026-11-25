@@ -27,47 +27,50 @@ class AmbientBackdrop extends StatefulWidget {
 class _AmbientBackdropState extends State<AmbientBackdrop>
     with SingleTickerProviderStateMixin {
   // (from, to, base x, base y, size, phase, speed, drift reach)
-  static const _shapes = <(
-    M3EShapeKind,
-    M3EShapeKind,
-    double,
-    double,
-    double,
-    double,
-    double,
-    double,
-  )>[
-    (
-      M3EShapeKind.softBurst,
-      M3EShapeKind.flower,
-      0.10,
-      0.16,
-      260,
-      0.0,
-      1.0,
-      1.0,
-    ),
-    (
-      M3EShapeKind.clover4Leaf,
-      M3EShapeKind.cookie9Sided,
-      0.91,
-      0.53,
-      210,
-      2.1,
-      0.73,
-      0.85,
-    ),
-    (
-      M3EShapeKind.cookie6Sided,
-      M3EShapeKind.cookie9Sided,
-      0.17,
-      0.87,
-      190,
-      4.2,
-      1.31,
-      1.15,
-    ),
-  ];
+  static const _shapes =
+      <
+        (
+          M3EShapeKind,
+          M3EShapeKind,
+          double,
+          double,
+          double,
+          double,
+          double,
+          double,
+        )
+      >[
+        (
+          M3EShapeKind.softBurst,
+          M3EShapeKind.flower,
+          0.10,
+          0.16,
+          260,
+          0.0,
+          1.0,
+          1.0,
+        ),
+        (
+          M3EShapeKind.clover4Leaf,
+          M3EShapeKind.cookie9Sided,
+          0.91,
+          0.53,
+          210,
+          2.1,
+          0.73,
+          0.85,
+        ),
+        (
+          M3EShapeKind.cookie6Sided,
+          M3EShapeKind.cookie9Sided,
+          0.17,
+          0.87,
+          190,
+          4.2,
+          1.31,
+          1.15,
+        ),
+      ];
 
   late final AmbientClock _clock = AmbientClock(
     this,
@@ -172,9 +175,7 @@ class _BackdropPainter extends CustomPainter {
       // Cosine easing runs 0 → 1 → 0 seamlessly; no spring overshoot, so the
       // silhouette never extrapolates past either shape.
       final morphT = morphPeriod > 0
-          ? 0.5 -
-              0.5 *
-                  math.cos(2 * math.pi * seconds / morphPeriod + phase)
+          ? 0.5 - 0.5 * math.cos(2 * math.pi * seconds / morphPeriod + phase)
           : 0.0;
       final path = morphs[i].toPath(progress: morphT.clamp(0.0, 1.0));
       final bounds = path.getBounds();

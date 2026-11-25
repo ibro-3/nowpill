@@ -8,11 +8,7 @@ import 'package:flutter/widgets.dart';
 /// surrounding padding and forwards them to the same callback. Because the
 /// layers are stacked, a tap is claimed by exactly one of them.
 class ChipHitArea extends StatelessWidget {
-  const ChipHitArea({
-    required this.onTap,
-    required this.child,
-    super.key,
-  });
+  const ChipHitArea({required this.onTap, required this.child, super.key});
 
   final VoidCallback onTap;
   final Widget child;
