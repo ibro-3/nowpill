@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/widgets/connected_choice_group.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../data/repositories/task_repository.dart';
@@ -323,15 +324,16 @@ class _TaskEditorFormState extends ConsumerState<_TaskEditorForm> {
           const SizedBox(height: 20),
           _SectionLabel(l10n.priority, theme),
           const SizedBox(height: 8),
-          M3ESegmentedButton<TaskPriority>(
-            selected: {_priority},
-            onSelectionChanged: (s) => setState(() => _priority = s.first),
-            segments: [
-              M3ESegment(value: TaskPriority.none, label: l10n.priorityNone),
-              M3ESegment(value: TaskPriority.low, label: l10n.priorityLow),
-              M3ESegment(value: TaskPriority.medium, label: l10n.priorityMed),
-              M3ESegment(value: TaskPriority.high, label: l10n.priorityHigh),
+          ConnectedChoiceGroup<TaskPriority>(
+            values: TaskPriority.values,
+            labels: [
+              l10n.priorityNone,
+              l10n.priorityLow,
+              l10n.priorityMed,
+              l10n.priorityHigh,
             ],
+            selected: _priority,
+            onChanged: (value) => setState(() => _priority = value),
           ),
           const SizedBox(height: 20),
           _SectionLabel(l10n.repeat, theme),

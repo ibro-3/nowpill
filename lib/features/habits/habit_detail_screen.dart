@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/widgets/connected_choice_group.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
@@ -277,7 +278,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     child: Text(
                       l10n.daysClean(streak.currentStreak),
                       style: theme.typography.emphasized.headlineSmall.copyWith(
-                        color: color,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -294,7 +295,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     child: Icon(
                       habitIconForKey(habit.iconKey),
                       size: 28,
-                      color: color,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -380,19 +381,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     setState(() => _insightRange = value),
               ),
               const SizedBox(height: 20),
-              M3ESegmentedButton<_HeatmapRange>(
-                selected: {_range},
-                onSelectionChanged: (s) => setState(() => _range = s.first),
-                segments: [
-                  M3ESegment(
-                    value: _HeatmapRange.month,
-                    label: l10n.heatmapMonth,
-                  ),
-                  M3ESegment(
-                    value: _HeatmapRange.year,
-                    label: l10n.heatmapYear,
-                  ),
-                ],
+              ConnectedChoiceGroup<_HeatmapRange>(
+                values: _HeatmapRange.values,
+                labels: [l10n.heatmapMonth, l10n.heatmapYear],
+                selected: _range,
+                onChanged: (value) => setState(() => _range = value),
               ),
               const SizedBox(height: 12),
               if (_range == _HeatmapRange.month) ...[

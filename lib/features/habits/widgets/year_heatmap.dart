@@ -203,7 +203,6 @@ class _MonthLabels extends StatelessWidget {
               child: Text(
                 entry.value,
                 style: theme.typography.baseline.labelSmall.copyWith(
-                  fontSize: 9,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),

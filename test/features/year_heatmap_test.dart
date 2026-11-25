@@ -67,13 +67,13 @@ void main() {
     expect(find.byType(YearHeatmap), findsNothing);
     expect(find.text('Last 12 months'), findsNothing);
 
-    await tester.tap(find.text('Year'));
+    await tester.tap(find.text('Year').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(YearHeatmap), findsOneWidget);
     expect(find.text('Last 12 months'), findsOneWidget);
 
-    await tester.tap(find.text('Month'));
+    await tester.tap(find.text('Month').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(YearHeatmap), findsNothing);
@@ -82,7 +82,7 @@ void main() {
 
   testWidgets('year grid backfills a recent day on tap', (tester) async {
     await pumpScreen(tester);
-    await tester.tap(find.text('Year'));
+    await tester.tap(find.text('Year').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -101,7 +101,7 @@ void main() {
 
   testWidgets('old days are not backfillable (>30 days)', (tester) async {
     await pumpScreen(tester);
-    await tester.tap(find.text('Year'));
+    await tester.tap(find.text('Year').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

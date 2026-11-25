@@ -52,4 +52,21 @@ abstract final class AppSurfaces {
   /// card's own container already provides the boundary.
   static Color accentBorder(Color accent, {double alpha = 0.35}) =>
       accent.withValues(alpha: alpha);
+
+  /// Foreground for an arbitrary user-chosen accent used as a *fill*.
+  ///
+  /// M3 publishes no `on *` role for per-entity colors, so pair the accent with
+  /// the dark role (onSurface) or the light role (surface) according to which
+  /// side of the luminance divide it sits on. This keeps icons on accent fills
+  /// readable in both themes without inventing a brand-new color role.
+  ///
+  /// My design decision (not in M3): the 0.18 luminance threshold, the point at
+  /// which black and white give roughly equal contrast against a color.
+  static Color onAccent(M3EColorScheme scheme, Color accent) {
+    final wantsDarkForeground = accent.computeLuminance() > 0.18;
+    final onSurfaceIsDark = scheme.brightness == Brightness.light;
+    return wantsDarkForeground == onSurfaceIsDark
+        ? scheme.onSurface
+        : scheme.surface;
+  }
 }

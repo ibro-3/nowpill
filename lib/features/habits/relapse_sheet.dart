@@ -16,7 +16,10 @@ Future<String?> showRelapseDialog(BuildContext context) async {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.relapseBody, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            l10n.relapseBody,
+            style: M3ETheme.of(context).typography.baseline.bodyMedium,
+          ),
           const SizedBox(height: 12),
           M3ETextField(
             controller: controller,

@@ -64,7 +64,7 @@ void main() {
 
     expect(find.text('Habit type'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1200));
-    await tester.tap(find.text('Quit a habit'));
+    await tester.tap(find.text('Quit a habit').first);
     await tester.pump();
     expect(find.text('Quit date'), findsOneWidget);
     expect(find.text('Daily goal'), findsNothing);

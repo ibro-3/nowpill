@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.9.5 — 2026-11-25
+
+Material 3 Expressive conformance pass. No data, schema, or export changes — format stays v7.
+
+### Fixed
+- **Foreground roles** — per-entity accent colors are now fills only; text and
+  icons on tinted surfaces use `on surface` / `on surface variant`. Where the
+  accent is the fill (heatmap cells), `AppSurfaces.onAccent` pairs it with a
+  luminance-selected role, verified at 4.5:1 in both themes.
+- **Touch targets** — measurable-habit steppers now provide 48×48dp targets.
+- **Shapes** — banners snap to M3's 28dp step; nested ripple corners use the
+  optical-roundness helper instead of reusing the parent's 12dp radius.
+- **Components** — ten deprecated segmented buttons replaced with connected
+  button groups; the navigation rail stays collapsed at 600–839dp and expands
+  at ≥840dp.
+- **Typography** — removed the 9sp heatmap size override and the one non-M3E
+  dialog text style.
+
+### Under the hood
+- New shared `ConnectedChoiceGroup` wrapper in `core/widgets` and the
+  `AppSurfaces.onAccent` helper in `core/theme`.
+- Added contrast regression tests and a 48dp stepper target widget test.
+- Full audit record, including deliberately retained design decisions, in
+  `doc/motion_audit.md`.
+
 ## v0.9.4 — 2026-11-24
 
 Expressive design & motion pass. No data, schema, or export changes — format stays v7.

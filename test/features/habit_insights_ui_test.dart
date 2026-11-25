@@ -90,7 +90,7 @@ void main() {
     await pumpScreen(tester, id);
     expect(find.text('2 of 30 days'), findsOneWidget);
 
-    await tester.tap(find.text('90 days'));
+    await tester.tap(find.text('90 days').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('5 of 60 days'), findsOneWidget);

@@ -204,7 +204,9 @@ void main() {
     await pumpScreen(tester);
     expect(find.text('Last 30 days'), findsOneWidget);
 
-    await tester.tap(find.text('90 days'));
+    // Connected button groups build an offstage measurement copy of each
+    // label; the first copy is the visible, tappable one.
+    await tester.tap(find.text('90 days').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Last 90 days'), findsOneWidget);

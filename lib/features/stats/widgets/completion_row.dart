@@ -1,6 +1,8 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/theme/app_surfaces.dart';
+
 /// One ranked completion row: icon, label, detail, percentage, and bar.
 class CompletionRow extends StatelessWidget {
   const CompletionRow({
@@ -33,7 +35,11 @@ class CompletionRow extends StatelessWidget {
           width: 36,
           height: 36,
           color: accent.withValues(alpha: 0.18),
-          child: Icon(icon ?? M3EIcons.groups, size: 18, color: accent),
+          child: Icon(
+            icon ?? M3EIcons.groups,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -61,7 +67,9 @@ class CompletionRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$percent%',
-          style: theme.typography.emphasized.titleSmall.copyWith(color: accent),
+          style: theme.typography.emphasized.titleSmall.copyWith(
+            color: scheme.onSurface,
+          ),
         ),
       ],
     );
@@ -77,7 +85,11 @@ class CompletionRow extends StatelessWidget {
             if (onTap != null)
               InkWell(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(12),
+                // Optical roundness: the child of a 12dp card must not reuse
+                // the parent's radius (inner = outer - padding).
+                borderRadius: BorderRadius.circular(
+                  AppShape.inner(AppShape.card, 4),
+                ),
                 child: content,
               )
             else

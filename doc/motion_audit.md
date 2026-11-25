@@ -186,9 +186,56 @@ M3-spec guardrails checked during this pass:
 - Card corner radius stays at M3's 12dp step (large corners clip text-heavy
   containers); filled cards keep `surface container highest`.
 - Accent washes are low-alpha *fills* over that surface, with `on surface` /
-  `on surface variant` text — never accent-colored body text.
+  `on surface variant` text — never accent-colored body text. Per-entity colors
+  used as full fills pair with a luminance-selected role via
+  `AppSurfaces.onAccent` (see the full design audit below).
 - App bar containers stay square; only the flexible variants are used.
 - FABs use medium size on compact/medium windows and a medium extended FAB on
   expanded windows (≥840dp), matching M3 breakpoint guidance.
 
 No new dependencies; the M3E pin remains 1.2.3.
+
+## Full M3 Expressive design audit (follow-up pass)
+
+A source-checked sweep against the M3E references (tokens, color, typography,
+motion, shape, foundations, layout, and per-component guidance). Each change
+below is stated as **From M3** vs. **My design decision (not in M3)**.
+
+### Fixed
+
+| Finding | Resolution |
+| --- | --- |
+| Accent colors used as text/icons on tinted surfaces | Foregrounds now use `on surface` / `on surface variant`. Where a per-entity color is the *fill* (heatmap "done" cells), `AppSurfaces.onAccent` pairs it with `on surface` or `surface` by luminance. **From M3:** container roles are fills only; 4.5:1 small / 3:1 large text and graphics. **My design decision:** the 0.18 luminance threshold. Measured contrast of the raw brand palette is 1.2–3.5:1 on light surfaces, so the old foregrounds could not pass. |
+| Steppers below 48×48dp | `SizedBox(48 × 48)` + `Center` around both amount icons; widget test added. **From M3:** 48×48dp minimum touch target. |
+| 24dp banner corners | Snapped to `AppShape.hero` (28dp). **From M3:** the 10-step scale has no 24dp step. **My design decision:** assigning `hero` to banners. |
+| Nested 12dp InkWell inside a 12dp card | Uses `AppShape.inner(AppShape.card, 4)` = 8dp. **From M3:** `inner = outer − padding`. |
+| 10 deprecated segmented buttons | Replaced by `ConnectedChoiceGroup`, a thin wrapper over `M3EButtonGroup(type: connected, selectionRequired: true)`. **From M3:** segmented buttons are no longer recommended; connected button groups replace them. **My design decision:** tonal style. |
+| Expanded rail at 600dp | Rail is `collapsed` for 600–839dp and `expanded` at ≥840dp. **From M3:** medium windows use the 96dp collapsed rail; 220–360dp expanded rails belong to expanded windows. |
+| `fontSize: 9` override / non-M3E dialog text | Type size left at `labelSmall`; relapse dialog uses `M3ETheme.typography.baseline.bodyMedium`. **From M3:** avoid changing type size when customizing. |
+
+### Test note
+
+`M3EButtonGroup` always builds an offstage measurement copy of each labeled
+action. Widget tests therefore see two `Text` nodes per label and target the
+visible copy with `.first`. This is a package behavior, not an app bug.
+
+### Verification
+
+`flutter analyze` clean; `flutter test` passes (525 tests), including the new
+`test/core/app_surfaces_test.dart` contrast assertions and the 48dp stepper
+target check in `test/features/today_measurable_test.dart`.
+
+### Reviewed and intentionally left as design decisions
+
+- Hand-built tag chips (`task_card.dart`) and count badges (`today_screen.dart`)
+  use custom geometry rather than M3 chip/badge tokens. They are informational,
+  not primary actions; remapping them would change visual identity without a
+  usability gain.
+- Low-alpha accent card borders (`AppSurfaces.accentBorder`) and accent progress
+  fills remain accents-as-*fills*. The card fill already provides the boundary,
+  so the border is decorative rather than a target outline.
+- Per-entity colors in confetti, quick-add tags, and progress bars.
+
+Still explicit design decisions (M3 publishes no values): the celebration
+spring, 18dp/8dp entrance rises, 60ms stagger, 16dp CTA gap, per-entity color
+palettes, and the reduce-motion scheme swap.

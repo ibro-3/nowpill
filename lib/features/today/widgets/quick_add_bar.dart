@@ -232,12 +232,12 @@ class _PreviewChips extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 13, color: color ?? theme.colorScheme.primary),
+              Icon(icon, size: 13, color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: theme.typography.baseline.labelSmall.copyWith(
-                  color: color ?? theme.colorScheme.primary,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

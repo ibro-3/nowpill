@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/motion/shape_morph.dart';
 import '../../core/motion/spring_press.dart';
+import '../../core/widgets/connected_choice_group.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/providers.dart';
 import '../../domain/date_utils.dart';
@@ -267,13 +268,11 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
           const SizedBox(height: 20),
           _SectionLabel(l10n.habitKind, theme),
           const SizedBox(height: 8),
-          M3ESegmentedButton<HabitKind>(
-            selected: {_kind},
-            onSelectionChanged: (s) => setState(() => _kind = s.first),
-            segments: [
-              M3ESegment(value: HabitKind.build, label: l10n.kindBuild),
-              M3ESegment(value: HabitKind.quit, label: l10n.kindQuit),
-            ],
+          ConnectedChoiceGroup<HabitKind>(
+            values: HabitKind.values,
+            labels: [l10n.kindBuild, l10n.kindQuit],
+            selected: _kind,
+            onChanged: (value) => setState(() => _kind = value),
           ),
           const SizedBox(height: 8),
           Text(
@@ -391,24 +390,15 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             const SizedBox(height: 20),
             _SectionLabel(l10n.schedule, theme),
             const SizedBox(height: 8),
-            M3ESegmentedButton<HabitScheduleType>(
-              selected: {_scheduleType},
-              onSelectionChanged: (s) =>
-                  setState(() => _scheduleType = s.first),
-              segments: [
-                M3ESegment(
-                  value: HabitScheduleType.daily,
-                  label: l10n.scheduleDaily,
-                ),
-                M3ESegment(
-                  value: HabitScheduleType.weekdays,
-                  label: l10n.scheduleWeekdays,
-                ),
-                M3ESegment(
-                  value: HabitScheduleType.weeklyTarget,
-                  label: l10n.scheduleWeekly,
-                ),
+            ConnectedChoiceGroup<HabitScheduleType>(
+              values: HabitScheduleType.values,
+              labels: [
+                l10n.scheduleDaily,
+                l10n.scheduleWeekdays,
+                l10n.scheduleWeekly,
               ],
+              selected: _scheduleType,
+              onChanged: (value) => setState(() => _scheduleType = value),
             ),
             if (_scheduleType == HabitScheduleType.weekdays) ...[
               const SizedBox(height: 12),
@@ -478,13 +468,11 @@ class _HabitEditorFormState extends ConsumerState<_HabitEditorForm> {
             const SizedBox(height: 20),
             _SectionLabel(l10n.freezeTokens, theme),
             const SizedBox(height: 8),
-            M3ESegmentedButton<FreezeMode>(
-              selected: {_freezeMode},
-              onSelectionChanged: (s) => setState(() => _freezeMode = s.first),
-              segments: [
-                M3ESegment(value: FreezeMode.auto, label: l10n.freezeAuto),
-                M3ESegment(value: FreezeMode.manual, label: l10n.freezeManual),
-              ],
+            ConnectedChoiceGroup<FreezeMode>(
+              values: FreezeMode.values,
+              labels: [l10n.freezeAuto, l10n.freezeManual],
+              selected: _freezeMode,
+              onChanged: (value) => setState(() => _freezeMode = value),
             ),
             const SizedBox(height: 8),
             Text(

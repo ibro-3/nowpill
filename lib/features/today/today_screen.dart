@@ -571,7 +571,7 @@ class _VacationBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: theme.colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppShape.hero),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -615,7 +615,7 @@ class _AllDoneBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppShape.hero),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -681,7 +681,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title,
             style: theme.typography.emphasized.titleSmall.copyWith(
-              color: color,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(width: 8),
@@ -694,7 +694,7 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               '$count',
               style: theme.typography.emphasized.labelSmall.copyWith(
-                color: color,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -754,7 +754,7 @@ class _TodayHabitTile extends StatelessWidget {
             childBuilder: (t) => Icon(
               habitIconForKey(habit.iconKey),
               size: 19 * (0.96 + 0.04 * t),
-              color: color,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 12),
@@ -884,14 +884,18 @@ class _AmountStepper extends StatelessWidget {
             key: ValueKey('amount-minus-${item.habit.id}'),
             onTap: done > 0 ? onRemove : null,
             behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                M3EIcons.remove_circle_outline,
-                size: 22,
-                color: done > 0
-                    ? theme.colorScheme.onSurfaceVariant
-                    : theme.colorScheme.outlineVariant,
+            // 48dp target: the 22dp icon is centered inside a full touch area.
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: Icon(
+                  M3EIcons.remove_circle_outline,
+                  size: 22,
+                  color: done > 0
+                      ? theme.colorScheme.onSurfaceVariant
+                      : theme.colorScheme.outlineVariant,
+                ),
               ),
             ),
           ),
@@ -914,9 +918,17 @@ class _AmountStepper extends StatelessWidget {
             key: ValueKey('amount-plus-${item.habit.id}'),
             onTap: onAdd,
             behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(M3EIcons.add_circle, size: 24, color: color),
+            // 48dp target for the constructive action as well.
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: Icon(
+                  M3EIcons.add_circle,
+                  size: 24,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
         ),

@@ -58,7 +58,7 @@ class HabitCard extends ConsumerWidget {
             childBuilder: (t) => Icon(
               habitIconForKey(habit.iconKey),
               size: 22 * (0.96 + 0.04 * t),
-              color: color,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 12),

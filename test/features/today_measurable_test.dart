@@ -125,4 +125,21 @@ void main() {
 
     await cleanup(tester);
   });
+
+  testWidgets('stepper controls meet the 48x48dp touch target', (tester) async {
+    final id = await habits.create(
+      name: 'Water',
+      color: 0xFF00B4D8,
+      targetAmount: 8,
+    );
+    await pumpScreen(tester);
+
+    for (final key in ['amount-minus-$id', 'amount-plus-$id']) {
+      final box = tester.renderObject<RenderBox>(find.byKey(ValueKey(key)));
+      expect(box.size.width, greaterThanOrEqualTo(48), reason: key);
+      expect(box.size.height, greaterThanOrEqualTo(48), reason: key);
+    }
+
+    await cleanup(tester);
+  });
 }

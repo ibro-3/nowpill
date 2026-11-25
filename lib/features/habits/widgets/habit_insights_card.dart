@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/widgets/connected_choice_group.dart';
 import '../../../domain/insights_engine.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -47,19 +48,11 @@ class HabitInsightsCard extends StatelessWidget {
             style: theme.typography.emphasized.titleSmall,
           ),
           const SizedBox(height: 8),
-          M3ESegmentedButton<InsightRange>(
-            selected: {range},
-            onSelectionChanged: (selection) => onRangeChanged(selection.first),
-            segments: [
-              M3ESegment(
-                value: InsightRange.last30Days,
-                label: l10n.statsRange30,
-              ),
-              M3ESegment(
-                value: InsightRange.last90Days,
-                label: l10n.statsRange90,
-              ),
-            ],
+          ConnectedChoiceGroup<InsightRange>(
+            values: InsightRange.values,
+            labels: [l10n.statsRange30, l10n.statsRange90],
+            selected: range,
+            onChanged: onRangeChanged,
           ),
           const SizedBox(height: 16),
           if (!insight.hasHistory)

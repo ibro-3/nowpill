@@ -17,6 +17,11 @@ import '../../l10n/generated/app_localizations.dart';
 /// a navigation rail (M3 medium window class).
 const double _kRailBreakpoint = 600;
 
+/// Width at or above which the rail may expand (M3 expanded window class).
+/// Medium windows keep the 96dp collapsed rail; the 220–360dp expanded rail
+/// belongs to expanded windows where there is room to spare.
+const double _kExpandedBreakpoint = 840;
+
 /// The four primary destinations, shared by the bar and the rail. Labels are
 /// resolved from the active locale at build time.
 List<_Destination> _destinations(AppLocalizations l10n) => [
@@ -159,7 +164,9 @@ class _AppShellState extends ConsumerState<AppShell>
         body: Row(
           children: [
             M3ENavigationRail(
-              type: M3ENavigationRailType.expanded,
+              type: width >= _kExpandedBreakpoint
+                  ? M3ENavigationRailType.expanded
+                  : M3ENavigationRailType.collapsed,
               selectedIndex: index,
               onDestinationSelected: _onDestinationSelected,
               leading: const _RailBrand(),
@@ -186,23 +193,22 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return Scaffold(
       body: branch,
-      // M3E's bar has a fixed intrinsic height; large system text needs room
-      // for the labels to wrap without clipping.
-      bottomNavigationBar: SizedBox(
-        height: 80 * MediaQuery.textScalerOf(context).scale(1.0),
-        child: M3ENavigationBar(
-          selectedIndex: index,
-          onDestinationSelected: _onDestinationSelected,
-          destinations: [
-            for (var i = 0; i < destinations.length; i++)
-              M3ENavigationBarDestination(
-                icon: Icon(destinations[i].icon),
-                selectedIcon: Icon(destinations[i].selectedIcon),
-                label: destinations[i].label,
-                badgeCount: badgeFor(i),
-              ),
-          ],
-        ),
+      // The bar sizes itself from its content (which scales with the system
+      // text size) and adds the bottom safe-area inset internally. Wrapping it
+      // in a fixed height clipped the labels and hid them behind the gesture
+      // pill on devices with a bottom inset.
+      bottomNavigationBar: M3ENavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: _onDestinationSelected,
+        destinations: [
+          for (var i = 0; i < destinations.length; i++)
+            M3ENavigationBarDestination(
+              icon: Icon(destinations[i].icon),
+              selectedIcon: Icon(destinations[i].selectedIcon),
+              label: destinations[i].label,
+              badgeCount: badgeFor(i),
+            ),
+        ],
       ),
     );
   }

@@ -242,7 +242,9 @@ class _TagChip extends StatelessWidget {
       ),
       child: Text(
         tag.name,
-        style: theme.typography.baseline.labelSmall.copyWith(color: color),
+        style: theme.typography.baseline.labelSmall.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

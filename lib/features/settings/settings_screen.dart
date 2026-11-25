@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/router/app_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/settings/app_settings_provider.dart';
+import '../../core/widgets/connected_choice_group.dart';
 import '../../data/backup/auto_backup_service.dart';
 import '../../data/db/app_database.dart';
 import '../../data/export/backup_service.dart';
@@ -335,30 +336,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: theme.typography.baseline.titleMedium,
                 ),
                 const SizedBox(height: 12),
-                M3ESegmentedButton<AppThemeMode>(
-                  selected: {settings.themeMode},
-                  onSelectionChanged: (selection) {
-                    if (selection.isNotEmpty) {
-                      notifier.setThemeMode(selection.first);
-                    }
-                  },
-                  segments: [
-                    M3ESegment(
-                      value: AppThemeMode.system,
-                      label: l10n.themeSystem,
-                      icon: const Icon(M3EIcons.brightness_auto),
-                    ),
-                    M3ESegment(
-                      value: AppThemeMode.light,
-                      label: l10n.themeLight,
-                      icon: const Icon(M3EIcons.light_mode),
-                    ),
-                    M3ESegment(
-                      value: AppThemeMode.dark,
-                      label: l10n.themeDark,
-                      icon: const Icon(M3EIcons.dark_mode),
-                    ),
+                ConnectedChoiceGroup<AppThemeMode>(
+                  values: AppThemeMode.values,
+                  labels: [l10n.themeSystem, l10n.themeLight, l10n.themeDark],
+                  icons: const [
+                    M3EIcons.brightness_auto,
+                    M3EIcons.light_mode,
+                    M3EIcons.dark_mode,
                   ],
+                  selected: settings.themeMode,
+                  onChanged: notifier.setThemeMode,
                 ),
                 const SizedBox(height: 20),
                 _SwitchRow(
@@ -374,19 +361,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: theme.typography.baseline.titleMedium,
                 ),
                 const SizedBox(height: 12),
-                M3ESegmentedButton<String>(
-                  selected: {settings.localeCode ?? 'system'},
-                  onSelectionChanged: (selection) {
-                    if (selection.isNotEmpty) {
-                      final code = selection.first;
-                      notifier.setLocaleCode(code == 'system' ? null : code);
-                    }
-                  },
-                  segments: [
-                    M3ESegment(value: 'system', label: l10n.languageSystem),
-                    M3ESegment(value: 'en', label: l10n.languageEnglish),
-                    M3ESegment(value: 'es', label: l10n.languageSpanish),
+                ConnectedChoiceGroup<String>(
+                  values: const ['system', 'en', 'es'],
+                  labels: [
+                    l10n.languageSystem,
+                    l10n.languageEnglish,
+                    l10n.languageSpanish,
                   ],
+                  selected: settings.localeCode ?? 'system',
+                  onChanged: (code) =>
+                      notifier.setLocaleCode(code == 'system' ? null : code),
                 ),
               ],
             ),
@@ -411,25 +395,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                M3ESegmentedButton<AppMotionMode>(
-                  selected: {settings.motionMode},
-                  onSelectionChanged: (selection) {
-                    if (selection.isNotEmpty) {
-                      notifier.setMotionMode(selection.first);
-                    }
-                  },
-                  segments: [
-                    M3ESegment(
-                      value: AppMotionMode.expressive,
-                      label: l10n.motionExpressive,
-                      icon: const Icon(M3EIcons.animation),
-                    ),
-                    M3ESegment(
-                      value: AppMotionMode.standard,
-                      label: l10n.motionStandard,
-                      icon: const Icon(M3EIcons.motion_photos_auto),
-                    ),
+                ConnectedChoiceGroup<AppMotionMode>(
+                  values: AppMotionMode.values,
+                  labels: [l10n.motionExpressive, l10n.motionStandard],
+                  icons: const [
+                    M3EIcons.animation,
+                    M3EIcons.motion_photos_auto,
                   ],
+                  selected: settings.motionMode,
+                  onChanged: notifier.setMotionMode,
                 ),
               ],
             ),

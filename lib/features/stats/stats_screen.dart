@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/motion/spring_entrance.dart';
 import '../../core/motion/spring_switcher.dart';
+import '../../core/widgets/connected_choice_group.dart';
 import '../../domain/insights_engine.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../shell/feature_placeholders.dart';
@@ -40,21 +41,12 @@ class StatsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            M3ESegmentedButton<InsightRange>(
+            ConnectedChoiceGroup<InsightRange>(
               key: const ValueKey('stats-range'),
-              selected: {vm.range},
-              onSelectionChanged: (selection) =>
-                  ref.read(statsRangeProvider.notifier).set(selection.first),
-              segments: [
-                M3ESegment(
-                  value: InsightRange.last30Days,
-                  label: l10n.statsRange30,
-                ),
-                M3ESegment(
-                  value: InsightRange.last90Days,
-                  label: l10n.statsRange90,
-                ),
-              ],
+              values: InsightRange.values,
+              labels: [l10n.statsRange30, l10n.statsRange90],
+              selected: vm.range,
+              onChanged: ref.read(statsRangeProvider.notifier).set,
             ),
             const SizedBox(height: 16),
             if (!vm.hasData)

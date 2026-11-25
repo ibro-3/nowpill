@@ -4,6 +4,7 @@ import 'package:motor/motor.dart';
 
 import '../../../core/motion/app_motion.dart';
 import '../../../core/motion/motion_scheme_provider.dart';
+import '../../../core/theme/app_surfaces.dart';
 import '../../../domain/date_utils.dart';
 import '../../../domain/enums.dart';
 import '../../../domain/habit_schedule.dart';
@@ -269,7 +270,9 @@ class _HeatmapCellState extends State<_HeatmapCell>
           child: Icon(
             M3EIcons.check,
             size: 14,
-            color: theme.colorScheme.onPrimary,
+            // The cell fill is a per-entity color, not `primary`, so `onPrimary`
+            // would not guarantee contrast against it.
+            color: AppSurfaces.onAccent(theme.colorScheme, widget.color),
           ),
         );
       case HeatmapDayState.partial:
