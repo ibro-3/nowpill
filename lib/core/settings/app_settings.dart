@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/update_checker.dart';
+
 /// User-selectable theme brightness behavior.
 enum AppThemeMode {
   /// Follow the platform light/dark setting.
@@ -37,6 +39,8 @@ class AppSettings {
     this.syncEnabled = false,
     this.syncFolderHandle,
     this.onboardingComplete = false,
+    this.updateCheckMode = UpdateCheckMode.startup,
+    this.lastUpdateCheckAt,
   });
 
   final AppThemeMode themeMode;
@@ -69,6 +73,12 @@ class AppSettings {
   /// per device — importing a backup never skips it on a fresh install.
   final bool onboardingComplete;
 
+  /// How often the updater contacts GitHub. Manual checks are always allowed.
+  final UpdateCheckMode updateCheckMode;
+
+  /// Last successful/attempted update check (UTC).
+  final DateTime? lastUpdateCheckAt;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     AppMotionMode? motionMode,
@@ -79,6 +89,8 @@ class AppSettings {
     bool? syncEnabled,
     String? syncFolderHandle,
     bool? onboardingComplete,
+    UpdateCheckMode? updateCheckMode,
+    DateTime? lastUpdateCheckAt,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -91,6 +103,8 @@ class AppSettings {
       syncEnabled: syncEnabled ?? this.syncEnabled,
       syncFolderHandle: syncFolderHandle ?? this.syncFolderHandle,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
+      updateCheckMode: updateCheckMode ?? this.updateCheckMode,
+      lastUpdateCheckAt: lastUpdateCheckAt ?? this.lastUpdateCheckAt,
     );
   }
 
@@ -107,6 +121,8 @@ class AppSettings {
       syncEnabled: syncEnabled,
       syncFolderHandle: syncFolderHandle,
       onboardingComplete: onboardingComplete,
+      updateCheckMode: updateCheckMode,
+      lastUpdateCheckAt: lastUpdateCheckAt,
     );
   }
 
@@ -122,6 +138,8 @@ class AppSettings {
       syncEnabled: syncEnabled,
       syncFolderHandle: syncFolderHandle,
       onboardingComplete: onboardingComplete,
+      updateCheckMode: updateCheckMode,
+      lastUpdateCheckAt: lastUpdateCheckAt,
     );
   }
 
@@ -137,6 +155,8 @@ class AppSettings {
       syncEnabled: false,
       syncFolderHandle: null,
       onboardingComplete: onboardingComplete,
+      updateCheckMode: updateCheckMode,
+      lastUpdateCheckAt: lastUpdateCheckAt,
     );
   }
 
@@ -151,7 +171,9 @@ class AppSettings {
         other.localeCode == localeCode &&
         other.syncEnabled == syncEnabled &&
         other.syncFolderHandle == syncFolderHandle &&
-        other.onboardingComplete == onboardingComplete;
+        other.onboardingComplete == onboardingComplete &&
+        other.updateCheckMode == updateCheckMode &&
+        other.lastUpdateCheckAt == lastUpdateCheckAt;
   }
 
   @override
@@ -165,5 +187,7 @@ class AppSettings {
     syncEnabled,
     syncFolderHandle,
     onboardingComplete,
+    updateCheckMode,
+    lastUpdateCheckAt,
   );
 }

@@ -83,4 +83,6 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // SAF tree access for the file-sync folder bridge (Phase 19).
     implementation("androidx.documentfile:documentfile:1.0.1")
+    // FileProvider for verified APK install hand-off (updater).
+    implementation("androidx.core:core-ktx:1.13.1")
 }

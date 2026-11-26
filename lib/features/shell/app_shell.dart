@@ -14,6 +14,7 @@ import '../../core/router/app_router.dart';
 import '../../data/notifications/reminder_coordinator.dart';
 import '../../data/repositories/providers.dart';
 import '../../data/sync/sync_providers.dart';
+import '../../data/updates/update_coordinator.dart';
 import '../../features/today/today_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 
@@ -141,6 +142,8 @@ class _AppShellState extends ConsumerState<AppShell>
     ref.watch(widgetSnapshotControllerProvider);
     // Activate file sync (idle until enabled in Settings).
     ref.watch(syncCoordinatorProvider);
+    // Activate GitHub release checks (startup/manual/periodic per settings).
+    ref.watch(updateCoordinatorProvider);
 
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= _kRailBreakpoint;

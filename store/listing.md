@@ -44,7 +44,8 @@ SEE YOUR PROGRESS
 • Archived habits stay browsable — restore them or delete them for good.
 
 PRIVATE BY DESIGN
-• Everything stays on your device. No account, no cloud, no tracking.
+• Everything stays on your device. No account, no cloud, no tracking. Optional
+  update checks contact GitHub; you can turn them off in Settings.
 • "To me": a private thought stream of short notes to yourself. Links you type
   become tappable, and everything is included in the same backups and optional
   folder sync as the rest of your data.

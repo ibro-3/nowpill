@@ -79,6 +79,9 @@ Current release: **v0.10.0** (see `CHANGELOG.md`).
   (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW
   merge with tombstones — no server, no account; on Chromium web through the
   File System Access API with the folder handle kept in IndexedDB).
+- **Updates** — optional GitHub release checks (off / manual / on launch / daily /
+  weekly). Android downloads a verified APK through the system DownloadManager;
+  Linux saves and verifies the release tarball in Downloads. No background service.
 - **Languages** — English and Spanish, switchable live in Settings.
 - **Design** — Material 3 Expressive (`material_3_expressive` + `motor` +
   `material_new_shapes`), Nunito emphasized type scale, Material You dynamic

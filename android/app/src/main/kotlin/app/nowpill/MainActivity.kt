@@ -1,12 +1,21 @@
 package app.nowpill
 
 import android.app.Activity
+import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.FileOutputStream
+import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
     private val syncChannelName = "app.nowpill/sync"
@@ -124,6 +133,136 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     } catch (e: Exception) {
                         result.error("write_failed", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // GitHub release updater: system DownloadManager + verified install.
+        val updateChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.nowpill/update"
+        )
+        val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        updateChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "abis" -> result.success(Build.SUPPORTED_ABIS.toList())
+                "download" -> {
+                    val args = call.arguments as? Map<*, *>
+                    val url = args?.get("url") as? String
+                    val fileName = args?.get("fileName") as? String
+                    if (url == null || fileName == null) {
+                        result.error("invalid_args", "Expected url and fileName", null)
+                        return@setMethodCallHandler
+                    }
+                    val uri = Uri.parse(url)
+                    val host = uri.host.orEmpty()
+                    if (host != "github.com" && !host.endsWith(".githubusercontent.com")) {
+                        result.error("untrusted_host", "Only GitHub release assets are allowed", null)
+                        return@setMethodCallHandler
+                    }
+                    val request = DownloadManager.Request(uri).apply {
+                        setTitle("NowPill update")
+                        setDescription(fileName)
+                        setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                        setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                        setAllowedOverMetered(true)
+                        setAllowedOverRoaming(true)
+                    }
+                    try {
+                        result.success(downloadManager.enqueue(request).toInt())
+                    } catch (e: Exception) {
+                        result.error("download_failed", e.message, null)
+                    }
+                }
+                "status" -> {
+                    val id = (call.arguments as? Number)?.toLong()
+                    if (id == null) {
+                        result.error("invalid_args", "Expected a download id", null)
+                        return@setMethodCallHandler
+                    }
+                    val cursor = downloadManager.query(DownloadManager.Query().setFilterById(id))
+                    cursor.use { c ->
+                        if (!c.moveToFirst()) {
+                            result.success(mapOf("status" to -1))
+                            return@setMethodCallHandler
+                        }
+                        result.success(
+                            mapOf(
+                                "status" to c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)),
+                                "received" to c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
+                                "total" to c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)),
+                                "uri" to c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
+                            )
+                        )
+                    }
+                }
+                "verifyAndInstall" -> {
+                    val args = call.arguments as? Map<*, *>
+                    val id = (args?.get("id") as? Number)?.toLong()
+                    val expected = args?.get("sha256") as? String
+                    val fileName = args?.get("fileName") as? String
+                    if (id == null || fileName == null) {
+                        result.error("invalid_args", "Expected id and fileName", null)
+                        return@setMethodCallHandler
+                    }
+                    val cursor = downloadManager.query(DownloadManager.Query().setFilterById(id))
+                    val sourceUri = cursor.use { c ->
+                        if (c.moveToFirst()) {
+                            Uri.parse(c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)))
+                        } else null
+                    }
+                    if (sourceUri == null) {
+                        result.error("not_found", "Download not found", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val updateDir = File(cacheDir, "updates").apply { mkdirs() }
+                        val local = File(updateDir, fileName)
+                        contentResolver.openInputStream(sourceUri)?.use { input ->
+                            FileOutputStream(local).use { output -> input.copyTo(output) }
+                        } ?: throw IllegalStateException("Could not read the downloaded file")
+                        if (!expected.isNullOrEmpty()) {
+                            val actual = MessageDigest.getInstance("SHA-256")
+                                .digest(local.readBytes())
+                                .joinToString("") { "%02x".format(it) }
+                            if (!actual.equals(expected, ignoreCase = true)) {
+                                local.delete()
+                                result.error("checksum_mismatch", "Downloaded APK failed verification", null)
+                                return@setMethodCallHandler
+                            }
+                        }
+                        if (!packageManager.canRequestPackageInstalls()) {
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
+                        val apkUri = FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            local
+                        )
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(apkUri, "application/vnd.android.package-archive")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("install_failed", e.message, null)
+                    }
+                }
+                "canInstall" -> result.success(packageManager.canRequestPackageInstalls())
+                "openInstallSettings" -> {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:$packageName")
+                    ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                    try {
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("settings_failed", e.message, null)
                     }
                 }
                 else -> result.notImplemented()

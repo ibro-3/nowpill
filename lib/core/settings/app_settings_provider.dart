@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/update_checker.dart';
 import 'app_settings.dart';
 
 part 'app_settings_provider.g.dart';
@@ -14,6 +15,8 @@ const _kLocaleCode = 'settings.localeCode';
 const _kSyncEnabled = 'settings.syncEnabled';
 const _kSyncFolderHandle = 'settings.syncFolderHandle';
 const _kOnboardingComplete = 'settings.onboardingComplete';
+const _kUpdateCheckMode = 'settings.updateCheckMode';
+const _kLastUpdateCheckAt = 'settings.lastUpdateCheckAt';
 
 /// Loads and persists [AppSettings].
 ///
@@ -38,6 +41,13 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
       syncEnabled: prefs.getBool(_kSyncEnabled) ?? false,
       syncFolderHandle: prefs.getString(_kSyncFolderHandle),
       onboardingComplete: prefs.getBool(_kOnboardingComplete) ?? false,
+      updateCheckMode: _decodeUpdateMode(prefs.getString(_kUpdateCheckMode)),
+      lastUpdateCheckAt: prefs.getInt(_kLastUpdateCheckAt) == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(
+              prefs.getInt(_kLastUpdateCheckAt)!,
+              isUtc: true,
+            ),
     );
   }
 
@@ -99,6 +109,19 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     (p, s) => p.setBool(_kOnboardingComplete, s.onboardingComplete),
   );
 
+  void setUpdateCheckMode(UpdateCheckMode mode) => _update(
+    (s) => s.copyWith(updateCheckMode: mode),
+    (p, s) => p.setString(_kUpdateCheckMode, s.updateCheckMode.name),
+  );
+
+  void recordUpdateCheck(DateTime at) => _update(
+    (s) => s.copyWith(lastUpdateCheckAt: at.toUtc()),
+    (p, s) => p.setInt(
+      _kLastUpdateCheckAt,
+      s.lastUpdateCheckAt!.millisecondsSinceEpoch,
+    ),
+  );
+
   void _update(
     AppSettings Function(AppSettings) transform,
     Future<bool> Function(SharedPreferences, AppSettings) persist,
@@ -110,6 +133,13 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     if (next == current) return;
     state = AsyncData(next);
     persist(prefs, next);
+  }
+
+  static UpdateCheckMode _decodeUpdateMode(String? name) {
+    return UpdateCheckMode.values.firstWhere(
+      (m) => m.name == name,
+      orElse: () => UpdateCheckMode.startup,
+    );
   }
 
   static AppThemeMode _decodeTheme(String? name) {

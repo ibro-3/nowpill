@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Features
+- **GitHub release updater** — Settings → Updates offers checks on launch,
+  manually, daily or weekly (configurable, off-able). Android downloads the
+  ABI-matched or universal APK with the system DownloadManager, verifies its
+  SHA-256 and offers install; Linux downloads and verifies the tarball into
+  Downloads and reveals the folder. Web/iOS open the releases page.
+- The About screen now shows the real package version instead of a hardcoded one.
+
+### Under the hood
+- Pure release parsing/version comparison in `domain/update_checker.dart`;
+  injectable GitHub service, coordinator, and platform installer abstraction.
+- Android: INTERNET + REQUEST_INSTALL_PACKAGES permissions, FileProvider path,
+  and a verified install MethodChannel. Privacy policy updated to disclose the
+  optional GitHub requests.
+
 ## v0.10.0 — 2026-11-26
 
 A private **Personal chat** thought stream: short notes you send to yourself.

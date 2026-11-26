@@ -27,6 +27,7 @@ import '../../domain/enums.dart';
 import '../../features/habits/habit_providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'routines_card.dart';
+import 'update_card.dart';
 import 'vacation_editor_sheet.dart';
 
 /// App preferences: appearance, motion, reminders, notifications, data
@@ -732,6 +733,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          _SectionHeader(title: l10n.settingsUpdates, theme: theme),
+          const SizedBox(height: 8),
+          const UpdateCard(),
           const SizedBox(height: 32),
         ],
       ),

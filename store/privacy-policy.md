@@ -1,6 +1,6 @@
 # NowPill Privacy Policy
 
-_Last updated: 2026-11-26 (v0.10.0)_
+_Last updated: 2026-11-26_
 
 NowPill is a local-first habit tracker and to-do list. This policy explains what
 data the app handles and where it lives. The short version: **your data stays on
@@ -32,6 +32,12 @@ using one of the features below.
   iCloud Drive, a shared drive, …) moves them between your devices. NowPill has
   no server, no account system, and no knowledge of where the folder is hosted.
   The files contain only your habit/task/note data and a random per-device id.
+- **Update checks (configurable, default on launch)** — NowPill can contact
+  GitHub's public API (`api.github.com`) to check for a newer release and, if
+  you tap Download, fetch the release asset from GitHub. No personal data is
+  uploaded; GitHub necessarily sees your device's IP address. You can turn
+  checks off or limit them to manual checks in Settings → Updates. Downloads are
+  verified against the release's SHA-256 checksum before installation.
 
 ## What NowPill does NOT do
 
@@ -39,7 +45,8 @@ using one of the features below.
 - No analytics, telemetry, or crash reporting sent anywhere
 - No advertising or advertising identifiers
 - No third-party SDKs that collect data
-- No network requests to any NowPill server (there is none)
+- No NowPill server and no analytics/telemetry endpoints. The only outbound
+  requests are the optional GitHub update checks and downloads described above.
 
 ## Permissions
 

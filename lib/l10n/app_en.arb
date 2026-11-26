@@ -871,5 +871,42 @@
   "chatWriteFirst": "Write your first note",
   "chatToday": "Today",
   "chatYesterday": "Yesterday",
-  "searchNotes": "Notes"
+  "searchNotes": "Notes",
+  "settingsUpdates": "Updates",
+  "updateCheckMode": "Check for updates",
+  "updateModeOff": "Off",
+  "updateModeManual": "Manual",
+  "updateModeStartup": "On launch",
+  "updateModeDaily": "Daily",
+  "updateModeWeekly": "Weekly",
+  "updateCheckNow": "Check now",
+  "updateChecking": "Checking GitHub…",
+  "updateLastChecked": "Last checked {date}",
+  "@updateLastChecked": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailable": "Version {version} is available",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateUpToDate": "You're up to date",
+  "updateFailed": "Couldn't check for updates",
+  "updateDownload": "Download",
+  "updateInstall": "Install",
+  "updateDownloading": "Downloading update",
+  "updateDownloaded": "Update downloaded",
+  "updateOpenFolder": "Open folder",
+  "updateOpenReleases": "Open releases page",
+  "updateUnknownSources": "Allow installing apps to update NowPill",
+  "updateOpenSettings": "Open settings",
+  "updateNoAsset": "No download is available for this device",
+  "updateNotes": "Release notes"
 }
