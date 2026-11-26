@@ -12,6 +12,11 @@ GitHub release updater. No data, schema, or export changes — format stays v8.
   Downloads and reveals the folder. Web/iOS open the releases page.
 - The About screen now shows the real package version instead of a hardcoded one.
 
+### Fixed
+- **Android install** — the two `http`/`https` browser-query schemes now live in
+  separate `<intent>` blocks. The previous single block made all three APKs
+  fail with `INSTALL_PARSE_FAILED_MANIFEST_MALFORMED` on fresh installs.
+
 ### Under the hood
 - Pure release parsing/version comparison in `domain/update_checker.dart`;
   injectable GitHub service, coordinator, and platform installer abstraction.
