@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.10.1 — 2026-11-26
+
+GitHub release updater. No data, schema, or export changes — format stays v8.
 
 ### Features
 - **GitHub release updater** — Settings → Updates offers checks on launch,
