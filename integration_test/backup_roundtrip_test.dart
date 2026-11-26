@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nowpill/data/db/app_database.dart';
+import 'package:nowpill/data/repositories/chat_repository.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/data/repositories/tag_repository.dart';
@@ -82,6 +83,7 @@ void main() {
     final tasks = TaskRepository(db);
     final tags = TagRepository(db);
     final lists = TaskListRepository(db);
+    final chat = ChatRepository(db);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -149,6 +151,7 @@ void main() {
     await tasks.addSubtask(taskId, 'Kitchen');
     final tagId = await tags.create(name: 'home', color: 0xFFFFB454);
     await tasks.setTags(taskId, [tagId]);
+    await chat.create('Remember the laundry');
 
     await boot(tester);
 
@@ -165,7 +168,7 @@ void main() {
     expect(exported.existsSync(), isTrue);
     final envelope =
         jsonDecode(await exported.readAsString()) as Map<String, Object?>;
-    expect(envelope['schemaVersion'], 7);
+    expect(envelope['schemaVersion'], 8);
     final data = envelope['data'] as Map<String, Object?>;
     expect(data['habits'], hasLength(2));
     expect(data['checkins'], hasLength(3));
@@ -179,6 +182,7 @@ void main() {
     expect(data['subtasks'], hasLength(1));
     expect(data['tags'], hasLength(1));
     expect(data['taskTags'], hasLength(1));
+    expect(data['chatNotes'], hasLength(1));
     final habitRow = (data['habits'] as List)
         .cast<Map<String, Object?>>()
         .firstWhere((h) => h['name'] == 'Meditate');
@@ -193,6 +197,8 @@ void main() {
     await habits.delete(habitId); // Cascades check-ins + freezes.
     await habits.delete(quitId); // Cascades the relapse.
     await habits.deleteRoutine(routineId); // Ungroups, never deletes.
+    await chat.delete((await chat.getAll()).single.id);
+    expect(await chat.getAll(), isEmpty);
     expect(await tasks.getAll(), hasLength(2)); // original + scratch
     expect(await habits.getAll(), isEmpty);
 
@@ -244,6 +250,7 @@ void main() {
     expect(await tasks.getSubtasks(taskId), hasLength(1));
     expect(await tags.getAll(), hasLength(1));
     expect(await db.select(db.taskTags).get(), hasLength(1));
+    expect((await chat.getAll()).single.body, 'Remember the laundry');
   });
 
   testWidgets('invalid backup is rejected without touching the data', (

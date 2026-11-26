@@ -35,6 +35,7 @@ const List<String> kSyncParentTables = [
   'tags',
   'routines',
   'vacations',
+  'chatNotes',
 ];
 const List<String> kSyncChildTables = [
   'subtasks',
@@ -57,8 +58,8 @@ const Map<String, Map<String, String>> kSyncParentRefs = {
   'vacationScopes': {'periodUuid': 'vacations'},
 };
 
-/// Full current-schema (v7) key set per row table. Older envelopes (e.g. a
-/// pre-v7 device's file) omit nullable columns added later; rows are
+/// Full current-schema (v8) key set per row table. Older envelopes (e.g. a
+/// pre-v8 device's file) omit columns added later; rows are
 /// normalized to these keys (missing → null) before merging so a missing key
 /// and an explicit null compare equal. Without this, a v4 device would see
 /// its own row as "changed" against an older copy every cycle and rewrite it
@@ -152,6 +153,7 @@ const Map<String, List<String>> kSyncRowKeys = {
     'targetKind',
     'targetUuid',
   ],
+  'chatNotes': ['id', 'uuid', 'updatedAt', 'createdAt', 'body'],
   'tombstones': ['uuid', 'sourceTable', 'deletedAt', 'deviceId'],
 };
 
@@ -487,7 +489,7 @@ SyncMergeResult mergeEnvelopes({
 
   return SyncMergeResult(
     envelope: {
-      'schemaVersion': 7,
+      'schemaVersion': 8,
       'exportedAt': now.toUtc().millisecondsSinceEpoch,
       'deviceId': deviceId,
       'data': data,

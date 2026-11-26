@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/chat/chat_screen.dart';
 import '../../features/habits/archived_habits_screen.dart';
 import '../../features/habits/habits_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -10,7 +11,7 @@ import '../../features/stats/stats_screen.dart';
 import '../../features/tasks/tasks_screen.dart';
 import '../../features/today/today_screen.dart';
 
-/// Route paths for the four primary destinations.
+/// Route paths for the five primary destinations.
 abstract final class AppRoutes {
   const AppRoutes._();
 
@@ -18,6 +19,7 @@ abstract final class AppRoutes {
   static const String tasks = '/tasks';
   static const String habits = '/habits';
   static const String stats = '/stats';
+  static const String chat = '/chat';
   static const String settings = '/settings';
   static const String search = '/search';
   static const String onboarding = '/onboarding';
@@ -69,6 +71,15 @@ GoRouter buildRouter({GoRouterRedirect? redirect}) {
                 path: AppRoutes.stats,
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: StatsScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.chat,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ChatScreen()),
               ),
             ],
           ),

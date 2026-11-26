@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nowpill/data/db/app_database.dart';
+import 'package:nowpill/data/repositories/chat_repository.dart';
 import 'package:nowpill/data/repositories/habit_repository.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/data/repositories/tag_repository.dart';
@@ -12,7 +13,7 @@ import 'package:nowpill/features/search/search_screen.dart';
 import '../data/test_database.dart';
 import '../helpers/test_localizations.dart';
 
-/// Search screen: live grouped results over tasks/habits/tags, accent-
+/// Search screen: live grouped results over tasks/habits/tags/notes, accent-
 /// insensitive matching, subtask matches, and the empty/no-result states.
 void main() {
   late AppDatabase db;
@@ -76,6 +77,18 @@ void main() {
     expect(find.text('Buy groceries'), findsOneWidget);
     expect(find.text('Grocery run'), findsOneWidget);
     expect(find.text('#groceries'), findsOneWidget);
+    await cleanup(tester);
+  });
+
+  testWidgets('finds personal chat notes grouped with other results', (
+    tester,
+  ) async {
+    await ChatRepository(db).create('Remember the groceries');
+    await pumpScreen(tester);
+    await type(tester, 'grocer');
+
+    expect(find.text('Notes'), findsOneWidget);
+    expect(find.text('Remember the groceries'), findsOneWidget);
     await cleanup(tester);
   });
 

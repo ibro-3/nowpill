@@ -516,7 +516,7 @@ void main() {
         now: now,
       );
       expect(rowsOf(result, 'habits').single['kind'], 1);
-      expect(result.envelope['schemaVersion'], 7);
+      expect(result.envelope['schemaVersion'], 8);
     });
 
     test('relapses dedupe by habit+date, newest wins', () {
@@ -668,7 +668,7 @@ void main() {
       );
       expect(rowsOf(result, 'vacationScopes').single['targetUuid'], 'r2');
       expect(result.stats.duplicatesMerged, 1);
-      expect(result.envelope['schemaVersion'], 7);
+      expect(result.envelope['schemaVersion'], 8);
     });
 
     test('scope natural-key dedupe keeps the newest copy', () {

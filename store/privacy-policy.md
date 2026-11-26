@@ -1,6 +1,6 @@
 # NowPill Privacy Policy
 
-_Last updated: 2026-11-23 (v0.3.0)_
+_Last updated: 2026-11-26 (v0.10.0)_
 
 NowPill is a local-first habit tracker and to-do list. This policy explains what
 data the app handles and where it lives. The short version: **your data stays on
@@ -12,6 +12,7 @@ Everything you create in the app is stored locally on your device:
 
 - Habits, check-ins, streak history, and freeze tokens
 - Tasks, subtasks, tags, priorities, and due dates
+- Personal chat notes you write to yourself
 - App preferences (theme, motion, language, reminder defaults, sync settings)
 
 This data lives in a SQLite database in the app's private storage
@@ -30,7 +31,7 @@ using one of the features below.
   those files anywhere itself; a transport you already use (Syncthing, Dropbox,
   iCloud Drive, a shared drive, …) moves them between your devices. NowPill has
   no server, no account system, and no knowledge of where the folder is hosted.
-  The files contain only your habit/task data and a random per-device id.
+  The files contain only your habit/task/note data and a random per-device id.
 
 ## What NowPill does NOT do
 

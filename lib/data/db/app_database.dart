@@ -5,6 +5,7 @@ import '../../domain/enums.dart';
 import '../../domain/recurrence_rule.dart';
 import 'connection.dart';
 import 'converters.dart';
+import 'daos/chat_notes_dao.dart';
 import 'daos/habits_dao.dart';
 import 'daos/tags_dao.dart';
 import 'daos/tasks_dao.dart';
@@ -20,7 +21,8 @@ part 'app_database.g.dart';
 /// task lists — [TaskLists], `Tasks.listId` + `Tasks.listUuid`; v6 adds quit
 /// habits — [HabitRelapses], `Habits.kind` — and planned vacation
 /// [VacationPeriods]; v7 adds [Routines], habit routine links, scoped
-/// vacations [VacationScopes], and `VacationPeriods.allHabits`).
+/// vacations [VacationScopes], and `VacationPeriods.allHabits`; v8 adds the
+/// personal chat thought stream [ChatNotes]).
 /// Foreign keys are enabled in [migration] so cascade deletes (subtasks,
 /// task_tags, checkins, freezes) work.
 @DriftDatabase(
@@ -37,9 +39,10 @@ part 'app_database.g.dart';
     HabitRelapses,
     VacationPeriods,
     VacationScopes,
+    ChatNotes,
     Tombstones,
   ],
-  daos: [TasksDao, HabitsDao, TagsDao],
+  daos: [TasksDao, HabitsDao, TagsDao, ChatNotesDao],
 )
 class AppDatabase extends _$AppDatabase {
   /// Opens the platform-appropriate persistent connection.
@@ -53,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   final String deviceId;
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +87,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await _migrateToV7(m);
+      }
+      if (from < 8) {
+        await _migrateToV8(m);
       }
     },
     beforeOpen: (details) async {
@@ -143,6 +149,14 @@ class AppDatabase extends _$AppDatabase {
     if (await _tableExists('vacation_periods') &&
         !await _columnExists('vacation_periods', 'all_habits')) {
       await m.addColumn(vacationPeriods, vacationPeriods.allHabits);
+    }
+  }
+
+  /// v0.10.0 personal chat. A new standalone table needs no backfill; the
+  /// existence guard keeps upgrades from hand-built partial test schemas safe.
+  Future<void> _migrateToV8(Migrator m) async {
+    if (!await _tableExists('chat_notes')) {
+      await m.createTable(chatNotes);
     }
   }
 

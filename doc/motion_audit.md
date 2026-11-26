@@ -425,3 +425,38 @@ spring fill, its reduced-motion flat fallback, rapid retargeting, and a 320dp /
 suite should be re-run after the ambient morph (three cached `Morph` paths per
 frame); if its p90 frame budget regresses, drop the morph and keep the enlarged
 drift.
+
+## v0.10.0 pass (personal chat)
+
+**Result: still token-clean.** The new chat destination adds no ad-hoc
+`AnimationController`, `Curves.*`, or fixed-duration implicit animation.
+
+| Widget | Token(s) | Reduced-motion behavior |
+| --- | --- | --- |
+| `SpringEntrance` (each note) | `spatialDefault` (rise), `effectsDefault` (opacity) | child rendered directly, no rise/fade |
+| `M3EIconButton` (Send / Delete) | package press spring + effects state layer | honors `MediaQuery.disableAnimations` republished by `MotionScope` |
+| Branch switch into Chat | `SpringSwitcher` (`spatialFast`) | child rendered directly |
+
+### From M3
+
+- Geometry uses spatial springs and opacity/color use critically damped effects
+  controllers (T §Expressive scheme; MOT §Spatial vs effects). The existing
+  `SpringEntrance` primitive already separates the two.
+- The filled 40dp send icon button keeps M3E's own press feedback and 48dp
+  inflated target; its tooltip/semantics come from `M3ETooltip` + `Semantics`.
+
+### My design decision (not in M3)
+
+- **No new hero moments and no stagger.** M3 publishes no stagger values or
+  per-choreography timings; the chat list passes `staggerStep: Duration.zero`,
+  so notes appear together. NowPill keeps its one/two existing hero moments.
+- The 8dp Send gap, docking above navigation, and the 640dp expanded-window
+  column cap are design decisions; M3 has no chat composer or bubble spec.
+- `M3ECard`'s internal press/expand still uses package defaults
+  (`M3EMotion.short4` + `standard`) — the known exception documented above.
+
+### Verification
+
+`flutter analyze` clean; full `flutter test` green (568 tests), including the
+chat M3E compliance test (48dp delete target, token type steps, role contrast)
+and a 320dp / 2× text-scale chat layout regression.

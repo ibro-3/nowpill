@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.10.0 — 2026-11-26
+
+A private **Personal chat** thought stream: short notes you send to yourself.
+Local-only and offline, with the same folder-sync and backup treatment as other
+data. **Schema, export, and sync format move v7 → v8**; older builds cannot
+import a v8 backup (they still import into this build).
+
+### Features
+- **"To me" destination** — a fifth tab with a docked composer, day-grouped
+  notes (Today / Yesterday / date), trimmed bodies up to 4,000 characters, and
+  a two-action delete confirmation. No AI, account, or background network.
+- **Links** — `http`/`https` URLs in notes render as underlined `primary` links
+  and open in the system browser. Only http/https are recognized; bare `www.`,
+  custom schemes and mailto stay plain text. A failed launch shows a snackbar.
+- **Splash screens** — a filled brand-mint circle now sits behind the pill logo
+  on the Flutter, Android and iOS splash screens, so the logo's white half no
+  longer disappears into a white background.
+- **Search** — personal notes are a new result group in the existing Search
+  screen, using the same accent-insensitive matching as tasks.
+- **Backup & sync** — notes travel in exports, daily backups, restore, and
+  folder sync (LWW by uuid with tombstones). Pre-v8 payloads import as an empty
+  stream.
+
+### Under the hood
+- New `ChatNotes` Drift table, DAO, repository and guarded v7→v8 migration.
+- M3 Expressive surface: 12dp filled cards, 56dp filled composer, a filled
+  40dp send icon button with a 48dp target, `M3EDialog` confirmation, and
+  existing `SpringEntrance` geometry/effects tokens with no stagger or new hero
+  moments. Five nav destinations stay within M3's 3–5 bar range.
+- 24 new tests; full suite passes (568 tests).
+
 ## v0.9.6 — 2026-11-25
 
 Material 3 Expressive follow-up: shell-wide ambient motion, spring-animated

@@ -3,10 +3,19 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="?android:colorBackground" />
 
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <!-- Brand mint circle: the white half of the pill needs a dark-enough fill
+         behind it to stay visible on the light (and dark) splash background. -->
+    <item android:gravity="center">
+        <shape android:shape="oval">
+            <size android:width="160dp" android:height="160dp" />
+            <solid android:color="@color/ic_launcher_background" />
+        </shape>
+    </item>
+
+    <!-- Pill logo (white + coral halves) centred inside the circle. -->
+    <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:src="@drawable/splash_logo" />
+    </item>
 </layer-list>

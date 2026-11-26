@@ -17,6 +17,7 @@ import '../sync/device_identity.dart';
 import '../widget/widget_action_handler.dart';
 import '../widget/widget_bridge_service.dart';
 import '../widget/widget_snapshot_controller.dart';
+import 'chat_repository.dart';
 import 'habit_repository.dart';
 import 'tag_repository.dart';
 import 'task_list_repository.dart';
@@ -53,6 +54,11 @@ HabitRepository habitRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 TagRepository tagRepository(Ref ref) {
   return TagRepository(ref.watch(appDatabaseProvider));
+}
+
+@Riverpod(keepAlive: true)
+ChatRepository chatRepository(Ref ref) {
+  return ChatRepository(ref.watch(appDatabaseProvider));
 }
 
 @Riverpod(keepAlive: true)

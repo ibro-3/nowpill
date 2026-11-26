@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.9.6** (see `CHANGELOG.md`).
+Current release: **v0.10.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
@@ -18,8 +18,13 @@ Current release: **v0.9.6** (see `CHANGELOG.md`).
 - **Today dashboard** — greeting + spring progress ring in a card; overdue →
   habits due → tasks due → done-today; one FAB creates a task due today; an
   all-done celebration (ring overshoot, confetti).
+- **To me** — a private, offline thought stream: send short notes to yourself,
+  browse them grouped by day, and tap `http`/`https` links to open them in your
+  browser. Local-first, included in backups and optional folder sync; no AI or
+  account.
 - **Search** — one reactive screen over tasks (titles, notes, subtasks), habits,
-  and tags; case- and accent-insensitive, tap-through to results.
+  tags, and personal chat notes; case- and accent-insensitive, tap-through to
+  results.
 - **Tasks** — subtasks, tags, priorities, due dates, recurring tasks
   (complete → spawn next occurrence), swipe-to-complete, filterable list.
 - **Habits** — daily / weekdays / weekly-target schedules, curated icons & brand
@@ -184,7 +189,7 @@ lib/
   data/       Drift/SQLite db + DAOs, repositories, export/backup, auto-backup,
               notifications (incl. background action handler), folder sync,
               widget (today-summary snapshot bridge for home-screen widgets)
-  features/   today / tasks / habits / stats / settings / shell
+  features/   today / tasks / habits / stats / chat / search / settings / shell
 ```
 
 Local-first: all data lives in Drift/SQLite. Streaks and freeze tokens are

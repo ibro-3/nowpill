@@ -535,8 +535,8 @@
   },
   "priorityMedium": "Medium",
   "search": "Search",
-  "searchHint": "Search tasks, habits, tags…",
-  "searchEmptyHint": "Find anything: task titles and notes, subtasks, habit names, and tags. Accents don't matter.",
+  "searchHint": "Search tasks, habits, tags, notes…",
+  "searchEmptyHint": "Find anything: task titles and notes, subtasks, habit names, tags, and your personal notes. Accents don't matter.",
   "searchNoResults": "Nothing found for “{query}”.",
   "@searchNoResults": {
     "placeholders": {
@@ -848,5 +848,28 @@
         "type": "String"
       }
     }
-  }
+  },
+  "navChat": "To me",
+  "chatTitle": "Notes to me",
+  "chatLinkError": "Could not open that link.",
+  "chatLinkSemantic": "Link: {url}",
+  "@chatLinkSemantic": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "chatComposerLabel": "Write a note…",
+  "chatClear": "Clear note",
+  "chatSend": "Send note",
+  "chatDelete": "Delete note",
+  "chatDeleteTitle": "Delete note?",
+  "chatDeleteBody": "This note is permanently removed from this device and any devices you sync with.",
+  "chatEmptyTitle": "A space for your thoughts",
+  "chatEmptyBody": "Send short notes to yourself. They stay on your device and work offline.",
+  "chatWriteFirst": "Write your first note",
+  "chatToday": "Today",
+  "chatYesterday": "Yesterday",
+  "searchNotes": "Notes"
 }

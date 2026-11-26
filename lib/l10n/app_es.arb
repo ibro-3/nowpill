@@ -406,8 +406,8 @@
   },
   "priorityMedium": "Media",
   "search": "Buscar",
-  "searchHint": "Busca tareas, hábitos, etiquetas…",
-  "searchEmptyHint": "Encuentra todo: títulos y notas de tareas, subtareas, nombres de hábitos y etiquetas. Los acentos no importan.",
+  "searchHint": "Busca tareas, hábitos, etiquetas, notas…",
+  "searchEmptyHint": "Encuentra todo: títulos y notas de tareas, subtareas, nombres de hábitos, etiquetas y tus notas personales. Los acentos no importan.",
   "searchNoResults": "No se encontró nada para «{query}».",
   "@searchNoResults": {
     "placeholders": {
@@ -564,5 +564,21 @@
   "archivedHabitsEmpty": "No hay hábitos archivados. Archiva un hábito desde su página de detalles para conservar su historial aquí.",
   "restoreHabit": "Restaurar",
   "habitRestored": "Hábito restaurado",
-  "archivedOn": "Archivado el {date}"
+  "archivedOn": "Archivado el {date}",
+  "navChat": "Para mí",
+  "chatTitle": "Notas para mí",
+  "chatLinkError": "No se pudo abrir ese enlace.",
+  "chatLinkSemantic": "Enlace: {url}",
+  "chatComposerLabel": "Escribe una nota…",
+  "chatClear": "Borrar nota",
+  "chatSend": "Enviar nota",
+  "chatDelete": "Eliminar nota",
+  "chatDeleteTitle": "¿Eliminar nota?",
+  "chatDeleteBody": "Esta nota se elimina permanentemente de este dispositivo y de cualquier dispositivo sincronizado.",
+  "chatEmptyTitle": "Un espacio para tus ideas",
+  "chatEmptyBody": "Envíate notas breves. Permanecen en tu dispositivo y funcionan sin conexión.",
+  "chatWriteFirst": "Escribe tu primera nota",
+  "chatToday": "Hoy",
+  "chatYesterday": "Ayer",
+  "searchNotes": "Notas"
 }

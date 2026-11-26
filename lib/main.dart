@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/settings/app_settings.dart';
 import 'core/settings/app_settings_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/splash_logo.dart';
 import 'data/sync/device_identity.dart';
 import 'data/widget/widget_action_handler.dart' as widget_action;
 import 'l10n/generated/app_localizations.dart';
@@ -73,7 +74,18 @@ class _NowPillAppState extends ConsumerState<NowPillApp> {
         theme: AppTheme.light().toThemeData(),
         darkTheme: AppTheme.light().deriveDarkTemplate().toThemeData(),
         themeMode: platformDark ? ThemeMode.dark : ThemeMode.light,
-        home: const Scaffold(body: Center(child: M3ELoadingIndicator())),
+        home: const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SplashLogo(),
+                SizedBox(height: 24),
+                M3ELoadingIndicator(),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

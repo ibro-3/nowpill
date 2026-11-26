@@ -10,6 +10,8 @@ import '../db/app_database.dart';
 /// Current export envelope schema version. Bump when the payload shape changes
 /// and add a migration path in `ExportService.importFromString`.
 ///
+/// v8 (v0.10.0) adds the personal chat thought stream: a `chatNotes` list
+/// (older payloads import with no notes).
 /// v7 (v0.7.0) adds routines and scoped vacation: `routines` + `vacationScopes`
 /// lists, `routineId` / `routineUuid` on habits, and `allHabits` on vacations
 /// (older payloads import as unrouted habits with all-habits vacations).
@@ -25,7 +27,7 @@ import '../db/app_database.dart';
 /// v2 adds the `freezes` list and per-habit `freezeMode`.
 /// v1 payloads still import: habits default to auto mode with no freezes;
 /// pre-v3 rows receive fresh uuids and derived timestamps.
-const int kExportSchemaVersion = 7;
+const int kExportSchemaVersion = 8;
 
 /// Oldest envelope version this build can import.
 const int kMinImportSchemaVersion = 1;
@@ -54,6 +56,7 @@ class ExportEnvelope {
     required this.vacations,
     required this.routines,
     required this.vacationScopes,
+    this.chatNotes = const [],
     this.freezes = const [],
     this.tombstones = const [],
     this.deviceId = '',
@@ -125,6 +128,11 @@ class ExportEnvelope {
           : <Map<String, dynamic>>[];
       final scopeRows = version >= 7 && data['vacationScopes'] is List
           ? (data['vacationScopes'] as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+
+      // v8 payloads carry personal chat notes; earlier ones have none.
+      final chatNoteRows = version >= 8 && data['chatNotes'] is List
+          ? (data['chatNotes'] as List).cast<Map<String, dynamic>>()
           : <Map<String, dynamic>>[];
 
       if (version < 7) {
@@ -292,6 +300,7 @@ class ExportEnvelope {
         vacations: vacationRows.map(VacationPeriod.fromJson).toList(),
         routines: routineRows.map(Routine.fromJson).toList(),
         vacationScopes: scopeRows.map(VacationScope.fromJson).toList(),
+        chatNotes: chatNoteRows.map(ChatNote.fromJson).toList(),
         freezes: freezeRowsTyped.map(HabitFreeze.fromJson).toList(),
         tombstones: tombstoneRows.map(Tombstone.fromJson).toList(),
       );
@@ -319,6 +328,7 @@ class ExportEnvelope {
   final List<VacationPeriod> vacations;
   final List<Routine> routines;
   final List<VacationScope> vacationScopes;
+  final List<ChatNote> chatNotes;
   final List<HabitFreeze> freezes;
   final List<Tombstone> tombstones;
 
@@ -338,6 +348,7 @@ class ExportEnvelope {
       'vacations': vacations.map((v) => v.toJson()).toList(),
       'routines': routines.map((r) => r.toJson()).toList(),
       'vacationScopes': vacationScopes.map((s) => s.toJson()).toList(),
+      'chatNotes': chatNotes.map((n) => n.toJson()).toList(),
       'freezes': freezes.map((f) => f.toJson()).toList(),
       'tombstones': tombstones.map((t) => t.toJson()).toList(),
     },
@@ -376,6 +387,7 @@ class ExportService {
       vacations: await _db.select(_db.vacationPeriods).get(),
       routines: await _db.select(_db.routines).get(),
       vacationScopes: await _db.select(_db.vacationScopes).get(),
+      chatNotes: await _db.select(_db.chatNotes).get(),
       freezes: await _db.select(_db.habitFreezes).get(),
       tombstones: await _db.select(_db.tombstones).get(),
     );
@@ -508,6 +520,15 @@ class ExportService {
       await _upsertByUuid<$VacationScopesTable, VacationScope>(
         table: _db.vacationScopes,
         rows: merged.vacationScopes,
+        uuidOf: (r) => r.uuid,
+        whereUuid: (t, u) => t.uuid.equals(u),
+        resolve: (r) => r.toCompanion(true),
+        contentJson: (r) => _contentJson(r.toJson()),
+      );
+      // Chat notes are standalone (no parent uuid to remap).
+      await _upsertByUuid<$ChatNotesTable, ChatNote>(
+        table: _db.chatNotes,
+        rows: merged.chatNotes,
         uuidOf: (r) => r.uuid,
         whereUuid: (t, u) => t.uuid.equals(u),
         resolve: (r) => r.toCompanion(true),
@@ -663,6 +684,7 @@ class ExportService {
       await _db.delete(_db.habitRelapses).go();
       await _db.delete(_db.vacationScopes).go();
       await _db.delete(_db.vacationPeriods).go();
+      await _db.delete(_db.chatNotes).go();
       await _db.delete(_db.taskTags).go();
       await _db.delete(_db.subtasks).go();
       await _db.delete(_db.tasks).go();
@@ -685,6 +707,7 @@ class ExportService {
         b.insertAll(_db.habitRelapses, e.relapses);
         b.insertAll(_db.vacationPeriods, e.vacations);
         b.insertAll(_db.vacationScopes, e.vacationScopes);
+        b.insertAll(_db.chatNotes, e.chatNotes);
         b.insertAll(_db.habitFreezes, e.freezes);
         b.insertAll(_db.tombstones, e.tombstones);
       });

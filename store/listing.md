@@ -21,7 +21,7 @@ BUILD STREAKS THAT STICK
 
 CRUSH YOUR TO-DOS
 • Tasks with subtasks, tags, priorities, and due dates.
-• Global search across tasks, habits, and tags — find anything in a tap.
+• Global search across tasks, habits, tags, and personal notes — find anything in a tap.
 • Recurring tasks spawn the next occurrence the moment you complete one.
 • Swipe to complete, filter by Today / Upcoming / All / Done.
 
@@ -45,6 +45,9 @@ SEE YOUR PROGRESS
 
 PRIVATE BY DESIGN
 • Everything stays on your device. No account, no cloud, no tracking.
+• "To me": a private thought stream of short notes to yourself. Links you type
+  become tappable, and everything is included in the same backups and optional
+  folder sync as the rest of your data.
 • Versioned JSON export/import so your data is always yours.
 • Automatic daily backups (last 7 kept) with one-tap restore.
 • Optional folder sync: keep devices in step through a folder you choose

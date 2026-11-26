@@ -26,7 +26,7 @@ const double _kRailBreakpoint = 600;
 /// belongs to expanded windows where there is room to spare.
 const double _kExpandedBreakpoint = 840;
 
-/// The four primary destinations, shared by the bar and the rail. Labels are
+/// The five primary destinations, shared by the bar and the rail. Labels are
 /// resolved from the active locale at build time.
 List<_Destination> _destinations(AppLocalizations l10n) => [
   _Destination(
@@ -48,6 +48,11 @@ List<_Destination> _destinations(AppLocalizations l10n) => [
     label: l10n.navStats,
     icon: M3EIcons.insights_outlined,
     selectedIcon: M3EIcons.insights,
+  ),
+  _Destination(
+    label: l10n.navChat,
+    icon: M3EIcons.chat_bubble_outline,
+    selectedIcon: M3EIcons.chat_bubble,
   ),
 ];
 

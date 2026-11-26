@@ -16,11 +16,25 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
+                            <!-- Brand mint circle behind the pill: the white half of the logo needs a darker fill to stay visible on the white splash. -->
+                            <view clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="q5V-9c-Br3">
+                                <rect key="frame" x="100" y="100" width="220" height="220"/>
+                                <color key="backgroundColor" red="0.17647058823529413" green="0.83137254901960789" blue="0.6588235294117647" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <userDefinedRuntimeAttributes>
+                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                        <real key="value" value="110"/>
+                                    </userDefinedRuntimeAttribute>
+                                </userDefinedRuntimeAttributes>
+                            </view>
                             <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
                             </imageView>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="q5V-9c-Br3" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="8tY-2n-Lq1"/>
+                            <constraint firstItem="q5V-9c-Br3" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="p4D-7w-Jm2"/>
+                            <constraint firstAttribute="height" constant="220" id="r9Q-3k-Hc5"/>
+                            <constraint firstAttribute="width" constant="220" id="w2L-6d-Fs8"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
                         </constraints>
@@ -32,6 +46,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchImage" width="168" height="185"/>
+        <image name="LaunchImage" width="168" height="168"/>
     </resources>
 </document>

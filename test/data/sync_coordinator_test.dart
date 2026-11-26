@@ -241,7 +241,7 @@ void main() {
     final content = File('${dir.path}/nowpill-sync-devA.json')
         .readAsStringSync();
     final decoded = jsonDecode(content) as Map<String, Object?>;
-    expect(decoded['schemaVersion'], 7);
+    expect(decoded['schemaVersion'], 8);
     expect(decoded['deviceId'], 'devA');
   });
 }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_surfaces.dart';
 import '../../data/db/app_database.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -11,7 +12,8 @@ import '../habits/habit_icons.dart';
 import '../tasks/task_editor_sheet.dart';
 import 'search_providers.dart';
 
-/// Global search across tasks (title/notes/subtasks), habits, and tags.
+/// Global search across tasks (title/notes/subtasks), habits, tags, and
+/// personal chat notes.
 /// Live-as-you-type; results grouped by entity with tap-through to the
 /// existing editors/detail screens.
 class SearchScreen extends ConsumerStatefulWidget {
@@ -93,6 +95,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         _GroupHeader(title: l10n.searchTags, theme: theme),
                         for (final tag in results.tags)
                           _TagResult(tag: tag, theme: theme),
+                      ],
+                      if (results.notes.isNotEmpty) ...[
+                        _GroupHeader(title: l10n.searchNotes, theme: theme),
+                        for (final note in results.notes)
+                          _NoteResult(note: note, theme: theme),
                       ],
                     ],
                   ),
@@ -263,6 +270,44 @@ class _HabitResult extends StatelessWidget {
             Expanded(
               child: Text(
                 habit.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.typography.baseline.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoteResult extends StatelessWidget {
+  const _NoteResult({required this.note, required this.theme});
+
+  final ChatNote note;
+  final M3EThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: M3ECard(
+        variant: M3ECardVariant.filled,
+        // Opens the stream; there is no per-note deep link in v1.
+        onPressed: () => context.go(AppRoutes.chat),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              M3EIcons.chat_bubble_outline,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                note.body,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.typography.baseline.bodyLarge,

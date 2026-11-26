@@ -377,6 +377,27 @@ class VacationScopes extends Table {
   ];
 }
 
+/// One short note in the personal chat thought stream (schema v8).
+///
+/// Notes are messages to yourself: no parent, no thread, no attachments. The
+/// local integer id is device-private; [uuid] is the cross-device identity.
+class ChatNotes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get uuid => text().unique().clientDefault(syncUuid.v4)();
+
+  /// LWW key for sync; stamped on create and on every edit.
+  IntColumn get updatedAt => integer()
+      .map(const UtcMillisConverter())
+      .clientDefault(() => DateTime.now().toUtc().millisecondsSinceEpoch)();
+
+  /// Immutable creation time, used for display and date grouping.
+  IntColumn get createdAt => integer().map(const UtcMillisConverter())();
+
+  /// Note body, trimmed and capped at 4,000 characters by the repository.
+  TextColumn get body => text().withLength(min: 1, max: 4000)();
+}
+
 /// Deletion markers for sync (schema v3). When a row is deleted locally its
 /// uuid is recorded here so other devices drop it on merge instead of
 /// resurrecting it. Never pruned — history must not come back.
