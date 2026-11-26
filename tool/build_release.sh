@@ -54,6 +54,18 @@ dist="$ROOT/dist"
 rm -rf "$dist"
 mkdir -p "$dist"
 
+echo "==> Checking manifest intent schemes"
+python3 - <<'PY'
+import re
+import sys
+
+manifest = open("android/app/src/main/AndroidManifest.xml").read()
+for block in re.findall(r"<intent>.*?</intent>", manifest, re.S):
+    schemes = re.findall(r'android:scheme="[^"]+"', block)
+    if len(schemes) > 1:
+        sys.exit(f"Manifest intent declares more than one data scheme: {schemes}")
+PY
+
 echo "==> Building signed APKs"
 flutter build apk --release
 flutter build apk --release --split-per-abi

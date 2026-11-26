@@ -119,10 +119,14 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- url_launcher: allow the browser to be resolved for chat links. -->
+        <!-- url_launcher: allow the browser to be resolved for chat links.
+             Each intent may declare at most one data scheme. -->
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="http"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
     </queries>
