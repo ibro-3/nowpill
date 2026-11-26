@@ -9,8 +9,14 @@ and stats — wrapped in smooth, spring-driven motion.
 Current release: **v0.10.0** (see `CHANGELOG.md`).
 
 <p align="center">
-  <img src="doc/screenshots/today-light.png" width="45%" alt="Today dashboard (light)" />
-  <img src="doc/screenshots/stats-dark.png" width="45%" alt="Stats (dark)" />
+  <img src="doc/screenshots/today-split.png" width="30%" alt="Today — light and dark" />
+  <img src="doc/screenshots/tasks-split.png" width="30%" alt="Tasks — light and dark" />
+  <img src="doc/screenshots/habits-split.png" width="30%" alt="Habits — light and dark" />
+</p>
+<p align="center">
+  <img src="doc/screenshots/stats-split.png" width="30%" alt="Stats — light and dark" />
+  <img src="doc/screenshots/chat-split.png" width="30%" alt="Notes to me — light and dark" />
+  <img src="doc/screenshots/settings-split.png" width="30%" alt="Settings — light and dark" />
 </p>
 
 ## Features
