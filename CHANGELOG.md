@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.13.0 — 2026-11-27
+
+Riverpod codegen revisit. No code, data, schema, or export changes — format
+stays v8.
+
+### Under the hood
+- Re-evaluated the Drift part-file provider blocker at `riverpod_generator`
+  4.0.10 (latest resolvable), `riverpod_analyzer_utils` 1.0.0 and
+  `analyzer_buffer` 0.3.4. A minimal annotated provider returning
+  `Stream<List<Task>>` still fails with "Invalid provider type", and a typedef
+  alias does not help — the hand-written providers stay. Result recorded in
+  `doc/m3e_spike_decision.md`.
+
 ## v0.12.0 — 2026-11-27
 
 Visual fixes for the brand palette and Settings legibility, plus documentation

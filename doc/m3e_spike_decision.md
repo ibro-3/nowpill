@@ -79,6 +79,15 @@ and providers returning plain Dart types. See
 `lib/features/tasks/task_providers.dart`. Revisit if a future
 riverpod_generator/analyzer_buffer release fixes part-file resolution.
 
+**Revisit (2026-11-27):** checked again at `riverpod_generator` 4.0.10 (latest
+resolvable), `riverpod_analyzer_utils` 1.0.0 and `analyzer_buffer` 0.3.4 —
+`flutter pub outdated` reports no newer version of any of them. A minimal
+annotated provider returning `Stream<List<Task>>` still fails with
+"Invalid provider type: the return type … could not be resolved", and routing
+the row type through a `typedef` alias does not help. The hand-written
+providers remain the workaround; revisit only when the upstream generator
+ships a fix.
+
 Also note: the generator strips a trailing `Notifier` from class-based provider
 names — `TaskFilterNotifier` generates `taskFilterProvider` (not
 `taskFilterNotifierProvider`).
