@@ -142,10 +142,10 @@ class _ExpressiveThemeHost extends StatelessWidget {
   final Widget child;
 
   Brightness _brightness(BuildContext context) => switch (themeMode) {
-        AppThemeMode.system => MediaQuery.platformBrightnessOf(context),
-        AppThemeMode.light => Brightness.light,
-        AppThemeMode.dark => Brightness.dark,
-      };
+    AppThemeMode.system => MediaQuery.platformBrightnessOf(context),
+    AppThemeMode.light => Brightness.light,
+    AppThemeMode.dark => Brightness.dark,
+  };
 
   Widget _withScheme(BuildContext context, ColorScheme? dynamicScheme) {
     final brightness = _brightness(context);
