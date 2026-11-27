@@ -8,9 +8,9 @@ import 'app_colors.dart';
 
 /// Builds NowPill's Material 3 Expressive theme.
 ///
-/// The light template is the source of truth; [M3EMaterialApp] derives the
-/// dark template from it automatically (`deriveDarkTemplate`). Typography uses
-/// the bundled Nunito variable font across the full M3E scale, including the
+/// Light and dark are built side by side from the same brand seeds, so the
+/// coral/amber accents survive in both brightnesses. Typography uses the
+/// bundled Nunito variable font across the full M3E scale, including the
 /// emphasized display/headline styles used for hero moments.
 abstract final class AppTheme {
   const AppTheme._();
@@ -18,9 +18,20 @@ abstract final class AppTheme {
   /// Registered family name for the bundled Nunito variable font.
   static const String fontFamily = 'Nunito';
 
-  /// The light-oriented base theme. Dark is derived by the M3E app shell.
+  /// The light-oriented brand theme.
   static M3EThemeData light({ColorScheme? dynamicLight}) {
     return _build(Brightness.light, dynamic: dynamicLight);
+  }
+
+  /// The dark-oriented brand theme.
+  ///
+  /// Built the same way as [light] (mint seed, coral secondary, amber tertiary)
+  /// rather than via `M3EThemeData.deriveDarkTemplate()`. That helper re-seeds
+  /// from a single color — the light scheme's primary — which discards our
+  /// explicit secondary/tertiary overrides and loses the brand palette in dark
+  /// mode. The app shell uses this template directly for M3E components too.
+  static M3EThemeData dark({ColorScheme? dynamicDark}) {
+    return _build(Brightness.dark, dynamic: dynamicDark);
   }
 
   static M3EThemeData _build(Brightness brightness, {ColorScheme? dynamic}) {

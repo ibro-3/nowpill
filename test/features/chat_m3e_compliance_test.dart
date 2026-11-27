@@ -71,7 +71,7 @@ void main() {
   test('link primary clears 4.5:1 on the filled card in both themes', () {
     for (final colors in [
       AppTheme.light().colorScheme,
-      AppTheme.light().deriveDarkTemplate().colorScheme,
+      AppTheme.dark().colorScheme,
     ]) {
       expect(
         contrast(colors.primary, colors.surfaceContainerHighest),

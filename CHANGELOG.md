@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.12.0 — 2026-11-27
+
+Visual fixes for the brand palette and Settings legibility, plus documentation
+corrections. No data, schema, or export changes — format stays v8.
+
+### Fixed
+- **Dark mode brand colors** — without dynamic color, dark now keeps the mint
+  primary with coral secondary and amber tertiary. Previously the M3E dark
+  template was re-seeded from a single color, dropping both accents.
+- **Settings button labels** — connected choice groups (theme, language, motion,
+  update check mode) collapse overflowing options into a trailing menu instead
+  of ellipsizing them. Paired actions (Export/Import, folder/Sync now) size to
+  their labels and wrap on narrow screens or at large system text.
+- **About version** — the Settings About card now shows the real package version
+  instead of a hardcoded `0.9.2` (v0.10.1 claimed this but still shipped the
+  hardcoded value).
+- **README** — the backup description now states schema v8 and imports v1–v8,
+  matching the code, instead of the stale v7 / v1–v6.
+
+### Under the hood
+- The app shell resolves the active M3E template directly instead of relying on
+  `deriveDarkTemplate()`; dynamic color still comes from `M3EDynamicColorHost`.
+- Added dark-palette and label-truncation regression tests (English/Spanish,
+  narrow phone, 2x text).
+
 ## v0.10.1 — 2026-11-26
 
 GitHub release updater. No data, schema, or export changes — format stays v8.

@@ -22,6 +22,7 @@ import '../../data/sync/device_identity.dart';
 import '../../data/sync/sync_coordinator.dart';
 import '../../data/sync/sync_folder.dart';
 import '../../data/sync/sync_providers.dart';
+import '../../data/updates/update_coordinator.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/enums.dart';
 import '../../features/habits/habit_providers.dart';
@@ -302,6 +303,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final notifier = ref.read(appSettingsProvider.notifier);
     final theme = M3ETheme.of(context);
     final l10n = AppLocalizations.of(context);
+    final version = ref.watch(packageInfoProvider).value?.version ?? '0.0.0';
     final vacations =
         ref.watch(vacationPeriodsProvider).value ?? const <VacationPeriod>[];
     final scopes =
@@ -649,24 +651,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                // Let each button size to its label instead of splitting the
+                // row into equal halves — at narrow widths or large text the
+                // halves ellipsized "Change folder" into unreadable fragments.
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      child: M3EButton.icon(
-                        onPressed: _busy ? null : _export,
-                        style: M3EButtonStyle.tonal,
-                        icon: const Icon(M3EIcons.upload),
-                        label: Text(l10n.export),
-                      ),
+                    M3EButton.icon(
+                      onPressed: _busy ? null : _export,
+                      style: M3EButtonStyle.tonal,
+                      icon: const Icon(M3EIcons.upload),
+                      label: Text(l10n.export),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: M3EButton.icon(
-                        onPressed: _busy ? null : _import,
-                        style: M3EButtonStyle.outlined,
-                        icon: const Icon(M3EIcons.download),
-                        label: Text(l10n.import),
-                      ),
+                    M3EButton.icon(
+                      onPressed: _busy ? null : _import,
+                      style: M3EButtonStyle.outlined,
+                      icon: const Icon(M3EIcons.download),
+                      label: Text(l10n.import),
                     ),
                   ],
                 ),
@@ -711,7 +713,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: theme.typography.emphasized.titleMedium,
                       ),
                       Text(
-                        l10n.aboutVersion('0.9.2'),
+                        l10n.aboutVersion(version),
                         style: theme.typography.baseline.bodySmall.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -1118,32 +1120,30 @@ class _SyncCard extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 12),
-            Row(
+            // Natural-width buttons wrap to a second line when needed, so the
+            // folder label is never squeezed into an ellipsis.
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: M3EButton.icon(
-                    onPressed: onChooseFolder,
-                    style: M3EButtonStyle.outlined,
-                    icon: const Icon(M3EIcons.folder),
-                    label: Text(
-                      settings.syncFolderHandle == null
-                          ? l10n.syncChooseFolder
-                          : l10n.syncChangeFolder,
-                    ),
+                M3EButton.icon(
+                  onPressed: onChooseFolder,
+                  style: M3EButtonStyle.outlined,
+                  icon: const Icon(M3EIcons.folder),
+                  label: Text(
+                    settings.syncFolderHandle == null
+                        ? l10n.syncChooseFolder
+                        : l10n.syncChangeFolder,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: M3EButton.icon(
-                    onPressed:
-                        settings.syncEnabled &&
-                            settings.syncFolderHandle != null
-                        ? () => ref.read(syncCoordinatorProvider).syncNow()
-                        : null,
-                    style: M3EButtonStyle.tonal,
-                    icon: const Icon(M3EIcons.sync),
-                    label: Text(l10n.syncNow),
-                  ),
+                M3EButton.icon(
+                  onPressed:
+                      settings.syncEnabled && settings.syncFolderHandle != null
+                      ? () => ref.read(syncCoordinatorProvider).syncNow()
+                      : null,
+                  style: M3EButtonStyle.tonal,
+                  icon: const Icon(M3EIcons.sync),
+                  label: Text(l10n.syncNow),
                 ),
               ],
             ),

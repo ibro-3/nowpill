@@ -6,7 +6,7 @@ A playful **Material 3 Expressive** habit tracker & to-do list. Local-first and
 offline, with strict streaks, freeze tokens, recurring tasks, reminders, heatmaps,
 and stats — wrapped in smooth, spring-driven motion.
 
-Current release: **v0.10.1** (see `CHANGELOG.md`).
+Current release: **v0.12.0** (see `CHANGELOG.md`).
 
 <p align="center">
   <img src="doc/screenshots/today-split.png" width="30%" alt="Today — light and dark" />
@@ -73,7 +73,7 @@ Current release: **v0.10.1** (see `CHANGELOG.md`).
 - **Accessibility** — screen-reader labels on heatmap days, progress ring,
   streak/token widgets, and charts; tap-target and 2× text-scale regression
   tests for the primary tabs.
-- **Backup & sync** — versioned JSON export/import (schema v7, imports v1–v6)
+- **Backup & sync** — versioned JSON export/import (schema v8, imports v1–v8)
   with a confirm-replace-all flow; **automatic daily backups** (last 7 kept,
   explicit restore); **optional folder sync** through a user-chosen folder
   (Syncthing/Dropbox/iCloud Drive transport; per-device envelope files, LWW

@@ -4,6 +4,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nowpill/core/settings/app_settings.dart';
 import 'package:nowpill/core/settings/app_settings_provider.dart';
+import 'package:nowpill/core/theme/app_theme.dart';
 import 'package:nowpill/data/db/app_database.dart';
 import 'package:nowpill/data/repositories/providers.dart';
 import 'package:nowpill/main.dart';
@@ -66,6 +67,20 @@ void main() {
       m3e.colorScheme.toColorScheme().surface,
       reason: 'scaffold background must match the active scheme, not lag it',
     );
+
+    // The brand palette must survive in both brightnesses. Checking the
+    // derived dark template here would catch the old `deriveDarkTemplate()`
+    // path, which re-seeded from light's primary and dropped coral/amber.
+    final brand = expected == Brightness.dark
+        ? AppTheme.dark().colorScheme
+        : AppTheme.light().colorScheme;
+    for (final role in [
+      (m3e.colorScheme.primary, brand.primary, 'primary'),
+      (m3e.colorScheme.secondary, brand.secondary, 'secondary'),
+      (m3e.colorScheme.tertiary, brand.tertiary, 'tertiary'),
+    ]) {
+      expect(role.$1, role.$2, reason: '${role.$3} must use the brand palette');
+    }
   }
 
   // The full matrix: user mode x OS brightness. Dynamic color is disabled so
