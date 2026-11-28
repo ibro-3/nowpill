@@ -213,13 +213,21 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
       // Only a non-null amount (measurable habit) updates in place; classic
       // check-ins stay idempotent.
       if (entry.amount.value == null) return -1;
+      // Two updates in the same millisecond must still advance the stamp: LWW
+      // merge uses updatedAt, and a tie would let the older amount win on some
+      // devices. Keep the edit strictly newer than the row it replaces.
+      final now = DateTime.now().toUtc();
+      final previous = existing.updatedAt.millisecondsSinceEpoch;
+      final stamp = now.millisecondsSinceEpoch > previous
+          ? now
+          : DateTime.fromMillisecondsSinceEpoch(previous + 1, isUtc: true);
       await (update(
         habitCheckins,
       )..where((c) => c.id.equals(existing.id))).write(
         HabitCheckinsCompanion(
           amount: entry.amount,
           note: entry.note.present ? entry.note : const Value.absent(),
-          updatedAt: Value(DateTime.now().toUtc()),
+          updatedAt: Value(stamp),
         ),
       );
       return existing.id;

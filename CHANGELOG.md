@@ -2,8 +2,11 @@
 
 ## v0.13.0 — 2026-11-27
 
-Riverpod codegen revisit. No code, data, schema, or export changes — format
-stays v8.
+Riverpod codegen revisit. No data, schema, or export changes — format stays v8.
+
+### Fixed
+- Measurable check-ins now advance `updatedAt` even when two amounts are logged
+  in the same millisecond, so last-writer-wins sync keeps the newer amount.
 
 ### Under the hood
 - Re-evaluated the Drift part-file provider blocker at `riverpod_generator`
